@@ -18,9 +18,9 @@ Matthew Loh Yet Marn
   - [Get an API key here.](https://platform.openai.com/account/api-keys)
   - `import openai` automatically finds your key if you've set it to that name
 - Create a virtual environment, in your terminal run the following command
-  - ```python -m venv venv```
+```python -m venv venv```
 - Create a .env file manually in the root directory of the project or in PowerShell run the following command:
-  - ``` New-Item -Path . -Name .env -ItemType File ```
+``` New-Item -Path . -Name .env -ItemType File ```
 - Add the following into the .env,
 ```
 # Retrieved from Planetscale to connect through Prisma
