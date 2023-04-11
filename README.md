@@ -5,6 +5,7 @@ Python Tkinter Desktop Application for Interactive Learning and Teaching with a 
 Matthew Loh Yet Marn
 
 ## Features
+- Database hosted on Planetscale
 - tbd
 ## Setup
 - Dependencies (to be determined as well)
@@ -18,6 +19,18 @@ Matthew Loh Yet Marn
   - `import openai` automatically finds your key if you've set it to that name
 - Create a virtual environment, in your terminal run the following command
   - ```python -m venv venv```
+- Create a .env file manually in the root directory of the project or in PowerShell run the following command:
+  - ``` New-Item -Path . -Name .env -ItemType File ```
+- Add the following into the .env,
+```
+# Retrieved from Planetscale to connect through Prisma
+DB_HOST=<DB_HOST>
+DB_USERNAME=<DB_USERNAME>
+DB_PASSWORD=<DB_PASSWORD>
+DB_DATABASE=<DB_PASSWORD>
+# Used for simple sql queries, obtained from Planetscale
+DB_URL=<mysql_query>
+```
 ## Usage
 - Run `main.py` to start the application
 
