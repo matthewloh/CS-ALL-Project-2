@@ -32,6 +32,8 @@ DB_DATABASE=<DB_PASSWORD>
 DB_URL=<mysql_query>
 ```
 ## Usage
+- Activate the virtual environment
+```env\Scripts\activate``` or ```.\env\Scripts\activate``` if you're using PowerShell
 - Run `main.py` to start the application
 
 ## Project Directory
