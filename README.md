@@ -34,6 +34,10 @@ DB_URL=<mysql_query>
 ## Usage
 - Activate the virtual environment
 ```env\Scripts\activate``` or ```.\env\Scripts\activate``` if you're using PowerShell
+- Install the dependencies
+```pip install -r requirements.txt```
+- Run Prisma Generate
+```prisma generate```
 - Run `main.py` to start the application
 
 ## Project Directory
