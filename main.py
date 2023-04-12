@@ -83,7 +83,6 @@ class Window(Tk):
         self.bind("<Escape>", lambda e: self.destroy())
         self.button_dicts = {}
         self.labels_dicts = {}
-        self.widgetslist = []
 
         self.parentFrame = Canvas(self, bg=LIGHTYELLOW, width=1, height=1, name="parentFrame")
         self.parentFrame.grid(row=0, column=0, rowspan=1, columnspan=1, sticky=NSEW)
@@ -96,35 +95,6 @@ class Window(Tk):
         ]
         self.settingsUnpacker(self.labelSettingsParentFrame, "label")
 
-        def parseDicts(dictionary):
-            """
-            Parses a dictionary of buttons and labels and formats them into human readable text
-            {'Student Button': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 54, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE0950>}, 'Teacher Button': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE0F90>}, 'Back Button': {'columnspan': 12, 'rowspan': 4, 'row': 2, 'column': 0, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE1410>}, 'Skip Button': {'columnspan': 12, 'rowspan': 4, 'row': 47, 'column': 84, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE17D0>}, 'Captcha Button': {'columnspan': 18, 'rowspan': 5, 'row': 26, 'column': 63, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE18D0>}}
-            Breaks up each element in the dictionary example above into
-            <Button> -> <Button Name> -> <Button Property> -> <Button Property Value>... continuing in a single line
-
-            """
-            for key, value in dictionary.items():
-                print(key, value)
-                for key2, value2 in value.items():
-                    print(key2, value2)
-
-        def parseObjectsFromFrame(frame: Frame):
-            for widgetname, widget in frame.children.items():
-                if isinstance(widget, Button) or (isinstance(widget, Label)and not widgetname.startswith("!la")):
-                    widgethost = str(widget).split(".")[-2]
-                    widget = str(widget).split(".")[-1]
-                    if isinstance(widget, Label):
-                        print(f"Label: {widget} & Label holder: {widgethost}")
-                    else:
-                        print(f"Button: {widget} & and Button holder: {widgethost}")
-        def destroyObjectsFromFrame(frame: Frame):
-            for widgetname, widget in self.children.items():
-                if not (widgetname.startswith("!la")):
-                    # print(frame, widgetname, widget)
-                    self.widgetslist.append(widget)
-            for widget in self.widgetslist:
-                print("asdf", widget)
         def returnObjectsToFrame(frame: Frame):
             widgetlist = []
             for widgetname, widget in frame.children.items():
@@ -133,7 +103,6 @@ class Window(Tk):
                     widgetlist.append(widget)
             for widgetname, widget in widgetlist:
                 print(f"this is widget in{frame}", widgetname, widget)
-
 
         self.postSelectFrame = Frame(self.parentFrame, bg=LIGHTYELLOW, width=1, height=1, name="postSelectFrame")
         self.postSelectFrame.grid(row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
@@ -175,30 +144,52 @@ class Window(Tk):
             (r"Assets\LandingPage\Teacher Button.png", 240, 320, "Teacher Button",
             self.parentFrame, lambda: makeBgImageGrid(teacher=True)) 
         ]
-        for i in self.buttonSettingsForParentFrame:
-            button_params = {
-                "imagepath": i[0],
-                "x": i[1],
-                "y": i[2],
-                "classname": i[3],
-                "root": i[4],
-                "buttonFunction": i[5],
-            }
-            self.buttonCreator(**button_params )
-        self.settingsForPostSelectFrame = [
+        self.settingsUnpacker(self.buttonSettingsForParentFrame, "button")
+        self.btnSettingsPostSelectFrame = [
         (r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, "Back Button", 
         self.postSelectFrame,
         lambda: self.postSelectFrame.grid_remove()),
         (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 940, "Skip Button", 
         self.postSelectFrame,
-        lambda: [self.show_frame(Dashboard), self.loadPageAssetsStudents(Dashboard)]), 
+        lambda: [self.show_frame(Dashboard), self.loadPageAssets(Dashboard, "student")]), 
         (r"Assets\Login Page with Captcha\CaptchaButton.png", 1260, 520, "Captcha Button", 
         self.postSelectFrame,
         lambda: [self.postSelectFrame.grid_remove()]), 
         ]
+        self.settingsUnpacker(self.btnSettingsPostSelectFrame, "button")
+        
+        self.widgetsdict = {} 
+        def parseDicts(dictionary):
+            """
+            Parses a dictionary of buttons and labels and formats them into human readable text
+            {'Student Button': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 54, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE0950>}, 'Teacher Button': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE0F90>}, 'Back Button': {'columnspan': 12, 'rowspan': 4, 'row': 2, 'column': 0, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE1410>}, 'Skip Button': {'columnspan': 12, 'rowspan': 4, 'row': 47, 'column': 84, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE17D0>}, 'Captcha Button': {'columnspan': 18, 'rowspan': 5, 'row': 26, 'column': 63, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE18D0>}}
+            Breaks up each element in the dictionary example above into
+            <Button> -> <Button Name> -> <Button Property> -> <Button Property Value>... continuing in a single line
 
-        self.opensDevWindow(parseObjectsFromFrame, destroyObjectsFromFrame, returnObjectsToFrame)
-        self.settingsUnpacker(self.settingsForPostSelectFrame, "button")
+            """
+            for key, value in dictionary.items():
+                print(key, value)
+                for key2, value2 in value.items():
+                    print(key2, value2)
+
+        def parseObjectsFromFrame(frame: Frame):
+            for widgetname, widget in frame.children.items():
+                if isinstance(widget, (Label, Frame, Button)) and not widgetname.startswith("!la"):
+                    # widgethost = str(widget).split(".")[-2]
+                    # widget = str(widget).split(".")[-1]
+                    # if isinstance(widget, Label):
+                    #     print(f"Label: {widget} & Label holder: {widgethost}")
+                    # elif isinstance(widget, Frame):
+                    #     print(f"Frame: {widget} & Frame holder: {widgethost}")
+                    # elif isinstance(widget, Button):
+                    #     print(f"Button: {widget} & Button holder: {widgethost}")
+                    self.widgetsdict[widgetname] = widget
+        def checkWidgetsInWindow(widget):
+            # print(self.widgetsdict)
+            print(widget)
+            print(self.widgetsdict.get('topbar').configure(relief="sunken"))
+
+        # self.opensDevWindow(parseObjectsFromFrame, checkWidgetsInWindow, returnObjectsToFrame)
         
         self.frames = {}
         for F in (
@@ -211,7 +202,7 @@ class Window(Tk):
             frame.grid_propagate(False)
             frame.grid_remove()
 
-    def opensDevWindow(self, parseObjectsFromFrame, destroyObjectsFromFrame, returnObjectsToFrame):
+    def opensDevWindow(self, parseObjectsFromFrame, checkWidgetsInWindow, returnObjectsToFrame):
         self.developerkittoplevel = Toplevel(
             self,
             bg=LIGHTYELLOW,
@@ -224,14 +215,14 @@ class Window(Tk):
         self.developerkittoplevel.attributes("-topmost", True)
         self.settingsUnpacker([(r"Assets\DeveloperKit\BG.png", 0, 0, "DevKitBG", self.developerkittoplevel)], "label")
         widgetssettingsfordevkit = [
-        (r"Assets\DeveloperKit\XD.png", 520, 0, "XD Button", self.developerkittoplevel, 
-        lambda: parseObjectsFromFrame(self.get_page(Dashboard))),
+        (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "XD Button", self.developerkittoplevel, 
+        lambda: parseObjectsFromFrame(self.parentFrame)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
-        lambda: destroyObjectsFromFrame(self.get_page(Dashboard))),
+        lambda: checkWidgetsInWindow('learninghubchip')),
+        (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 160, "XD3 Button", self.developerkittoplevel, 
+        lambda: parseObjectsFromFrame(self.get_page(Dashboard))),
         (r"Assets\DeveloperKit\xd1.png", 680, 160, "XD2 Button", self.developerkittoplevel, 
-        lambda: returnObjectsToFrame(self.get_page(Dashboard))),
-        (r"Assets\DeveloperKit\XD.png", 520, 160, "XD3 Button", self.developerkittoplevel, 
-        lambda: self.destroyLabelsFromFrame(self.parentFrame)),
+        lambda: checkWidgetsInWindow('learninghubchip')),
         (r"Assets\DeveloperKit\WidgetWorkings.png", 520, 320, "XD4 Button", self.developerkittoplevel, 
         lambda: [self.destroyLabelFromFrame(self.postSelectFrame), print("destroyed")],),
         (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
@@ -284,19 +275,12 @@ class Window(Tk):
     def get_page(self, classname):
         return self.frames[classname]
 
-    def loadPageAssetsStudents(self, page):
+    def loadPageAssets(self, page, role):
         """
         This function loads the assets for the page. Each page has its own assets only loaded during time of use.
         """
         reference = self.get_page(page)
-        reference.loadAssetsStudents()
-
-    def loadPageAssetsTeachers(self, page):
-        """
-        This function loads the assets for the page. Each page has its own assets only loaded during time of use.
-        """
-        reference = self.get_page(page)
-        reference.loadAssetsTeachers()
+        reference.loadAssets(role)
 
     def deletethewindowbar(self, windowInstance):
         hwnd: int = get_handle(windowInstance)
@@ -320,7 +304,7 @@ class Window(Tk):
         classname=None,
         buttonFunction=None,
         root=None,
-        relief=FLAT,
+        relief=SUNKEN,
         overrideRelief=FLAT,
         text=None,
         font=("Avenir Next Bold", 16),
@@ -388,12 +372,11 @@ class Window(Tk):
         ):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
-        will destroy the dictionary if not referenced to something. Thus, we pass it with an identifier string variable called classname.\n\n
+        will destroy the image if not referenced to something. Thus, we pass it with an identifier string variable called classname.\n\n
         For example, :\n
         self.buttonCreator(r"Assets\Student Button.png", 240, 320, classname="StudentButton")
         will first return a dictionary with the following format:\n
         {'StudentButton': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000246A6976710>}}
-        Then, we pass the classname to the inner dictionary, which gives us a label or button with the image we want.
         """
         label_dict = elementcreator.createDictOfSettings(
             self, imagepath, x, y, classname
@@ -556,6 +539,73 @@ class Window(Tk):
         colorkey = win32api.RGB(red, green, blue)
         return colorkey
   
+
+class SlidePanel(Frame):
+    def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN):
+        super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN)
+        self.controller = controller
+        gridGenerator(self, 1, 1, TRANSPARENTGREEN)
+        self.grid(row=startrow, column=startcolumn, rowspan=rowspan, columnspan=startcolumnspan, sticky=NSEW)
+        self.grid_propagate(False)
+        # self.startposition = startposition
+        # self.endposition = endposition
+        self.startcolumn = startcolumn
+        self.endcolumn = endcolumn
+        self.startcolumnspan = startcolumnspan
+        self.endcolumnspan = endcolumnspan
+        self.distance = endcolumn - startcolumn
+        #animation logic
+        self.pos = startcolumn
+        self.at_start_pos = True
+        hwnd = self.winfo_id() #TRANSPARENTGREEN IS the default colorkey
+        transparentcolor = self.controller.hex_to_rgb(TRANSPARENTGREEN)
+        wnd_exstyle = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+        new_exstyle = wnd_exstyle | win32con.WS_EX_LAYERED
+        win32gui.SetWindowLong(hwnd,win32con.GWL_EXSTYLE,new_exstyle)
+        win32gui.SetLayeredWindowAttributes(hwnd,transparentcolor,255,win32con.LWA_COLORKEY)
+        self.controller.sidebarimage = ImageTk.PhotoImage(Image.open(r"Assets\Dashboard\sidebar320x940.png"))
+        self.sidebarlabel = Label(self, image=self.controller.sidebarimage, bg=TRANSPARENTGREEN,width=1,height=1, name="sidebar")
+        self.sidebarlabel.grid(row=0, column=0, rowspan=rowspan, columnspan=16, sticky=NSEW)
+        self.controller.sidebarpfpimage = ImageTk.PhotoImage(Image.open(r"Assets\Dashboard\SidebarPfp200x200.png"))
+        self.sidebarpfp = Button(self, image=self.controller.sidebarpfpimage, bg=LIGHTYELLOW,width=200,height=200, name="sidebarpfp", command=lambda:print("pfp clicked"))
+        self.sidebarpfp.place(x=60, y=40)
+        
+        # self.controller.buttonCreator(r"Assets\Dashboard\SidebarPfp200x200.png", 60, 40, "sidebarpfp", lambda:print("pfp clicked"), self)
+    # def parseObjectsFromFrame(self, frame):
+    #     for widgetname, widget in frame.children.items():
+    #         if widgetname == "sidebar":
+    #             print(widgetname, widget)
+    #             print(widget.grid_info())
+    #layout 
+    def animate(self):
+        if self.at_start_pos:
+            self.animate_forward()
+        else:
+            self.animate_backward()
+    
+    def animate_forward(self):
+        self.tkraise()
+        self.sidebarlabel.tk.call('raise', self.sidebarlabel._w)
+        self.sidebarpfp.tk.call('raise', self.sidebarpfp._w)
+        # self.parseObjectsFromFrame(self)
+        if self.startcolumnspan < self.endcolumnspan+1:
+            self.grid(columnspan=self.startcolumnspan)
+            # self.sidebarlabel.grid(columnspan=self.startcolumnspan)
+            self.startcolumnspan += 1
+            self.after(9, self.animate_forward)
+        else:
+            self.at_start_pos = False
+
+    def animate_backward(self):
+        if self.startcolumnspan > 1:
+            self.grid(columnspan=self.startcolumnspan)
+            # self.sidebarlabel.grid(columnspan=self.startcolumnspan)
+            self.startcolumnspan -= 1
+            self.after(15, self.animate_backward)
+        else:
+            self.at_start_pos = True
+            self.lower()
+
 class Dashboard(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent, width=1, height=1, bg=WHITE)
@@ -564,13 +614,13 @@ class Dashboard(Frame):
         self.parent = parent
         self.framereference = self
         gridGenerator(self, 96, 54, LIGHTYELLOW)
-
+        self.animatedpanel = SlidePanel(self, self.controller ,startcolumn=0, startrow=4, endrow=3, endcolumn=15, rowspan=46, startcolumnspan=1, endcolumnspan=16, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN)
         self.labelImg_settings = [
         (r"Assets\Dashboard\StudentDashboard.png", 0, 80, "StudentDashboardLabel", self.framereference),
         (r"Assets\Dashboard\Top Bar.png", 0, 0, "TopBar", self.framereference)
         ]
         self.buttonImg_settings = [
-        (r"Assets\Dashboard\HamburgerMenuTopBar.png", 0, 0, "HamburgerMenu", self.framereference, lambda: print("hello-1")),
+        (r"Assets\Dashboard\HamburgerMenuTopBar.png", 0, 0, "HamburgerMenu", self.framereference, lambda: self.animatedpanel.animate()),
         (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar", self.framereference, lambda : self.searchBarLogic()),
         (r"Assets\Dashboard\BellTopBar.png", 1100, 20, "BellTopBar", self.framereference, lambda: print("hello-3")),
         (r"Assets\Dashboard\RibbonTopBar.png", 1160, 20, "RibbonTopBar", self.framereference, lambda: print("hello-4")),
@@ -582,7 +632,7 @@ class Dashboard(Frame):
         (r"Assets\Dashboard\06MyDiscussionsChip.png", 720, 1020, "MyDiscussionsChip", self.framereference, lambda: print("hello-10")),
         (r"Assets\Dashboard\07MyFavoritesChip.png", 860, 1020, "MyFavoritesChip", self.framereference, lambda: print("hello-11")),
         (r"Assets\Dashboard\08MyAppointmentsChip.png", 1000, 1020, "MyAppointmentsChip", self.framereference, lambda: print("hello-12")),
-        (r"Assets\Dashboard\ChatbotButton.png", 1660, 820, "ChatbotButton", self.framereference, lambda: print("hello-13")),
+        (r"Assets\Dashboard\ChatbotButton.png", 1660, 780, "ChatbotButton", self.framereference, lambda: print("hello-13")),
         ]
 
     #TODO: Cleanup this function call chaining using self.controller.settingsUnpacker 
@@ -596,21 +646,34 @@ class Dashboard(Frame):
         self.controller.settingsUnpacker(label_settings, "label")
     def loadAllAssets(self, button_settings, label_settings):
         self.generateElements(button_settings, label_settings)
-        self.controller.canvasCreator(40, 220, 800, 600, root=self, classname="StudentDashboardCanvas1", bgcolor=WHITE, isTransparent=True,
+        self.controller.canvasCreator(40, 220, 800, 600, root=self, classname="StudentDashboardCanvas1", bgcolor=WHITE, isTransparent=True, transparentcolor="#FF3F3E",
             imgSettings=[
-                (r"Assets\Dashboard\bigangry.png", 80, 260, "bigangry", lambda: self.grid_remove()),
+                (r"Assets\Dashboard\bigangry.png", 80, 240, "bigangry", lambda: self.grid_remove()),
                 (r"Assets\Dashboard\transparencytest28040.png", 280, 240, "nametest", lambda: self.grid_remove()),
                 # (r"Assets\Dashboard\VALORANT.png", 1360, 240, "VALORANTCAT"),
-            ],
-        )
-    def loadAssetsStudents(self):
-        self.controller.labelCreator(
-            r"Assets\Dashboard\StudentDashboard.png",
-            0,
-            80,
-            classname="StudentDashboardLabel",
-            root=self,
-        )
+            ])
+        self.controller.canvasCreator(860, 220, 660, 600, root=self, classname="StudentDashboardCanvas2", bgcolor=WHITE, isTransparent=True, transparentcolor="#FFBC5A",
+            imgSettings=[
+                (r"Assets\Dashboard\Frame2.png", 860, 220, "Frame2", lambda: [self.grid_remove(), ]),
+
+            ])
+    def loadAssets(self, role):
+        if role == "student":
+            self.controller.labelCreator(
+                r"Assets\Dashboard\StudentDashboard.png",
+                0,
+                80,
+                classname="StudentDashboardLabel",
+                root=self,
+            )
+        elif role == "teacher":
+            self.controller.labelCreator(
+                r"Assets\Dashboard\TeacherDashboard.png",
+                0,
+                80,
+                classname="TeacherDashboardLabel",
+                root=self,
+            )
         self.loadAllAssets(self.buttonImg_settings, self.labelImg_settings)
     def searchBarLogic(self):
         self.controller.entryCreator(160, 0, 580, 80, self, "SearchBarResults")
@@ -659,8 +722,8 @@ class Dashboard(Frame):
                 # self.controller.labelCreator(
                 #     r"Assets\Dashboard\SearchResultsBg.png", 0, 120, "SearchResults3", widget, text=f"Search Results 3 for {query}", font=("Avenir Next", 20), wraplength=1000
                 # )
-                self.controller.labelCreator(
-                    r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", widget, text=f"Search Results 4 for {query}", font=("Avenir Next", 20), wraplength=600
+                self.controller.buttonCreator(
+                    r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit or Click Me", font=("Avenir Next", 20), wraplength=600
                 )
 
 def runGui():
