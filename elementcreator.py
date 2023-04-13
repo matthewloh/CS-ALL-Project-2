@@ -45,8 +45,9 @@ def createDictOfSettings(root, imagepath: str, wval: int, hval: int, classname: 
     # print(wval, hval)
     # print("Column: ", columnarg, "Row: ", rowarg)
     # the classname is used to create a unique dictionary, so that the program can distinguish keys.
-    classname = classname
+    # classname = classname.lower().replace(" ", "")
     # print(classname)
-    ret_dict = {classname: {'columnspan': widthspan, 'rowspan': heightspan, 'row': rowarg, 'column': columnarg, 'image': image}}
+    ret_dict = {classname: {'classname':classname, 'root':root,'columnspan': widthspan, 'rowspan': heightspan, 'row': rowarg, 'column': columnarg, 'image': image}}
+
     # Holding object reference with the root
     return ret_dict

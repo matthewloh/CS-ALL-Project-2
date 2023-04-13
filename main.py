@@ -1,5 +1,6 @@
 import ctypes
 import os
+import sys
 import threading
 from ctypes import windll
 from time import sleep
@@ -83,7 +84,8 @@ class Window(Tk):
         self.bind("<Escape>", lambda e: self.destroy())
         self.button_dicts = {}
         self.labels_dicts = {}
-
+        self.widgetsdict = {} 
+        self.imageDict = {}
         self.parentFrame = Canvas(self, bg=LIGHTYELLOW, width=1, height=1, name="parentFrame")
         self.parentFrame.grid(row=0, column=0, rowspan=1, columnspan=1, sticky=NSEW)
 
@@ -158,7 +160,6 @@ class Window(Tk):
         ]
         self.settingsUnpacker(self.btnSettingsPostSelectFrame, "button")
         
-        self.widgetsdict = {} 
         def parseDicts(dictionary):
             """
             Parses a dictionary of buttons and labels and formats them into human readable text
@@ -173,23 +174,21 @@ class Window(Tk):
                     print(key2, value2)
 
         def parseObjectsFromFrame(frame: Frame):
-            for widgetname, widget in frame.children.items():
-                if isinstance(widget, (Label, Frame, Button)) and not widgetname.startswith("!la"):
-                    # widgethost = str(widget).split(".")[-2]
-                    # widget = str(widget).split(".")[-1]
-                    # if isinstance(widget, Label):
-                    #     print(f"Label: {widget} & Label holder: {widgethost}")
-                    # elif isinstance(widget, Frame):
-                    #     print(f"Frame: {widget} & Frame holder: {widgethost}")
-                    # elif isinstance(widget, Button):
-                    #     print(f"Button: {widget} & Button holder: {widgethost}")
-                    self.widgetsdict[widgetname] = widget
-        def checkWidgetsInWindow(widget):
-            # print(self.widgetsdict)
-            print(widget)
-            print(self.widgetsdict.get('topbar').configure(relief="sunken"))
-
-        # self.opensDevWindow(parseObjectsFromFrame, checkWidgetsInWindow, returnObjectsToFrame)
+            # print(self.labels_dicts)
+            # print(self.button_dicts)
+            print(self.widgetsdict)
+            # for widgetname, widget in frame.children.items():
+            #     if isinstance(widget, (Label, Frame, Button, Canvas)) and not widgetname.startswith("!la"):
+            #         # widgethost = str(widget).split(".")[-2]
+            #         # widget = str(widget).split(".")[-1]
+            #         # if isinstance(widget, Label):
+            #         #     print(f"Label: {widget} & Label holder: {widgethost}")
+            #         # elif isinstance(widget, Frame):
+            #         #     print(f"Frame: {widget} & Frame holder: {widgethost}")
+            #         # elif isinstance(widget, Button):
+            #         #     print(f"Button: {widget} & Button holder: {widgethost}")
+            #         self.widgetsdict[widgetname] = widget
+        self.opensDevWindow(parseObjectsFromFrame, self.widgetReferenceCreator, returnObjectsToFrame)
         
         self.frames = {}
         for F in (
@@ -201,8 +200,18 @@ class Window(Tk):
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
             frame.grid_propagate(False)
             frame.grid_remove()
-
-    def opensDevWindow(self, parseObjectsFromFrame, checkWidgetsInWindow, returnObjectsToFrame):
+    def widgetReferenceCreator(self, classname: str):
+        classname.lower().replace(" ", "")
+        # print(self.widgetsdict[classname].grid_remove())
+        return self.widgetsdict[classname]           
+    def createImageReference(self, imagepath:str, classname:str):
+        image = ImageTk.PhotoImage(Image.open(imagepath))
+        self.imageDict[classname] = image
+    def updateWidgetsDict(self, root):
+        for widgetname, widget in root.children.items():
+            if isinstance(widget, (Label, Frame, Button, Canvas)) and not widgetname.startswith("!la"):
+                self.widgetsdict[f"{widgetname}"] = widget
+    def opensDevWindow(self, parseObjectsFromFrame, widgetReferenceCreator, returnObjectsToFrame):
         self.developerkittoplevel = Toplevel(
             self,
             bg=LIGHTYELLOW,
@@ -215,20 +224,26 @@ class Window(Tk):
         self.developerkittoplevel.attributes("-topmost", True)
         self.settingsUnpacker([(r"Assets\DeveloperKit\BG.png", 0, 0, "DevKitBG", self.developerkittoplevel)], "label")
         widgetssettingsfordevkit = [
+        (r"Assets\DeveloperKit\GetAllWidgets.png", 40, 40, "GetAllWidgetsBtn", self.developerkittoplevel,
+        lambda: print(self.widgetsdict.get('deventry1'))),
+        (r"Assets\DeveloperKit\GetSpecificWidget.png", 40, 240, "GetWidgetFromFrame", self.developerkittoplevel,
+        lambda: parseObjectsFromFrame(self.devkitentry1)),
         (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "XD Button", self.developerkittoplevel, 
         lambda: parseObjectsFromFrame(self.parentFrame)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
-        lambda: checkWidgetsInWindow('learninghubchip')),
-        (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 160, "XD3 Button", self.developerkittoplevel, 
-        lambda: parseObjectsFromFrame(self.get_page(Dashboard))),
-        (r"Assets\DeveloperKit\xd1.png", 680, 160, "XD2 Button", self.developerkittoplevel, 
-        lambda: checkWidgetsInWindow('learninghubchip')),
-        (r"Assets\DeveloperKit\WidgetWorkings.png", 520, 320, "XD4 Button", self.developerkittoplevel, 
-        lambda: [self.destroyLabelFromFrame(self.postSelectFrame), print("destroyed")],),
-        (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
-        lambda: [self.deletethewindowbar(self), self.state("zoomed")])
+        lambda: widgetReferenceCreator("learninghubchip").grid_remove()),
+        # (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 160, "XD3 Button", self.developerkittoplevel, 
+        # lambda: parseObjectsFromFrame(self.get_page(Dashboard))),
+        # (r"Assets\DeveloperKit\xd1.png", 680, 160, "XD2 Button", self.developerkittoplevel, 
+        # lambda: widgetReferenceCreator('learninghubchip')),
+        # (r"Assets\DeveloperKit\WidgetWorkings.png", 520, 320, "XD4 Button", self.developerkittoplevel, 
+        # lambda: [self.destroyLabelFromFrame(self.postSelectFrame)],),
+        # (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
+        # lambda: [self.deletethewindowbar(self), self.state("zoomed")])
         ]
         self.settingsUnpacker(widgetssettingsfordevkit, "button")
+        self.devkitentry1 = StringVar()
+        self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntry1", bg=LIGHTYELLOW,textvariable=self.devkitentry1)
 
     def settingsUnpacker(self, listoftuples, typeoftuple):
         for i in listoftuples:
@@ -252,21 +267,18 @@ class Window(Tk):
                 }
                 self.labelCreator(**label_params)
 
-    def destroyLabelsFromFrame(self, frame:Frame):
-        for widgetname, widget in frame.children.items():
-            print(widgetname)
-            if isinstance(widget, Frame):
-                print(widgetname)
-
     def destroyLabelFromFrame(self, frame:Frame):
-        widgetlist = []
+        isRemoved = False
         for widgetname, widget in frame.children.items():
-            print(widgetname)
             if isinstance(widget, Label):
-                widgetlist.append(widget)
-
-        for widget in widgetlist:
-            widget.destroy()
+                if isRemoved:
+                    widget.grid()
+                    isRemoved = False
+                else:
+                    widget.grid_remove()
+                    isRemoved = True
+            else:
+                widget.grid()
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.grid()
@@ -319,17 +331,19 @@ class Window(Tk):
         {'StudentButton': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000246A6976710>}}
         Then, we pass the classname to the inner dictionary, which gives us a label or button with the image we want.
         """
-
-        button_dict = elementcreator.createDictOfSettings(
-                self, imagepath, x, y, classname
-        )
-
-        self.button_dicts.update(button_dict)
-        button_dict = button_dict[classname]
-
+        
+        classname = classname.replace(" ", "").lower()
+        self.createImageReference(imagepath, classname)
+        image = self.imageDict[classname]
+        widthspan = int(image.width()/20)
+        # just the vertical length of the image divided by 20 to get rowspan
+        heightspan = int(image.height()/20)
+        # the W value of the image divided by 20 to get the column position
+        columnarg = int(x/20)
+        rowarg = int(y/20)
         button_kwargs = {
             "root": root,
-            "image": button_dict["image"],
+            "image": image,
             "command": lambda: buttonFunction()
             if buttonFunction
             else lambda: print(f"This is the {classname} button"),
@@ -342,6 +356,7 @@ class Window(Tk):
             "text": text,
         }
         # print(button_kwargs["command"])
+        self.updateWidgetsDict(root=button_kwargs["root"])
         Button(
             button_kwargs["root"], image=button_kwargs["image"],
             command=button_kwargs["command"] if buttonFunction else print(f"This is the {classname} button"),  
@@ -351,10 +366,10 @@ class Window(Tk):
             name=button_kwargs["name"],
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
         ).grid(
-            row=button_dict["row"],
-            column=button_dict["column"],
-            rowspan=button_dict["rowspan"],
-            columnspan=button_dict["columnspan"],
+            row=rowarg,
+            column=columnarg,
+            rowspan=heightspan,
+            columnspan=widthspan,
             sticky=NSEW,
         )
 
@@ -378,31 +393,36 @@ class Window(Tk):
         will first return a dictionary with the following format:\n
         {'StudentButton': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000246A6976710>}}
         """
-        label_dict = elementcreator.createDictOfSettings(
-            self, imagepath, x, y, classname
-        )
-        self.labels_dicts.update(label_dict)
-        label_dict = label_dict[classname]
+
+        classname = classname.replace(" ", "").lower()
+        self.createImageReference(imagepath, classname)
+        image = self.imageDict[classname]
+        widthspan = int(image.width()/20)
+        # just the vertical length of the image divided by 20 to get rowspan
+        heightspan = int(image.height()/20)
+        # the W value of the image divided by 20 to get the column position
+        columnarg = int(x/20)
+        rowarg = int(y/20)
         label_kwargs = {
             "root": root,
-            "image": label_dict["image"],
-            "relief":overrideRelief,
+            "image": image,
+            "relief": overrideRelief,
             "width": 1,
             "height": 1,
             "state": NORMAL,
             "name": classname.replace(" ", "").lower(),
             "text": text,
         }
-        # print(text)
+        self.updateWidgetsDict(root=label_kwargs["root"])
         Label(
             label_kwargs["root"], image=label_kwargs["image"], relief=FLAT, width=1, height=1, 
             cursor="", state=label_kwargs["state"], name=label_kwargs["name"], 
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
         ).grid(
-            row=label_dict["row"],
-            column=label_dict["column"],
-            rowspan=label_dict["rowspan"],
-            columnspan=label_dict["columnspan"],
+            row=rowarg,
+            column=columnarg,
+            rowspan=heightspan,
+            columnspan=widthspan,
             sticky=NSEW
         )
 
@@ -438,6 +458,7 @@ class Window(Tk):
             columnspan=widthspan,
             sticky=NSEW,
         )
+        self.updateWidgetsDict(root=frame_kwargs["root"])
         if imgSettings:
             listofimages = list(enumerate(imgSettings)) 
         # imgBg is a list of tuples containing (imagepath, x, y, name)
@@ -458,7 +479,7 @@ class Window(Tk):
                             buttonFunction=j[4]
                         )
 
-    def entryCreator(self, xpos,ypos,width, height, root=None, classname=None, bg=WHITE,relief=FLAT,fg=BLACK):
+    def entryCreator(self, xpos,ypos,width, height, root=None, classname=None, bg=WHITE,relief=FLAT,fg=BLACK, textvariable=None):
         entry_params = {
             "xpos":xpos,
             "ypos":ypos,
@@ -476,8 +497,8 @@ class Window(Tk):
         rowarg = int(ypos / 20)
         widthspan = int(width / 20)
         heightspan = int(height / 20)
-
-        Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,name=entry_params["classname"]).grid(pady=10, row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        self.updateWidgetsDict(root=entry_params["root"])
+        Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,name=entry_params["classname"], textvariable=textvariable).place(x=xpos,y=ypos,width=width,height=height)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
