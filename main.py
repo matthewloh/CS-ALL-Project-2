@@ -82,8 +82,6 @@ class Window(Tk):
         self.title("INTI.ai Learning Client")
         self.resizable(False, False)
         self.bind("<Escape>", lambda e: self.destroy())
-        self.button_dicts = {}
-        self.labels_dicts = {}
         self.widgetsdict = {} 
         self.imageDict = {}
         self.parentFrame = Canvas(self, bg=LIGHTYELLOW, width=1, height=1, name="parentFrame")
@@ -91,6 +89,11 @@ class Window(Tk):
 
         elementcreator.gridGenerator(self.parentFrame, 96, 54, WHITE)
 
+        self.postSelectFrame = Frame(self.parentFrame, bg=LIGHTYELLOW, width=1, height=1, name="postSelectFrame")
+        self.postSelectFrame.grid(row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
+        elementcreator.gridGenerator(self.postSelectFrame, 96, 54, WHITE) 
+        self.postSelectFrame.grid_remove()
+        self.postSelectFrame.grid_propagate(False)
         self.labelSettingsParentFrame = [
             (r"Assets\LandingPage\BackgroundImage.png", 0, 0, "Background Image",self.parentFrame),
             (r"Assets\LandingPage\Landing Page Title.png", 0, 0, "Title Label", self.parentFrame)
@@ -103,14 +106,8 @@ class Window(Tk):
                 if widgetname.startswith("!la"):
                     print(frame, widgetname, widget)
                     widgetlist.append(widget)
-            for widgetname, widget in widgetlist:
-                print(f"this is widget in{frame}", widgetname, widget)
 
-        self.postSelectFrame = Frame(self.parentFrame, bg=LIGHTYELLOW, width=1, height=1, name="postSelectFrame")
-        self.postSelectFrame.grid(row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
-        elementcreator.gridGenerator(self.postSelectFrame, 96, 54, WHITE) 
-        self.postSelectFrame.grid_remove()
-        self.postSelectFrame.grid_propagate(False)
+
 
         self.bgimageplaceholder = ImageTk.PhotoImage(
             Image.open(r"Assets\Login Page with Captcha\LoginPageTeachers.png")
@@ -139,14 +136,14 @@ class Window(Tk):
             elif teacher:
                 self.bgimage_label.configure(image=self.loadedImg2)
             self.bgimage_label.grid(), self.postSelectFrame.grid(), self.postSelectFrame.tkraise()
-        self.buttonSettingsForParentFrame = [
+        buttonSettingsForParentFrame = [
             # (imagepath, xpos, ypos, classname, buttonFunction, root),
             (r"Assets\LandingPage\Student Button.png", 1080, 320, "Student Button", 
             self.parentFrame, lambda: makeBgImageGrid(student=True)),
             (r"Assets\LandingPage\Teacher Button.png", 240, 320, "Teacher Button",
             self.parentFrame, lambda: makeBgImageGrid(teacher=True)) 
         ]
-        self.settingsUnpacker(self.buttonSettingsForParentFrame, "button")
+        self.settingsUnpacker(buttonSettingsForParentFrame, "button")
         self.btnSettingsPostSelectFrame = [
         (r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, "Back Button", 
         self.postSelectFrame,
@@ -154,41 +151,18 @@ class Window(Tk):
         (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 940, "Skip Button", 
         self.postSelectFrame,
         lambda: [self.show_frame(Dashboard), self.loadPageAssets(Dashboard, "student")]), 
-        (r"Assets\Login Page with Captcha\CaptchaButton.png", 1260, 520, "Captcha Button", 
+        (r"Assets\Login Page with Captcha\CaptchaButton.png", 1260, 520, "Captcha Button",
         self.postSelectFrame,
-        lambda: [self.postSelectFrame.grid_remove()]), 
+        lambda: self.show_frame(Dashboard)),
         ]
         self.settingsUnpacker(self.btnSettingsPostSelectFrame, "button")
         
-        def parseDicts(dictionary):
-            """
-            Parses a dictionary of buttons and labels and formats them into human readable text
-            {'Student Button': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 54, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE0950>}, 'Teacher Button': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE0F90>}, 'Back Button': {'columnspan': 12, 'rowspan': 4, 'row': 2, 'column': 0, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE1410>}, 'Skip Button': {'columnspan': 12, 'rowspan': 4, 'row': 47, 'column': 84, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE17D0>}, 'Captcha Button': {'columnspan': 18, 'rowspan': 5, 'row': 26, 'column': 63, 'image': <PIL.ImageTk.PhotoImage object at 0x00000269EDEE18D0>}}
-            Breaks up each element in the dictionary example above into
-            <Button> -> <Button Name> -> <Button Property> -> <Button Property Value>... continuing in a single line
-
-            """
-            for key, value in dictionary.items():
-                print(key, value)
-                for key2, value2 in value.items():
-                    print(key2, value2)
-
         def parseObjectsFromFrame(frame: Frame):
-            # print(self.labels_dicts)
-            # print(self.button_dicts)
-            print(self.widgetsdict)
-            # for widgetname, widget in frame.children.items():
-            #     if isinstance(widget, (Label, Frame, Button, Canvas)) and not widgetname.startswith("!la"):
-            #         # widgethost = str(widget).split(".")[-2]
-            #         # widget = str(widget).split(".")[-1]
-            #         # if isinstance(widget, Label):
-            #         #     print(f"Label: {widget} & Label holder: {widgethost}")
-            #         # elif isinstance(widget, Frame):
-            #         #     print(f"Frame: {widget} & Frame holder: {widgethost}")
-            #         # elif isinstance(widget, Button):
-            #         #     print(f"Button: {widget} & Button holder: {widgethost}")
-            #         self.widgetsdict[widgetname] = widget
-        self.opensDevWindow(parseObjectsFromFrame, self.widgetReferenceCreator, returnObjectsToFrame)
+            for widgetname, widget in self.widgetsdict.items():
+                if (not widgetname.startswith("!la")):
+                    print(widget.winfo_parent(), widget.winfo_class(), widget.winfo_name())
+                    
+        self.opensDevWindow(parseObjectsFromFrame, self.widgetRef, returnObjectsToFrame)
         
         self.frames = {}
         for F in (
@@ -200,18 +174,38 @@ class Window(Tk):
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
             frame.grid_propagate(False)
             frame.grid_remove()
-    def widgetReferenceCreator(self, classname: str):
+    def widgetRef(self, classname: str):
         classname.lower().replace(" ", "")
         # print(self.widgetsdict[classname].grid_remove())
         return self.widgetsdict[classname]           
     def createImageReference(self, imagepath:str, classname:str):
         image = ImageTk.PhotoImage(Image.open(imagepath))
         self.imageDict[classname] = image
-    def updateWidgetsDict(self, root):
+
+    def updateWidgetsDict(self, root: Frame):
+        for widgetname, widget in self.children.items():
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+                self.widgetsdict[widgetname] = widget
+        for widgetname, widget in self.parentFrame.children.items():
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+                self.widgetsdict[widgetname] = widget
+        for widgetname, widget in self.postSelectFrame.children.items():
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+                self.widgetsdict[widgetname] = widget
         for widgetname, widget in root.children.items():
             if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
-                self.widgetsdict[f"{widgetname}"] = widget
-    def opensDevWindow(self, parseObjectsFromFrame, widgetReferenceCreator, returnObjectsToFrame):
+                self.widgetsdict[widgetname] = widget
+        try:
+            for widgetname, widget in self.get_page(Dashboard).children.items():
+                if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+                    self.widgetsdict[widgetname] = widget
+        except:
+            pass
+        # for widgetname, widget in self.developerkittoplevel.children.items():
+        #     if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+        #         self.widgetsdict[widgetname] = widget
+
+    def opensDevWindow(self, parseObjectsFromFrame, widgetRef, returnObjectsToFrame):
         self.developerkittoplevel = Toplevel(
             self,
             bg=LIGHTYELLOW,
@@ -227,15 +221,15 @@ class Window(Tk):
         (r"Assets\DeveloperKit\GetAllWidgets.png", 40, 40, "GetAllWidgetsBtn", self.developerkittoplevel,
         lambda: print(self.widgetsdict)),
         (r"Assets\DeveloperKit\GetSpecificWidget.png", 40, 240, "GetWidgetFromFrame", self.developerkittoplevel,
-        lambda: widgetReferenceCreator(widgetReferenceCreator("devkitentry").get()).grid_remove()),
+        lambda: widgetRef(widgetRef("devkitentry").get()).grid_remove()),
         (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "XD Button", self.developerkittoplevel, 
         lambda: parseObjectsFromFrame(self.parentFrame)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
-        lambda: widgetReferenceCreator("learninghubchip").grid_remove()),
+        lambda: widgetRef("learninghubchip").grid_remove()),
         # (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 160, "XD3 Button", self.developerkittoplevel, 
         # lambda: parseObjectsFromFrame(self.get_page(Dashboard))),
         # (r"Assets\DeveloperKit\xd1.png", 680, 160, "XD2 Button", self.developerkittoplevel, 
-        # lambda: widgetReferenceCreator('learninghubchip')),
+        # lambda: widgetRef('learninghubchip')),
         # (r"Assets\DeveloperKit\WidgetWorkings.png", 520, 320, "XD4 Button", self.developerkittoplevel, 
         # lambda: [self.destroyLabelFromFrame(self.postSelectFrame)],),
         (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
@@ -245,26 +239,28 @@ class Window(Tk):
         self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntry", bg=LIGHTYELLOW)
 
     def settingsUnpacker(self, listoftuples, typeoftuple):
+        # print((listoftuples))
         for i in listoftuples:
             if typeoftuple == "button":
                 button_params = {
                     "imagepath": i[0],
                     "x": i[1],
                     "y": i[2],
-                    "classname": i[3],
+                    "classname": i[3].lower().replace(" ", ""),
                     "root": i[4],
                     "buttonFunction": i[5],
                 }
-                self.buttonCreator(**button_params)
+                self.buttonCreator(imagepath=i[0], x=i[1], y=i[2], classname=i[3].lower().replace(" ", ""), root=i[4], buttonFunction=i[5])
             elif typeoftuple == "label":
                 label_params = {
                     "imagepath": i[0],
                     "x": i[1],
                     "y": i[2],
-                    "classname": i[3],
+                    "classname": i[3].lower().replace(" ", ""),
                     "root": i[4],
                 }
                 self.labelCreator(**label_params)
+
 
     def destroyLabelFromFrame(self, frame:Frame):
         isRemoved = False
@@ -346,7 +342,7 @@ class Window(Tk):
             "command": lambda: buttonFunction()
             if buttonFunction
             else lambda: print(f"This is the {classname} button"),
-            "relief": relief if not overrideRelief else FLAT,
+            "relief": overrideRelief,
             "width": 1,
             "height": 1,
             "cursor": "hand2",
@@ -359,10 +355,10 @@ class Window(Tk):
         Button(
             button_kwargs["root"], image=button_kwargs["image"],
             command=button_kwargs["command"] if buttonFunction else print(f"This is the {classname} button"),  
-            relief=button_kwargs["relief"] if relief else SUNKEN,
+            relief=button_kwargs["relief"],
             bg=WHITE, width=1, height=1,
             cursor="hand2", state=button_kwargs["state"], 
-            name=button_kwargs["name"],
+            name= button_kwargs["name"],
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
         ).grid(
             row=rowarg,
@@ -499,7 +495,6 @@ class Window(Tk):
         widthspan = int(width / 20)
         heightspan = int(height / 20)
         self.updateWidgetsDict(root=entry_params["root"])
-        print("test")
         Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,name=entry_params["classname"], textvariable=textvariable).grid(
             row=rowarg,
             column=columnarg,
@@ -665,7 +660,7 @@ class Dashboard(Frame):
         (r"Assets\Dashboard\06MyDiscussionsChip.png", 720, 1020, "MyDiscussionsChip", self.framereference, lambda: print("hello-10")),
         (r"Assets\Dashboard\07MyFavoritesChip.png", 860, 1020, "MyFavoritesChip", self.framereference, lambda: print("hello-11")),
         (r"Assets\Dashboard\08MyAppointmentsChip.png", 1000, 1020, "MyAppointmentsChip", self.framereference, lambda: print("hello-12")),
-        (r"Assets\Dashboard\ChatbotButton.png", 1660, 780, "ChatbotButton", self.framereference, lambda: print("hello-13")),
+        (r"Assets\Dashboard\ChatbotButton.png", 1660, 780, "ChatbotButton", self.framereference, lambda: print("hello-13"))
         ]
 
     #TODO: Cleanup this function call chaining using self.controller.settingsUnpacker 
