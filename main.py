@@ -209,7 +209,7 @@ class Window(Tk):
         self.imageDict[classname] = image
     def updateWidgetsDict(self, root):
         for widgetname, widget in root.children.items():
-            if isinstance(widget, (Label, Frame, Button, Canvas)) and not widgetname.startswith("!la"):
+            if isinstance(widget, (Label, Frame, Button, Canvas, Entry)) and not widgetname.startswith("!la"):
                 self.widgetsdict[f"{widgetname}"] = widget
     def opensDevWindow(self, parseObjectsFromFrame, widgetReferenceCreator, returnObjectsToFrame):
         self.developerkittoplevel = Toplevel(
@@ -225,9 +225,9 @@ class Window(Tk):
         self.settingsUnpacker([(r"Assets\DeveloperKit\BG.png", 0, 0, "DevKitBG", self.developerkittoplevel)], "label")
         widgetssettingsfordevkit = [
         (r"Assets\DeveloperKit\GetAllWidgets.png", 40, 40, "GetAllWidgetsBtn", self.developerkittoplevel,
-        lambda: print(self.widgetsdict.get('deventry1'))),
+        lambda: print(self.widgetsdict)),
         (r"Assets\DeveloperKit\GetSpecificWidget.png", 40, 240, "GetWidgetFromFrame", self.developerkittoplevel,
-        lambda: parseObjectsFromFrame(self.devkitentry1)),
+        lambda: print(widgetReferenceCreator("devkitentry").get())),
         (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "XD Button", self.developerkittoplevel, 
         lambda: parseObjectsFromFrame(self.parentFrame)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
@@ -243,7 +243,7 @@ class Window(Tk):
         ]
         self.settingsUnpacker(widgetssettingsfordevkit, "button")
         self.devkitentry1 = StringVar()
-        self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntry1", bg=LIGHTYELLOW,textvariable=self.devkitentry1)
+        self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntry", bg=LIGHTYELLOW,textvariable=self.devkitentry1)
 
     def settingsUnpacker(self, listoftuples, typeoftuple):
         for i in listoftuples:
@@ -449,6 +449,7 @@ class Window(Tk):
             "relief": relief,
             "name": classname.replace(" ", ""),
         }
+        self.updateWidgetsDict(root=frame_kwargs["root"])
         Frame(frame_kwargs["root"], width=1, height=1, bg=frame_kwargs["bg"], relief=frame_kwargs["relief"],
         name=frame_kwargs["name"].lower(),
         ).grid(
@@ -498,7 +499,15 @@ class Window(Tk):
         widthspan = int(width / 20)
         heightspan = int(height / 20)
         self.updateWidgetsDict(root=entry_params["root"])
-        Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,name=entry_params["classname"], textvariable=textvariable).place(x=xpos,y=ypos,width=width,height=height)
+        print("test")
+        Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,name=entry_params["classname"], textvariable=textvariable).grid(
+            row=rowarg,
+            column=columnarg,
+            rowspan=heightspan,
+            columnspan=widthspan,
+            sticky=NSEW,
+            pady=10,
+        )
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
