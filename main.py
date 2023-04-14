@@ -209,7 +209,7 @@ class Window(Tk):
         self.imageDict[classname] = image
     def updateWidgetsDict(self, root):
         for widgetname, widget in root.children.items():
-            if isinstance(widget, (Label, Frame, Button, Canvas, Entry)) and not widgetname.startswith("!la"):
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
                 self.widgetsdict[f"{widgetname}"] = widget
     def opensDevWindow(self, parseObjectsFromFrame, widgetReferenceCreator, returnObjectsToFrame):
         self.developerkittoplevel = Toplevel(
@@ -227,7 +227,7 @@ class Window(Tk):
         (r"Assets\DeveloperKit\GetAllWidgets.png", 40, 40, "GetAllWidgetsBtn", self.developerkittoplevel,
         lambda: print(self.widgetsdict)),
         (r"Assets\DeveloperKit\GetSpecificWidget.png", 40, 240, "GetWidgetFromFrame", self.developerkittoplevel,
-        lambda: print(widgetReferenceCreator("devkitentry").get())),
+        lambda: widgetReferenceCreator(widgetReferenceCreator("devkitentry").get()).grid_remove()),
         (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "XD Button", self.developerkittoplevel, 
         lambda: parseObjectsFromFrame(self.parentFrame)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
@@ -238,12 +238,11 @@ class Window(Tk):
         # lambda: widgetReferenceCreator('learninghubchip')),
         # (r"Assets\DeveloperKit\WidgetWorkings.png", 520, 320, "XD4 Button", self.developerkittoplevel, 
         # lambda: [self.destroyLabelFromFrame(self.postSelectFrame)],),
-        # (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
-        # lambda: [self.deletethewindowbar(self), self.state("zoomed")])
+        (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
+        lambda: [self.deletethewindowbar(self), self.state("zoomed")])
         ]
         self.settingsUnpacker(widgetssettingsfordevkit, "button")
-        self.devkitentry1 = StringVar()
-        self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntry", bg=LIGHTYELLOW,textvariable=self.devkitentry1)
+        self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntry", bg=LIGHTYELLOW)
 
     def settingsUnpacker(self, listoftuples, typeoftuple):
         for i in listoftuples:
@@ -494,6 +493,7 @@ class Window(Tk):
             "fg":fg
         }
         # print(entry_params)
+        classname= classname.lower().replace(" ", "")
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
         widthspan = int(width / 20)
@@ -508,9 +508,12 @@ class Window(Tk):
             sticky=NSEW,
             pady=10,
         )
+        self.updateWidgetsDict(root=entry_params["root"])
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
+
+    
     def canvasCreator(self, 
         xpos, ypos, width, height, root, classname=None,
         bgcolor=WHITE, imgSettings=None,
