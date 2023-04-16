@@ -27,25 +27,25 @@ connection = mysql.connector.connect(
     password=os.getenv("DB_PASSWORD"),
     ssl_ca=os.getenv("SSL_CERT")
 )
-# try:
-#     if connection.is_connected():
-#         c = connection.cursor()
-#     with connection:
-#         c.execute("select @@version ")
-#         version = c.fetchone()
-#         if version:
-#             print('Running version: ', version)
-#         else:
-#             print('Not connected.')
+try:
+    if connection.is_connected():
+        c = connection.cursor()
+    with connection:
+        c.execute("select @@version ")
+        version = c.fetchone()
+        if version:
+            print('Running version: ', version)
+        else:
+            print('Not connected.')
 
-#         c.execute("""
-#                 SHOW TABLES
-#                 """)
-#         results = c.fetchall()
-#         print(results)
-#     # connection.close()
-# except Error as e:
-#     print("Error while connecting to MySQL", e)
+        c.execute("""
+                SHOW TABLES
+                """)
+        results = c.fetchall()
+        print(results)
+    # connection.close()
+except Error as e:
+    print("Error while connecting to MySQL", e)
 # ~~~~~ The Ability to Make a Colorkey in a Canvas / Widget Transparent Using Windows Only ~~~~~ #
 # https://stackoverflow.com/questions/53021603/how-to-make-a-tkinter-canvas-background-transparent
 import win32api
@@ -153,7 +153,7 @@ class Window(Tk):
         lambda: [self.show_frame(Dashboard), self.show_canvas(DashboardCanvas), self.get_page(Dashboard).loadSpecificAssets("student")]), 
         (r"Assets\Login Page with Captcha\CaptchaButton.png", 1260, 520, "Captcha Button",
         self.postSelectFrame,
-        lambda: self.show_frame(Dashboard)),
+        lambda: [self.show_frame(Dashboard), self.show_canvas(DashboardCanvas), self.get_page(Dashboard).loadSpecificAssets("student")]),
         ]
         self.settingsUnpacker(self.btnSettingsPostSelectFrame, "button")
         
@@ -174,8 +174,8 @@ class Window(Tk):
             self.frames[F] = frame
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
             frame.grid_propagate(False)
-            frame.controller.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas", bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
-            # maincanvasref = self.widgetsDict("maincanvas")
+            frame.controller.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas", bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
+            self.updateWidgetsDict(frame)
             frame.tk.call("raise", frame._w)
             frame.grid_remove()
         for FRAME in (DashboardCanvas, SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, FavoritesView, AppointmentsView):
@@ -636,7 +636,7 @@ class SlidePanel(Frame):
             self.grid(columnspan=self.startcolumnspan)
             # self.sidebarlabel.grid(columnspan=self.startcolumnspan)
             self.startcolumnspan += 1
-            self.after(9, self.animate_forward)
+            self.after(6, self.animate_forward)
         else:
             self.at_start_pos = False
 
@@ -702,7 +702,7 @@ class Dashboard(Frame):
     def loadSpecificAssets(self, role):
         self.controller.widgetsDict["dashboardcanvas"].tk.call('raise', self.controller.widgetsDict["dashboardcanvas"]._w)
         if role == "student":
-            self.controller.labelCreator( r"Assets\Dashboard\StudentDashboard.png", 0, 120, classname="StudentDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
+            self.controller.labelCreator( r"Assets\Dashboard\StudentDashboard.png", 0, 0, classname="StudentDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
         elif role == "teacher":
             self.controller.labelCreator( r"Assets\Dashboard\TeacherDashboard.png", 0, 80, classname="TeacherDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
         # self.controller.widgetRef("dashboardcanvas").tk.call('raise', self.controller.widgetRef("dashboardcanvas")._w)
