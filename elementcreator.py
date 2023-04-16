@@ -25,29 +25,3 @@ def gridGenerator(root, width, height, color, overriderelief: bool = False, reli
 # Then, the rowspan and columnspan is set to the height and width of the image divided by 20
 
 
-def createDictOfSettings(root, imagepath: str, wval: int, hval: int, classname: str):
-    """
-    Accepts the root, imagepath, and the W and H values of the image obtainable through Figma\n
-    Returns a unique dictionary identified by classname of the widthspan, heightspan, rowarg, columnarg, and image in a dictionary\n\n
-    Example output:\n
-    {"columnspan": widthspan, "rowspan": heightspan, "row": rowarg, "column": columnarg, "image": image}
-    Accepts a classname that is used to create a unique dictionary, so that the program can distinguish keys.
-    Returns a dictionary, used in the creation of Labels, Buttons, and Frames.
-    """
-    image = ImageTk.PhotoImage(Image.open(imagepath))
-    # just the horizontal length of the image divided by 20 to get columnspan
-    widthspan = int(image.width()/20)
-    # just the vertical length of the image divided by 20 to get rowspan
-    heightspan = int(image.height()/20)
-    # the W value of the image divided by 20 to get the column position
-    columnarg = int(wval/20)
-    rowarg = int(hval/20)
-    # print(wval, hval)
-    # print("Column: ", columnarg, "Row: ", rowarg)
-    # the classname is used to create a unique dictionary, so that the program can distinguish keys.
-    # classname = classname.lower().replace(" ", "")
-    # print(classname)
-    ret_dict = {classname: {'classname':classname, 'root':root,'columnspan': widthspan, 'rowspan': heightspan, 'row': rowarg, 'column': columnarg, 'image': image}}
-
-    # Holding object reference with the root
-    return ret_dict
