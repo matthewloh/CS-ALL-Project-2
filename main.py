@@ -150,7 +150,7 @@ class Window(Tk):
         lambda: self.postSelectFrame.grid_remove()),
         (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 940, "Skip Button", 
         self.postSelectFrame,
-        lambda: [self.show_frame(Dashboard), self.loadPageAssets(Dashboard, "student")]), 
+        lambda: [self.show_frame(Dashboard), self.show_canvas(DashboardCanvas), self.get_page(Dashboard).loadSpecificAssets("student")]), 
         (r"Assets\Login Page with Captcha\CaptchaButton.png", 1260, 520, "Captcha Button",
         self.postSelectFrame,
         lambda: self.show_frame(Dashboard)),
@@ -172,21 +172,22 @@ class Window(Tk):
         ):
             frame = F(parent=self.parentFrame, controller=self)
             self.frames[F] = frame
-            gridGenerator(frame, 96, 54, LIGHTYELLOW)
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
             frame.grid_propagate(False)
-            frame.loadAllAssets(frame.staticImgBtns, frame.staticImgLabels)
+            frame.controller.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas", bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
+            # maincanvasref = self.widgetsDict("maincanvas")
+            frame.tk.call("raise", frame._w)
             frame.grid_remove()
-        for FRAME in (SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, AppointmentsView):
+        for FRAME in (DashboardCanvas, SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, FavoritesView, AppointmentsView):
             canvas = FRAME(parent=self.widgetsDict["maincanvas"], controller=self)
             self.canvasInDashboard[FRAME] = canvas
+            self.updateWidgetsDict(canvas)
             canvas.grid(row=0, column=0, columnspan=96, rowspan=46, sticky=NSEW)
             canvas.grid_propagate(False)
-            print(self.canvasInDashboard)
             canvas.grid_remove()
+        self.show_canvas(DashboardCanvas)
     def widgetRef(self, classname: str):
         classname.lower().replace(" ", "")
-        # print(self.widgetsDict[classname].grid_remove())
         return self.widgetsDict[classname]           
     def createImageReference(self, imagepath:str, classname:str):
         image = ImageTk.PhotoImage(Image.open(imagepath))
@@ -207,6 +208,12 @@ class Window(Tk):
                 self.widgetsDict[widgetname] = widget
         try:
             for widgetname, widget in self.get_page(Dashboard).children.items():
+                if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+                    self.widgetsDict[widgetname] = widget
+        except:
+            pass
+        try: 
+            for widgetname, widget in self.widgetsDict["maincanvas"].children.items():
                 if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
                     self.widgetsDict[widgetname] = widget
         except:
@@ -273,7 +280,6 @@ class Window(Tk):
                 }
                 self.labelCreator(**label_params)
 
-
     def destroyLabelFromFrame(self, frame:Frame):
         isRemoved = False
         for widgetname, widget in frame.children.items():
@@ -291,20 +297,11 @@ class Window(Tk):
         frame.grid()
         frame.tkraise()
     def show_canvas(self, cont):
-        print(cont)
         canvas = self.canvasInDashboard[cont]
-        print(canvas)
         canvas.grid()
         canvas.tk.call("raise", canvas._w)
     def get_page(self, classname):
         return self.frames[classname]
-
-    def loadPageAssets(self, page, role):
-        """
-        This function loads the assets for the page. Each page has its own assets only loaded during time of use.
-        """
-        reference = self.get_page(page)
-        reference.loadAssets(role)
 
     def deletethewindowbar(self, windowInstance):
         hwnd: int = get_handle(windowInstance)
@@ -492,7 +489,8 @@ class Window(Tk):
                             buttonFunction=j[4]
                         )
 
-    def entryCreator(self, xpos,ypos,width, height, root=None, classname=None, bg=WHITE,relief=FLAT,fg=BLACK, textvariable=None, pady=None,):
+    def entryCreator(
+        self, xpos,ypos,width, height, root=None, classname=None, bg=WHITE,relief=FLAT,fg=BLACK, textvariable=None, pady=None,):
         entry_params = {
             "xpos":xpos,
             "ypos":ypos,
@@ -550,6 +548,7 @@ class Window(Tk):
             listofimages = list(
                 enumerate(imgSettings)
             ) 
+        self.updateWidgetsDict(root=canvas_params["root"])
         Canvas(root, bg=canvas_params["bg"], highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=canvas_params["classname"], highlightthickness=0).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
@@ -583,13 +582,13 @@ class Window(Tk):
         colorkey = win32api.RGB(red, green, blue)
         return colorkey
   
-
 class SlidePanel(Frame):
     def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN):
         super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN)
         self.controller = controller
         gridGenerator(self, width, height, bg)
         self.grid(row=startrow, column=startcolumn, rowspan=rowspan, columnspan=startcolumnspan, sticky=NSEW)
+        self.tk.call("lower", self._w)
         self.grid_propagate(False)
         # self.startposition = startposition
         # self.endposition = endposition
@@ -658,7 +657,7 @@ class Dashboard(Frame):
         self.controller = controller
         self.parent = parent
         self.framereference = self
-        # gridGenerator(self, 96, 54, LIGHTYELLOW)
+        gridGenerator(self, 96, 54, LIGHTYELLOW)
         self.animatedpanel = SlidePanel(self, self.controller ,startcolumn=0, startrow=4, endrow=3, endcolumn=15, rowspan=46, startcolumnspan=1, endcolumnspan=16, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN)
         self.staticImgLabels = [
         # (r"Assets\Dashboard\StudentDashboard.png", 0, 80, "StudentDashboardLabel", self.framereference),
@@ -669,28 +668,27 @@ class Dashboard(Frame):
         (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar", self.framereference, lambda : self.searchBarLogic()),
         (r"Assets\Dashboard\RibbonTopBar.png", 1760, 20, "RibbonTopBar", self.framereference, lambda: print("hello-4")),
         (r"Assets\Dashboard\BellTopBar.png", 1820, 20, "BellTopBar", self.framereference, lambda: print("hello-3")),
-        (r"Assets\Dashboard\01DashboardChip.png", 20, 1020, "DashboardChip", self.framereference, lambda: print("hello-5")),
-        (r"Assets\Dashboard\02SearchChip.png", 160, 1020, "SearchChip", self.framereference, lambda: [self.controller.show_canvas(SearchPage), print("wtf")]),
+        (r"Assets\Dashboard\01DashboardChip.png", 20, 1020, "DashboardChip", self.framereference, lambda: self.controller.show_canvas(DashboardCanvas)),
+        (r"Assets\Dashboard\02SearchChip.png", 160, 1020, "SearchChip", self.framereference, lambda: [self.controller.show_canvas(SearchPage),]),
         (r"Assets\Dashboard\03ChatbotChip.png", 300, 1020, "ChatbotChip", self.framereference, lambda: self.controller.show_canvas(Chatbot)),
         (r"Assets\Dashboard\04LearningHubChip.png", 440, 1020, "LearningHubChip", self.framereference, lambda: self.controller.show_canvas(LearningHub)),
         (r"Assets\Dashboard\05MyCoursesChip.png", 580, 1020, "MyCoursesChip", self.framereference, lambda: self.controller.show_canvas(CourseView)),
         (r"Assets\Dashboard\06MyDiscussionsChip.png", 720, 1020, "MyDiscussionsChip", self.framereference, lambda: self.controller.show_canvas(DiscussionsView)),
-        (r"Assets\Dashboard\07MyFavoritesChip.png", 860, 1020, "MyFavoritesChip", self.framereference, lambda: print("hello-11")),
+        (r"Assets\Dashboard\07MyFavoritesChip.png", 860, 1020, "MyFavoritesChip", self.framereference, lambda: self.controller.show_canvas(FavoritesView)),
         (r"Assets\Dashboard\08MyAppointmentsChip.png", 1000, 1020, "MyAppointmentsChip", self.framereference, lambda: self.controller.show_canvas(AppointmentsView)),
-        (r"Assets\Dashboard\ChatbotButton.png", 1660, 780, "ChatbotButton", self.framereference, lambda: print("hello-13"))
+        # (r"Assets\Dashboard\ChatbotButton.png", 1660, 780, "ChatbotButton", self.framereference, lambda: print("hello-13"))
         ]
-        self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas", bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
+        self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas", bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
+        self.loadAllStaticAssets(self.staticImgBtns, self.staticImgLabels)
+        self.maincanvasref = self.controller.widgetsDict["maincanvas"]
+        self.controller.canvasCreator(0, 0, 1920, 920, root=self.maincanvasref, classname="dashboardcanvas", bgcolor=NICEBLUE, isTransparent=True, transparentcolor=LIGHTYELLOW)
         self.openSearchSettings = [
             (r"Assets\Dashboard\TopbarSearchOpen.png", 0, 0, "SearchBarOpen", self.framereference),
             (r"Assets\Dashboard\ExitSearch.png", 0, 0, "ExitSearchBtn", self.framereference, lambda : self.closeSearchBarLogic()),
         ]
-        self.loadAllAssets(self.staticImgBtns, self.staticImgLabels)
-
-    #TODO: Cleanup this function call chaining using self.controller.settingsUnpacker 
-    #     by fixing the loading from post authentication
-    def loadAllAssets(self, button_settings, label_settings):
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        self.maincanvasref = self.controller.widgetsDict["maincanvas"]
+    def loadAllStaticAssets(self, button_settings, label_settings):
+        self.controller.settingsUnpacker(label_settings, "label")
+        self.controller.settingsUnpacker(button_settings, "button")
         # self.controller.canvasCreator(0, 0, 800, 600, root=self.maincanvasref, classname="StudentDashboardCanvas1", bgcolor=WHITE, isTransparent=True, transparentcolor="#FF3F3E",
         #     imgSettings=[
         #         (r"Assets\Dashboard\bigangry.png", 80, 240, "bigangry", lambda: self.grid_remove()),
@@ -701,14 +699,13 @@ class Dashboard(Frame):
         #     imgSettings=[
         #         (r"Assets\Dashboard\Frame2.png", 860, 220, "Frame2", lambda: [self.grid_remove(), ]),
         #     ])
-        self.controller.settingsUnpacker(self.staticImgBtns, "button")
-    def loadAssets(self, role):
-        self.controller.widgetRef("maincanvas").tk.call('raise', self.controller.widgetRef("maincanvas")._w)
+    def loadSpecificAssets(self, role):
+        self.controller.widgetsDict["dashboardcanvas"].tk.call('raise', self.controller.widgetsDict["dashboardcanvas"]._w)
         if role == "student":
-            self.controller.labelCreator( r"Assets\Dashboard\StudentDashboard.png", 0, 0, classname="StudentDashboardLabel", root=self.controller.widgetsDict["maincanvas"])
+            self.controller.labelCreator( r"Assets\Dashboard\StudentDashboard.png", 0, 120, classname="StudentDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
         elif role == "teacher":
-            self.controller.labelCreator( r"Assets\Dashboard\TeacherDashboard.png", 0, 80, classname="TeacherDashboardLabel", root=self.controller.widgetsDict["maincanvas"])
-        self.loadAllAssets(self.staticImgBtns, self.staticImgLabels)
+            self.controller.labelCreator( r"Assets\Dashboard\TeacherDashboard.png", 0, 80, classname="TeacherDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
+        # self.controller.widgetRef("dashboardcanvas").tk.call('raise', self.controller.widgetRef("dashboardcanvas")._w)
     def tupleToDict(self, tup):
         if len(tup) == 5:
             return dict(zip(("imagepath", "x", "y", "classname","root"), tup))
@@ -735,18 +732,11 @@ class Dashboard(Frame):
         except RuntimeError:
             pass
         for widgetname, widget in self.children.items():
-            # print(widgetname)
             if widgetname == "searchbarresults":
-                # widget.grid_propagate(False)                
                 widget.after(100, lambda: widget.focus_set())
                 widget.bind("<Return>", lambda e: self.searchByQuery(widget.get()))
                 widget.bind("<FocusIn>", lambda e: widget.delete(0, END))
-                # on new letters being typed, the search bar logic will be called
                 widget.bind("<Tab>", lambda e: self.closeSearchBarLogic())
-            # if isinstance(widget, Canvas) or isinstance(widget, Entry):
-            #     widgetstoremove.append(widgetname)
-            #     for widgetname in widgetstoremove:
-            #         self.children[widgetname].destroy()
 
     def searchByQuery(self, query):
         print(query)
@@ -766,14 +756,20 @@ class Dashboard(Frame):
                 self.controller.buttonCreator(
                     r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit or Click Me", font=("Avenir Next", 20), wraplength=600
                 )
-#  SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, FavoritesView, AppointmentsView
+class DashboardCanvas(Canvas):
+    def __init__(self, parent, controller):
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="dashboardcanvas")
+        self.controller = controller
+        self.parent = parent
+        gridGenerator(self, 96, 46, WHITE)
+        namelabel = Label(self, text="Dashboard Canvas", font=("Avenir Next", 20), bg=WHITE)
+        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
 class SearchPage(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="searchpage")
         self.controller = controller
         self.parent = parent
-        print(self.parent)
-        gridGenerator(self, 96, 46, "purple")
+        gridGenerator(self, 96, 46, WHITE)
         namelabel = Label(self, text="Search Page", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
 class Chatbot(Canvas):
@@ -781,31 +777,57 @@ class Chatbot(Canvas):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="chatbot")
         self.controller = controller
         self.parent = parent
-        gridGenerator(self, 96, 46, "pink")
+        gridGenerator(self, 96, 46, WHITE)
+        namelabel = Label(self, text="Chatbot", font=("Avenir Next", 20), bg=WHITE)
+        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+
 class LearningHub(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="learninghub")
         self.controller = controller
         self.parent = parent
-        gridGenerator(self, 96, 46, "blue")
+        gridGenerator(self, 96, 46, WHITE)
+        namelabel = Label(self, text="Learning Hub", font=("Avenir Next", 20), bg=WHITE)
+        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+
 class CourseView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="courseview")
         self.controller = controller
         self.parent = parent
-        gridGenerator(self, 96, 46, "lightblue")
+        gridGenerator(self, 96, 46, WHITE)
+        namelabel = Label(self, text="CourseView", font=("Avenir Next", 20), bg=WHITE)
+        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+
+
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="discussionsview")
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
+        namelabel = Label(self, text="Discussions", font=("Avenir Next", 20), bg=WHITE)
+        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+
+class FavoritesView(Canvas):
+    def __init__(self, parent, controller):
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="favoritesview")
+        self.controller = controller
+        self.parent = parent
+        gridGenerator(self, 96, 46, WHITE)
+        namelabel = Label(self, text="Favorites", font=("Avenir Next", 20), bg=WHITE)
+        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+
 class AppointmentsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="appointmentsview")
         self.controller = controller
         self.parent = parent
-        gridGenerator(self, 96, 46, "light blue")
+        gridGenerator(self, 96, 46, WHITE)
+        namelabel = Label(self, text="Appointments", font=("Avenir Next", 20), bg=WHITE)
+        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+
+
 def runGui():
     window = Window()
     window.mainloop()
