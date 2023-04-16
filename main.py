@@ -20,32 +20,32 @@ load_dotenv()
 from static import *
 from PIL import Image, ImageTk
 
-connection = mysql.connector.connect(
-    host=os.getenv("DB_HOST"),
-    database=os.getenv("DB_DATABASE"),
-    user=os.getenv("DB_USERNAME"),
-    password=os.getenv("DB_PASSWORD"),
-    ssl_ca=os.getenv("SSL_CERT")
-)
-try:
-    if connection.is_connected():
-        c = connection.cursor()
-    with connection:
-        c.execute("select @@version ")
-        version = c.fetchone()
-        if version:
-            print('Running version: ', version)
-        else:
-            print('Not connected.')
+# connection = mysql.connector.connect(
+#     host=os.getenv("DB_HOST"),
+#     database=os.getenv("DB_DATABASE"),
+#     user=os.getenv("DB_USERNAME"),
+#     password=os.getenv("DB_PASSWORD"),
+#     ssl_ca=os.getenv("SSL_CERT")
+# )
+# try:
+#     if connection.is_connected():
+#         c = connection.cursor()
+#     with connection:
+#         c.execute("select @@version ")
+#         version = c.fetchone()
+#         if version:
+#             print('Running version: ', version)
+#         else:
+#             print('Not connected.')
 
-        c.execute("""
-                SHOW TABLES
-                """)
-        results = c.fetchall()
-        print(results)
-    # connection.close()
-except Error as e:
-    print("Error while connecting to MySQL", e)
+#         c.execute("""
+#                 SHOW TABLES
+#                 """)
+#         results = c.fetchall()
+#         print(results)
+#     # connection.close()
+# except Error as e:
+#     print("Error while connecting to MySQL", e)
 # ~~~~~ The Ability to Make a Colorkey in a Canvas / Widget Transparent Using Windows Only ~~~~~ #
 # https://stackoverflow.com/questions/53021603/how-to-make-a-tkinter-canvas-background-transparent
 import win32api
@@ -99,14 +99,6 @@ class Window(Tk):
             (r"Assets\LandingPage\Landing Page Title.png", 0, 0, "Title Label", self.parentFrame)
         ]
         self.settingsUnpacker(self.labelSettingsParentFrame, "label")
-
-        def returnObjectsToFrame(frame: Frame):
-            widgetlist = []
-            for widgetname, widget in frame.children.items():
-                if widgetname.startswith("!la"):
-                    print(frame, widgetname, widget)
-                    widgetlist.append(widget)
-
 
 
         self.bgimageplaceholder = ImageTk.PhotoImage(
@@ -162,7 +154,7 @@ class Window(Tk):
                 if (not widgetname.startswith("!la")):
                     print(widget.winfo_parent(), widget.winfo_class(), widget.winfo_name())
                     
-        self.opensDevWindow(parseObjectsFromFrame, self.widgetRef, returnObjectsToFrame)
+        self.opensDevWindow(parseObjectsFromFrame, self.widgetRef)
         
         self.frames = {}
         self.canvasInDashboard = {}
@@ -185,6 +177,9 @@ class Window(Tk):
             canvas.grid(row=0, column=0, columnspan=96, rowspan=46, sticky=NSEW)
             canvas.grid_propagate(False)
             canvas.grid_remove()
+
+            
+
         self.show_canvas(DashboardCanvas)
     def widgetRef(self, classname: str):
         classname.lower().replace(" ", "")
@@ -222,7 +217,7 @@ class Window(Tk):
         #     if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
         #         self.widgetsDict[widgetname] = widget
 
-    def opensDevWindow(self, parseObjectsFromFrame, widgetRef, returnObjectsToFrame):
+    def opensDevWindow(self, parseObjectsFromFrame, widgetRef):
         self.developerkittoplevel = Toplevel(
             self,
             bg=LIGHTYELLOW,
@@ -612,14 +607,10 @@ class SlidePanel(Frame):
         self.controller.sidebarpfpimage = ImageTk.PhotoImage(Image.open(r"Assets\Dashboard\SidebarPfp200x200.png"))
         self.sidebarpfp = Button(self, image=self.controller.sidebarpfpimage, bg=LIGHTYELLOW, name="sidebarpfp", command=lambda:print("pfp clicked"))
         self.sidebarpfp.place(x=60, y=40, width=200, height=200)
+        self.controller.signoutbuttonimg = ImageTk.PhotoImage(Image.open(r"Assets\Dashboard\SignOutSidebar.png"))
+        self.signoutbutton = Button(self, image=self.controller.signoutbuttonimg, bg=LIGHTYELLOW, name="signoutbutton", command=lambda:self.controller.widgetsDict["dashboard"].tk.call("lower", self.controller.widgetsDict["dashboard"]._w))
+        self.signoutbutton.place(x=40, y=720, width=240, height=100)
         
-        # self.controller.buttonCreator(r"Assets\Dashboard\SidebarPfp200x200.png", 60, 40, "sidebarpfp", lambda:print("pfp clicked"), self)
-    # def parseObjectsFromFrame(self, frame):
-    #     for widgetname, widget in frame.children.items():
-    #         if widgetname == "sidebar":
-    #             print(widgetname, widget)
-    #             print(widget.grid_info())
-    #layout 
     def animate(self):
         if self.at_start_pos:
             self.animate_forward()
@@ -631,6 +622,7 @@ class SlidePanel(Frame):
         self.tkraise()
         self.sidebarlabel.tk.call('raise', self.sidebarlabel._w)
         self.sidebarpfp.tk.call('raise', self.sidebarpfp._w)
+        self.signoutbutton.tk.call('raise', self.signoutbutton._w)
         # self.parseObjectsFromFrame(self)
         if self.startcolumnspan < self.endcolumnspan+1:
             self.grid(columnspan=self.startcolumnspan)
@@ -754,7 +746,7 @@ class Dashboard(Frame):
                 #     r"Assets\Dashboard\SearchResultsBg.png", 0, 120, "SearchResults3", widget, text=f"Search Results 3 for {query}", font=("Avenir Next", 20), wraplength=1000
                 # )
                 self.controller.buttonCreator(
-                    r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit or Click Me", font=("Avenir Next", 20), wraplength=600
+                    r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit", font=("Avenir Next", 20), wraplength=600
                 )
 class DashboardCanvas(Canvas):
     def __init__(self, parent, controller):
@@ -762,8 +754,8 @@ class DashboardCanvas(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="Dashboard Canvas", font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+                
+
 class SearchPage(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="searchpage")
@@ -772,6 +764,8 @@ class SearchPage(Canvas):
         gridGenerator(self, 96, 46, WHITE)
         namelabel = Label(self, text="Search Page", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+
+
 class Chatbot(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="chatbot")
@@ -781,6 +775,8 @@ class Chatbot(Canvas):
         namelabel = Label(self, text="Chatbot", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
 
+
+
 class LearningHub(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="learninghub")
@@ -789,6 +785,13 @@ class LearningHub(Canvas):
         gridGenerator(self, 96, 46, WHITE)
         namelabel = Label(self, text="Learning Hub", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+        self.staticImgLabels = [
+            # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
+            (r"Assets\LearningHub\LearningHubBG.png", 0, 0, "LearningHubBG", self),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+
+
 
 class CourseView(Canvas):
     def __init__(self, parent, controller):
@@ -800,6 +803,8 @@ class CourseView(Canvas):
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
 
 
+
+
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="discussionsview")
@@ -808,6 +813,13 @@ class DiscussionsView(Canvas):
         gridGenerator(self, 96, 46, WHITE)
         namelabel = Label(self, text="Discussions", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+        self.staticImgLabels = [
+            # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
+            (r"Assets\DiscussionsView\DiscussionsViewBG.png", 0, 0, "DiscussionsBG", self),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+
+
 
 class FavoritesView(Canvas):
     def __init__(self, parent, controller):
@@ -818,6 +830,8 @@ class FavoritesView(Canvas):
         namelabel = Label(self, text="Favorites", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
 
+
+
 class AppointmentsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="appointmentsview")
@@ -826,6 +840,12 @@ class AppointmentsView(Canvas):
         gridGenerator(self, 96, 46, WHITE)
         namelabel = Label(self, text="Appointments", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+        self.staticImgLabels = [
+            (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
+            (r"Assets\AppointmentsView\BGForAppointments1920x780+0+200.png", 0, 120, "AppointmentsBG", self),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+
 
 
 def runGui():
