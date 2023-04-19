@@ -4,3 +4,4 @@ mysql-connector-python
 Prisma
 pywin32
 Pillow
+ttkbootstrap
