@@ -82,9 +82,10 @@ class Window(Tk):
         self.title("INTI.ai Learning Client")
         self.resizable(False, False)
         self.bind("<Escape>", lambda e: self.destroy())
+        
         self.widgetsDict = {} 
         self.imageDict = {}
-        self.parentFrame = Canvas(self, bg=LIGHTYELLOW, width=1, height=1, name="parentFrame")
+        self.parentFrame = Frame(self, bg=LIGHTYELLOW, width=1, height=1, name="parentFrame")
         self.parentFrame.grid(row=0, column=0, rowspan=1, columnspan=1, sticky=NSEW)
 
         elementcreator.gridGenerator(self.parentFrame, 96, 54, WHITE)
@@ -99,7 +100,6 @@ class Window(Tk):
             (r"Assets\LandingPage\Landing Page Title.png", 0, 0, "Title Label", self.parentFrame)
         ]
         self.settingsUnpacker(self.labelSettingsParentFrame, "label")
-
 
         self.bgimageplaceholder = ImageTk.PhotoImage(
             Image.open(r"Assets\Login Page with Captcha\LoginPageTeachers.png")
@@ -160,7 +160,7 @@ class Window(Tk):
         self.canvasInDashboard = {}
         for F in (
             Dashboard,
-            # RegistrationPage, LoginPage, StudentPage, TeacherPage, ChatBot, HelpPage
+            # RegistrationPage, LoginPage, 
         ):
             frame = F(parent=self.parentFrame, controller=self)
             self.frames[F] = frame
@@ -178,12 +178,12 @@ class Window(Tk):
             canvas.grid_propagate(False)
             canvas.grid_remove()
 
-            
-
         self.show_canvas(DashboardCanvas)
+
     def widgetRef(self, classname: str):
         classname.lower().replace(" ", "")
-        return self.widgetsDict[classname]           
+        return self.widgetsDict[classname]
+     
     def createImageReference(self, imagepath:str, classname:str):
         image = ImageTk.PhotoImage(Image.open(imagepath))
         self.imageDict[classname] = image
@@ -239,12 +239,6 @@ class Window(Tk):
         lambda: parseObjectsFromFrame(self.parentFrame)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
         lambda: widgetRef("learninghubchip").grid_remove()),
-        # (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 160, "XD3 Button", self.developerkittoplevel, 
-        # lambda: parseObjectsFromFrame(self.get_page(Dashboard))),
-        # (r"Assets\DeveloperKit\xd1.png", 680, 160, "XD2 Button", self.developerkittoplevel, 
-        # lambda: widgetRef('learninghubchip')),
-        # (r"Assets\DeveloperKit\WidgetWorkings.png", 520, 320, "XD4 Button", self.developerkittoplevel, 
-        # lambda: [self.destroyLabelFromFrame(self.postSelectFrame)],),
         (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
         lambda: [self.deletethewindowbar(self), self.state("zoomed")])
         ]
@@ -252,6 +246,12 @@ class Window(Tk):
         self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntryGreen", bg=LIGHTYELLOW)
         self.entryCreator(40, 320, 360, 80, root=self.developerkittoplevel, classname="DevKitEntryOrange", bg=LIGHTYELLOW)
  
+    def tupleToDict(self, tup): #TODO
+        if len(tup) == 5:
+            return dict(zip(("imagepath", "x", "y", "classname","root"), tup))
+        if len(tup) == 6:
+            return dict(zip(("imagepath", "x", "y", "classname","root", "buttonFunction"), tup))
+
     def settingsUnpacker(self, listoftuples, typeoftuple):
         # print((listoftuples))
         for i in listoftuples:
@@ -275,18 +275,6 @@ class Window(Tk):
                 }
                 self.labelCreator(**label_params)
 
-    def destroyLabelFromFrame(self, frame:Frame):
-        isRemoved = False
-        for widgetname, widget in frame.children.items():
-            if isinstance(widget, Label):
-                if isRemoved:
-                    widget.grid()
-                    isRemoved = False
-                else:
-                    widget.grid_remove()
-                    isRemoved = True
-            else:
-                widget.grid()
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.grid()
@@ -518,8 +506,8 @@ class Window(Tk):
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
 
-    def canvasCreator(self, 
-        xpos, ypos, width, height, root, classname=None,
+    def canvasCreator(
+        self, xpos, ypos, width, height, root, classname=None,
         bgcolor=WHITE, imgSettings=None,
         relief=FLAT, 
         isTransparent=False, transparentcolor=TRANSPARENTGREEN,
@@ -827,9 +815,7 @@ class FavoritesView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="Favorites", font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
-
+        
 
 
 class AppointmentsView(Canvas):
@@ -838,8 +824,6 @@ class AppointmentsView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="Appointments", font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
         self.staticImgLabels = [
             (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
             (r"Assets\AppointmentsView\BGForAppointments1920x780+0+200.png", 0, 120, "AppointmentsBG", self),
