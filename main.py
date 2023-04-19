@@ -707,7 +707,7 @@ class UserForms(Frame):
             self.controller.menubuttonCreator(
                 xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
                 root=self.frameref, classname=name.capitalize(), text=f"Select {name.capitalize()}", listofvalues=values,
-                variable=vars[name], font=("Helvetica", 10), command=lambda:[print(vars[name].get())]
+                variable=vars[name], font=("Helvetica", 10), command=lambda name=name:[print(vars[name].get())]
             )
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref, buttonFunction=lambda:print("hello"), pady=5)
         
