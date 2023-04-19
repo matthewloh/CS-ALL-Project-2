@@ -6,7 +6,9 @@ from ctypes import windll
 from time import sleep
 from tkinter import *
 from tkinter import messagebox
-
+# A drop in replacement for ttk that uses bootstrap styles
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
@@ -85,12 +87,12 @@ class Window(Tk):
         
         self.widgetsDict = {} 
         self.imageDict = {}
-        self.parentFrame = Frame(self, bg=LIGHTYELLOW, width=1, height=1, name="parentFrame")
+        self.parentFrame = Frame(self, bg=LIGHTYELLOW, width=1, height=1, name="parentFrame", autostyle=False)
         self.parentFrame.grid(row=0, column=0, rowspan=1, columnspan=1, sticky=NSEW)
 
         elementcreator.gridGenerator(self.parentFrame, 96, 54, WHITE)
 
-        self.postSelectFrame = Frame(self.parentFrame, bg=LIGHTYELLOW, width=1, height=1, name="postSelectFrame")
+        self.postSelectFrame = Frame(self.parentFrame, bg=LIGHTYELLOW, width=1, height=1, name="postSelectFrame", autostyle=False)
         self.postSelectFrame.grid(row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
         elementcreator.gridGenerator(self.postSelectFrame, 96, 54, WHITE) 
         self.postSelectFrame.grid_remove()
@@ -122,18 +124,30 @@ class Window(Tk):
             Image.open(r"Assets\Login Page with Captcha\LoginPageTeachers.png")
         )
 
-        def makeBgImageGrid(student=False, teacher=False):
+        def signUpPage(student=False, teacher=False):
             if student:
                 self.bgimage_label.configure(image=self.loadedImg1)
+                studentform = UserForms(self.postSelectFrame, self, "studentreg")
+                studentform.userReg()
+                studentform.loadStudentReg()
             elif teacher:
                 self.bgimage_label.configure(image=self.loadedImg2)
+                teacherform = UserForms(self.postSelectFrame, self, "teacherreg")
+                teacherform.userReg()
+                teacherform.loadLecturerReg()
+
             self.bgimage_label.grid(), self.postSelectFrame.grid(), self.postSelectFrame.tkraise()
+        def test(frame:Frame):
+            for widgetname, widget in frame.children.items():
+                if widgetname.startswith("!la"):
+                    widget.configure(bg=LIGHTYELLOW) #TODO: why does this bug occur man
+
         buttonSettingsForParentFrame = [
             # (imagepath, xpos, ypos, classname, buttonFunction, root),
             (r"Assets\LandingPage\Student Button.png", 1080, 320, "Student Button", 
-            self.parentFrame, lambda: makeBgImageGrid(student=True)),
+            self.parentFrame, lambda: signUpPage(student=True)),
             (r"Assets\LandingPage\Teacher Button.png", 240, 320, "Teacher Button",
-            self.parentFrame, lambda: makeBgImageGrid(teacher=True)) 
+            self.parentFrame, lambda: signUpPage(teacher=True)) 
         ]
         self.settingsUnpacker(buttonSettingsForParentFrame, "button")
         self.btnSettingsPostSelectFrame = [
@@ -142,10 +156,14 @@ class Window(Tk):
         lambda: self.postSelectFrame.grid_remove()),
         (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 940, "Skip Button", 
         self.postSelectFrame,
-        lambda: [self.show_frame(Dashboard), self.show_canvas(DashboardCanvas), self.get_page(Dashboard).loadSpecificAssets("student")]), 
-        (r"Assets\Login Page with Captcha\CaptchaButton.png", 1260, 520, "Captcha Button",
-        self.postSelectFrame,
-        lambda: [self.show_frame(Dashboard), self.show_canvas(DashboardCanvas), self.get_page(Dashboard).loadSpecificAssets("student")]),
+        lambda: [
+        self.show_frame(Dashboard), 
+        self.show_canvas(DashboardCanvas), 
+        self.get_page(Dashboard).loadSpecificAssets("student"),
+        ]), 
+        # (r"Assets\Login Page with Captcha\CaptchaButton.png", 1260, 520, "Captcha Button",
+        # self.postSelectFrame,
+        # lambda: [self.show_frame(Dashboard), self.show_canvas(DashboardCanvas), self.get_page(Dashboard).loadSpecificAssets("student")])
         ]
         self.settingsUnpacker(self.btnSettingsPostSelectFrame, "button")
         
@@ -234,7 +252,7 @@ class Window(Tk):
         (r"Assets\DeveloperKit\GetAllWidgets.png", 40, 40, "GetAllWidgetsBtn", self.developerkittoplevel,
         lambda: print(self.widgetsDict)),
         (r"Assets\DeveloperKit\GetSpecificWidget.png", 40, 240, "GetWidgetFromFrame", self.developerkittoplevel,
-        lambda: widgetRef(widgetRef("devkitentryorange").get()).grid_remove()),
+        lambda: widgetRef(widgetRef("devkitentryorange").get()).destroy()),
         (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "XD Button", self.developerkittoplevel, 
         lambda: parseObjectsFromFrame(self.parentFrame)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
@@ -313,6 +331,7 @@ class Window(Tk):
         text=None,
         font=("Avenir Next Bold", 16),
         wraplength=None,
+        pady=None,
     ):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
@@ -357,12 +376,14 @@ class Window(Tk):
             cursor="hand2", state=button_kwargs["state"], 
             name= button_kwargs["name"],
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
+            autostyle=False,
         ).grid(
             row=rowarg,
             column=columnarg,
             rowspan=heightspan,
             columnspan=widthspan,
             sticky=NSEW,
+            pady=pady,
         )
 
     def labelCreator(
@@ -410,6 +431,7 @@ class Window(Tk):
             label_kwargs["root"], image=label_kwargs["image"], relief=FLAT, width=1, height=1, 
             cursor="", state=label_kwargs["state"], name=label_kwargs["name"], 
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
+            autostyle=False,
         ).grid(
             row=rowarg,
             column=columnarg,
@@ -426,7 +448,7 @@ class Window(Tk):
         frameheight,
         root=None,
         classname=None,
-        bg=WHITE,
+        bg=LIGHTYELLOW,
         relief=FLAT,
         imgSettings=None,
         ):
@@ -443,7 +465,7 @@ class Window(Tk):
         }
         self.updateWidgetsDict(root=frame_kwargs["root"])
         Frame(frame_kwargs["root"], width=1, height=1, bg=frame_kwargs["bg"], relief=frame_kwargs["relief"],
-        name=frame_kwargs["name"].lower(),
+        name=frame_kwargs["name"].lower(), autostyle=False,
         ).grid(
             row=rowarg,
             column=columnarg,
@@ -493,7 +515,10 @@ class Window(Tk):
         widthspan = int(width / 20)
         heightspan = int(height / 20)
         self.updateWidgetsDict(root=entry_params["root"])
-        Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,name=entry_params["classname"], textvariable=textvariable).grid(
+        Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,
+            name=entry_params["classname"],
+            autostyle=False,
+            textvariable=textvariable, ).grid(
             row=rowarg,
             column=columnarg,
             rowspan=heightspan,
@@ -532,7 +557,7 @@ class Window(Tk):
                 enumerate(imgSettings)
             ) 
         self.updateWidgetsDict(root=canvas_params["root"])
-        Canvas(root, bg=canvas_params["bg"], highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=canvas_params["classname"], highlightthickness=0).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        Canvas(root, bg=canvas_params["bg"], highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=canvas_params["classname"], highlightthickness=0, autostyle=False).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 gridGenerator(widget, widthspan, heightspan, bgcolor)
@@ -555,6 +580,39 @@ class Window(Tk):
                             buttonFunction=j[4]
                         )
 
+    def menubuttonCreator(
+        self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, #Essential
+        bgcolor=WHITE, 
+        relief=FLAT, font=("Avenir Next", 16),
+        text=None, variable=None, listofvalues=None, command=None,#Special Values
+        ):
+        """
+        Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
+        and places a menubutton inside of it. The menubutton is then returned into the global dict of widgets.\n
+        Requires a var like StringVar() to be initialized and passed in.\n
+        Feed in a list of values and command functions to be used in the menubutton.\n
+        Styling handled by passing in a formatted classname and font to config a style.
+        """
+        columnarg = int(xpos / 20)
+        rowarg = int(ypos / 20)
+        widthspan = int(width / 20)
+        heightspan = int(height / 20)
+        classname = classname.lower().replace(" ", "")
+        menustyle = ttk.Style()
+        menustyle.configure(f"{classname}.TMenubutton", font=font, background=bgcolor, foreground=BLACK)
+        self.frameCreator(xpos, ypos, width, height, root, classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
+        frameref = self.widgetsDict[f"{classname}hostfr"]
+        menubutton = ttk.Menubutton(frameref, text=text, style=f"{classname}.TMenubutton", name=classname)
+        menubutton.grid(row=0, column=0, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        menubutton.menu = Menu(menubutton, tearoff=0, name=f"{classname}menu", autostyle=False,)
+        for x in listofvalues:
+            menubutton.menu.add_radiobutton(label=x, variable=variable, value=x,
+            command=lambda:[command(), menubutton.config(text=variable.get())])
+        menubutton["menu"] = menubutton.menu
+        self.widgetsDict[menubutton["menu"]] = menubutton.menu
+        self.widgetsDict[classname] = menubutton
+        self.updateWidgetsDict(root=root)
+
     def hex_to_rgb(self, hexstring):
         # Convert hexstring to integer
         hexint = int(hexstring[1:], 16)
@@ -564,7 +622,153 @@ class Window(Tk):
         blue = hexint & 0xFF
         colorkey = win32api.RGB(red, green, blue)
         return colorkey
-  
+
+class UserForms(Frame):
+    def __init__(self, parent=None, controller=None, name=None):
+        super().__init__(parent, width=1, height=1, bg=WHITE, name=name)
+        self.controller = controller
+        self.parent = parent
+        self.name = name
+
+    def userReg(self):
+        self.controller.frameCreator(
+        xpos=1000, ypos=40, framewidth= 800, frameheight= 920,
+        root=self.parent, classname=f"{self.name}", 
+        )
+        self.frameref = self.controller.widgetsDict[f"{self.name}"]
+        self.imgLabels = [
+            (r"Assets\Login Page with Captcha\Sign Up Form.png", 0, 0, f"{self.name}BG", self.frameref),
+        ]
+        self.controller.settingsUnpacker(self.imgLabels, "label")
+        #fullname, email, password, contact number, 
+        #self, xpos,ypos,width, height,
+        #root=None, classname=None, bg=WHITE, relief=FLAT,
+        # fg=BLACK, textvariable=None, pady=None,):
+        self.userRegEntries = [
+            (40, 120, 720, 60, self.frameref, "fullname"),
+            (40, 220, 720, 60, self.frameref, "emailname"),
+            (40, 320, 340, 60, self.frameref, "password"),
+            (40, 480, 340, 60, self.frameref, "confirmpassword"),
+            (420, 320, 340, 60, self.frameref, "contactnumber"),
+            (420, 500, 340, 40, self.frameref, "captcha"),
+
+        ]
+        for i in self.userRegEntries:
+            self.controller.entryCreator(*i)
+        
+
+    def loadLecturerReg(self):
+        self.userReg()
+        self.imgLabels.append((r"Assets\Login Page with Captcha\LecturerForm.png", 0 , 600, f"{self.name}Lecturer", self.frameref))
+        self.controller.settingsUnpacker(self.imgLabels, "label")
+        self.lecturerRegEntries = [
+        #     # (200, 660, 160, 40, self.frameref, "currentinstitution"),
+        #     (200, 740, 160, 40, self.frameref, "currentschool"),
+        #     (600, 660, 160, 40, self.frameref, "tenure"),
+        #     (600, 740, 160, 40, self.frameref, "currentprogramme"),
+        #     # (200, 820, 560, 40, self.frameref, "coursetaught"),
+        ]
+        #self.lecturerRegEntries extends self.userRegEntries
+        # implementing the joining of the two lists
+        self.lecturerRegEntries = self.userRegEntries + self.lecturerRegEntries
+        for i in self.lecturerRegEntries:
+            self.controller.entryCreator(*i)
+        lists = {
+            "institution": ["INTI International College Penang", "INTI International University Nilai", "INTI International College Subang", "INTI College Sabah"],
+            "school": ["SOCAT", "SOE", "CEPS", "SOBIZ", "Unlisted"],
+            "tenure": ["Full Time", "Part Time", "Unlisted"],
+            "programme": ["BCSCU", "BCTCU", "DCS", "DCIT", "Unlisted"],
+            "course1": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
+            "course2": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
+            "course3": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"]
+        }
+
+        vars = {
+            "institution": StringVar(),
+            "school": StringVar(),
+            "tenure": StringVar(),
+            "programme": StringVar(),
+            "course1": StringVar(),
+            "course2": StringVar(),
+            "course3": StringVar()
+        }
+
+        positions = {
+            "institution": {"x": 140, "y": 660},
+            "school": {"x": 140, "y": 740},
+            "tenure": {"x": 520, "y": 660},
+            "programme": {"x": 520, "y": 740},
+            "course1": {"x": 20, "y": 840},
+            "course2": {"x": 280, "y": 840},
+            "course3": {"x": 540, "y": 840}
+        }
+
+        for name, values in lists.items():
+            self.controller.menubuttonCreator(
+                xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
+                root=self.frameref, classname=name.capitalize(), text=f"Select {name.capitalize()}", listofvalues=values,
+                variable=vars[name], font=("Helvetica", 10), command=lambda:[print(vars[name].get())]
+            )
+        self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref, buttonFunction=lambda:print("hello"), pady=5)
+        
+        
+    def loadStudentReg(self):
+        self.userReg()
+        self.imgLabels.append((r"Assets\Login Page with Captcha\StudentForm.png", 0 , 600, f"{self.name}Student", self.frameref))
+        self.controller.settingsUnpacker(self.imgLabels, "label")
+        self.studentRegEntries = [
+            # (200, 660, 160, 40, self.frameref, "currentinstitution"),
+            # (200, 740, 160, 40, self.frameref, "currentschool"),
+            # (600, 660, 160, 40, self.frameref, "semester"),
+            # (600, 740, 160, 40, self.frameref, "currentprogramme"),
+            # (200, 820, 560, 40, self.frameref, "enrolledcourses"),
+        ]
+        #self.studentRegEntries extends self.userRegEntries
+        # implementing the joining of the two lists
+        self.studentRegEntries = self.userRegEntries + self.studentRegEntries
+        for i in self.studentRegEntries:
+            self.controller.entryCreator(*i)
+        
+        lists = {
+            "institution": ["INTI International College Penang", "INTI International University Nilai", "INTI International College Subang", "INTI College Sabah"],
+            "school": ["SOCAT", "SOE", "CEPS", "SOBIZ", "Unlisted"],
+            "session": ["APR2023", "AUG2023", "JAN2024", "APR2024", "AUG2025"],
+            "programme": ["BCSCU", "BCTCU", "DCS", "DCIT", "Unlisted"],
+            "course1": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
+            "course2": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
+            "course3": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"]
+        }
+
+        vars = {
+            "institution": StringVar(),
+            "school": StringVar(),
+            "session": StringVar(),
+            "programme": StringVar(),
+            "course1": StringVar(),
+            "course2": StringVar(),
+            "course3": StringVar()
+        }
+
+        positions = {
+            "institution": {"x": 140, "y": 660},
+            "school": {"x": 140, "y": 740},
+            "session": {"x": 520, "y": 660},
+            "programme": {"x": 520, "y": 740},
+            "course1": {"x": 20, "y": 840},
+            "course2": {"x": 280, "y": 840},
+            "course3": {"x": 540, "y": 840}
+        }
+
+        for name, values in lists.items():
+            self.controller.menubuttonCreator(
+                xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
+                root=self.frameref, classname=name.capitalize(), text=f"Select {name.capitalize()}",
+                listofvalues=values, variable=vars[name], font=("Helvetica", 10),
+                command=lambda name=name: print(vars[name].get())
+            )
+        
+        self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref, buttonFunction=lambda:print("hello"), pady=5)
+
 class SlidePanel(Frame):
     def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN):
         super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN)
@@ -632,7 +836,7 @@ class SlidePanel(Frame):
 
 class Dashboard(Frame):
     def __init__(self, parent, controller):
-        Frame.__init__(self, parent, width=1, height=1, bg=LIGHTYELLOW, name="dashboard")
+        Frame.__init__(self, parent, width=1, height=1, bg=LIGHTYELLOW, name="dashboard", autostyle=False)
         # gridGenerator(parent, 96, 54, LIGHTYELLOW)
         self.controller = controller
         self.parent = parent
@@ -738,15 +942,14 @@ class Dashboard(Frame):
                 )
 class DashboardCanvas(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="dashboardcanvas")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="dashboardcanvas", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
                 
-
 class SearchPage(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="searchpage")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="searchpage", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
@@ -756,7 +959,7 @@ class SearchPage(Canvas):
 
 class Chatbot(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="chatbot")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="chatbot", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
@@ -767,7 +970,7 @@ class Chatbot(Canvas):
 
 class LearningHub(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="learninghub")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="learninghub", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
@@ -783,7 +986,7 @@ class LearningHub(Canvas):
 
 class CourseView(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="courseview")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="courseview", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
@@ -795,7 +998,7 @@ class CourseView(Canvas):
 
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="discussionsview")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="discussionsview", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
@@ -811,7 +1014,7 @@ class DiscussionsView(Canvas):
 
 class FavoritesView(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="favoritesview")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="favoritesview", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
@@ -820,7 +1023,7 @@ class FavoritesView(Canvas):
 
 class AppointmentsView(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="appointmentsview")
+        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="appointmentsview", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
