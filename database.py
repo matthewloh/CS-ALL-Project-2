@@ -7,12 +7,15 @@ import os
 from dotenv import load_dotenv
 from mysql.connector import Error
 import mysql.connector
-
+ 
 load_dotenv()
 
 from prisma import Prisma
 prisma = Prisma()
 
+# the user model is essentially the superset of the student and teacher model.
+# the user model has - id, fullname, email, password, contact no. and role that is either student or teacher
+# the role is a field in the user model that is used to differentiate between a student and a teacher
 def prismaFindMany():
     prisma.connect()
     users = prisma.user.find_many()
