@@ -4,6 +4,7 @@ import sys
 import threading
 from ctypes import windll
 from time import sleep
+import time
 from tkinter import *
 from tkinter import messagebox
 # A drop in replacement for ttk that uses bootstrap styles
@@ -15,10 +16,16 @@ import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
 from prisma import Prisma
-
+import webview
+from multiprocessing import Process
 import elementcreator
 from elementcreator import gridGenerator
-
+from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
+import clr
+clr.AddReference('System.Windows.Forms')
+clr.AddReference('System.Threading')
+from System.Windows.Forms import Control
+from System.Threading import Thread,ApartmentState,ThreadStart  
 load_dotenv()
 
 from static import *
@@ -215,7 +222,7 @@ class Window(ttk.Window):
         (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "CollectWidgets", self.developerkittoplevel, 
         lambda: parseObjectsFromFrame(self)),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
-        lambda: self.widgetsDict["learninghubchip"].grid_remove()),
+        lambda: self.start_webview()),
         (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
         lambda: [self.deletethewindowbar(), self.state("zoomed")])
         ]
@@ -245,6 +252,9 @@ class Window(ttk.Window):
         for widget in widgetlist:
             widget.grid_remove()
 
+    def start_webview(self):
+        frame = WebView2()
+        frame.load_url("http://localhost:5555")
     def removeAWidget(self):
         widgetname = self.widgetsDict["devkitentryorange"].get()
         return self.widgetsDict[widgetname]
@@ -628,6 +638,80 @@ class Window(ttk.Window):
         self.widgetsDict[classname] = entry
         self.updateWidgetsDict(root=root)
 
+    def webview2creator(
+        self, xpos=None, ypos=None, framewidth=None, frameheight=None, root=None, classname=None,
+        bgcolor=WHITE, relief=FLAT, font=("Avenir Next", 16),
+        url=None,
+        ):
+        columnarg = int(xpos / 20)
+        rowarg = int(ypos / 20)
+        widthspan = int(framewidth / 20)
+        heightspan = int(frameheight / 20)
+        classname = classname.lower().replace(" ", "") 
+        navigationbar = Frame(root, width=1, height=1, bg=bgcolor, relief=FLAT, name=f"{classname}navbar")
+        gridGenerator(navigationbar, widthspan, 3, WHITE)
+        navigationbar.grid(row=rowarg-3, column=columnarg, rowspan=3, columnspan=widthspan, sticky=NSEW)
+        frame = WebView2(parent=root, width=1, height=1, url=url, name=classname, bg=bgcolor)
+        frame.grid(
+            row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
+        )
+        #binding a callback button to go back in javascript
+        def goBack():
+            frame.evaluate_js("window.history.back();")
+            defocus()
+        #binding a callback button to go forward in javascript
+        def goForward():
+            frame.evaluate_js("window.history.forward();")
+            defocus()
+        def getUrlandGo():
+            try:
+                url = self.widgetsDict[f"{classname}urlentry"].get()
+                frame.load_url(url)
+            except: 
+                url = f"https://www.google.com/search?q={self.widgetsDict[f'{classname}urlentry'].get()}"
+                frame.load_url(url)
+            defocus()
+            ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+        def gotoGoogle():
+            frame.load_url("https://www.google.com/")
+            defocus()
+            ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+        def toggleFullscreen():
+            frame.evaluate_js("document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();")
+            defocus()
+        def defocus():
+            # getting the current window using the window handle, then simulating a refocusing
+            # frame.evaluate_js("document.activeElement.blur();")
+            ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+        def exitCompletely():
+            widgetslist = [frame, navigationbar]
+            for widget in widgetslist:
+                widget.destroy()
+
+        self.buttonCreator(r"Assets\Chatbot\Backbutton.png", 0, 0, classname=f"{classname}backbutton",
+        buttonFunction=lambda: goBack(),
+        root=navigationbar)
+        self.buttonCreator(r"Assets\Chatbot\Forwardbutton.png", 80, 0, classname=f"{classname}forwardbutton", 
+        buttonFunction=lambda: goForward(),
+        root=navigationbar)
+        self.entryCreator(160, 0, 760, 60, navigationbar, classname=f"{classname}urlentry",
+        bg=bgcolor)
+        self.widgetsDict[f"{classname}urlentry"].insert(0, url)
+        self.widgetsDict[f"{classname}urlentry"].bind("<Return>", lambda event: getUrlandGo())
+        self.buttonCreator(r"Assets\Chatbot\EnterAndGoButton.png", 920, 0, classname=f"{classname}enterandgobutton",
+        buttonFunction=lambda: getUrlandGo(),
+        root=navigationbar)
+        self.buttonCreator(r"Assets\Chatbot\GoogleButton.png", 1060, 0, classname=f"{classname}googlebutton",
+        buttonFunction=lambda: gotoGoogle(),
+        root=navigationbar)
+        self.buttonCreator(r"Assets\Chatbot\Togglefullscreen.png", 1120, 0, classname=f"{classname}fullscreenbutton",
+        buttonFunction=lambda: toggleFullscreen(),
+        root=navigationbar)
+
+        self.updateWidgetsDict(root=root)
+
+
+        
     def hex_to_rgb(self, hexstring):
         # Convert hexstring to integer
         hexint = int(hexstring[1:], 16)
@@ -925,7 +1009,11 @@ class Dashboard(Frame):
         (r"Assets\Dashboard\BellTopBar.png", 1820, 20, "BellTopBar", self.framereference, lambda: print("hello-3")),
         (r"Assets\Dashboard\01DashboardChip.png", 20, 1020, "DashboardChip", self.framereference, lambda: self.controller.show_canvas(DashboardCanvas)),
         (r"Assets\Dashboard\02SearchChip.png", 160, 1020, "SearchChip", self.framereference, lambda: [self.controller.show_canvas(SearchPage),]),
-        (r"Assets\Dashboard\03ChatbotChip.png", 300, 1020, "ChatbotChip", self.framereference, lambda: self.controller.show_canvas(Chatbot)),
+        
+        (r"Assets\Dashboard\03ChatbotChip.png", 300, 1020, "ChatbotChip", self.framereference, 
+        lambda: [self.controller.show_canvas(Chatbot), self.chatbottoast.show_toast(), 
+        ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())]),
+        
         (r"Assets\Dashboard\04LearningHubChip.png", 440, 1020, "LearningHubChip", self.framereference, lambda: self.controller.show_canvas(LearningHub)),
         (r"Assets\Dashboard\05MyCoursesChip.png", 580, 1020, "MyCoursesChip", self.framereference, lambda: self.controller.show_canvas(CourseView)),
         (r"Assets\Dashboard\06MyDiscussionsChip.png", 720, 1020, "MyDiscussionsChip", self.framereference, lambda: self.controller.show_canvas(DiscussionsView)),
@@ -933,6 +1021,11 @@ class Dashboard(Frame):
         (r"Assets\Dashboard\08MyAppointmentsChip.png", 1000, 1020, "MyAppointmentsChip", self.framereference, lambda: self.controller.show_canvas(AppointmentsView)),
         # (r"Assets\Dashboard\ChatbotButton.png", 1660, 780, "ChatbotButton", self.framereference, lambda: print("hello-13"))
         ]
+        self.chatbottoast = ToastNotification(
+            title="You have entered the webbrowser view",
+            message="You will not be able to use the keyboard for the application until you exit the webbrowser view. You can exit the webbrowser view by clicking the exit button on the top right corner of the webbrowser view.",
+            duration=3000,
+        )
         self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas", bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
         self.loadAllStaticAssets(self.staticImgBtns, self.staticImgLabels)
         self.maincanvasref = self.controller.widgetsDict["maincanvas"]
@@ -1027,17 +1120,17 @@ class SearchPage(Canvas):
         namelabel = Label(self, text="Search Page", font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
 
-
 class Chatbot(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="chatbot", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="Chatbot", font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
-
-
+        self.staticImgLabels = [
+            (r"Assets\Chatbot\ChatbotBg.png", 0, 0, "ChatbotBgLabel", self),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.controller.webview2creator(xpos=60, ypos=160, framewidth=1200, frameheight=740, root=self, classname="chatbotwebview2", url="http://localhost:5555/")
 
 class LearningHub(Canvas):
     def __init__(self, parent, controller):
@@ -1081,16 +1174,12 @@ class DiscussionsView(Canvas):
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
 
-
-
 class FavoritesView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="favoritesview", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        
-
 
 class AppointmentsView(Canvas):
     def __init__(self, parent, controller):
@@ -1104,11 +1193,13 @@ class AppointmentsView(Canvas):
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
 
-
-
 def runGui():
     window = Window()
     window.mainloop()
 
 if __name__ == "__main__":
-    runGui()
+    # runGui()
+    t = Thread(ThreadStart(runGui))
+    t.ApartmentState = ApartmentState.STA
+    t.Start()
+    t.Join()

@@ -12,13 +12,20 @@ load_dotenv()
 
 from prisma import Prisma
 prisma = Prisma()
+prisma.query_raw
 
 # the user model is essentially the superset of the student and teacher model.
 # the user model has - id, fullname, email, password, contact no. and role that is either student or teacher
 # the role is a field in the user model that is used to differentiate between a student and a teacher
 def prismaFindMany():
     prisma.connect()
-    users = prisma.user.find_many()
+    users = prisma.user.find_many(
+        where={
+        "age":{
+            "gt": 20
+        }
+        }
+    )
     print(users)
     prisma.disconnect()
 
@@ -30,25 +37,25 @@ connection = mysql.connector.connect(
     ssl_ca=os.getenv("SSL_CERT")
 )
 
-try:
-    if connection.is_connected():
-        c = connection.cursor()
-    with connection:
-        # c.execute("select @@version ")
-        # version = c.fetchone()
-        # if version:
-            # print('Running version: ', version)
-        # else:
-            # print('Not connected.')
+# try:
+#     if connection.is_connected():
+#         c = connection.cursor()
+#     with connection:
+#         # c.execute("select @@version ")
+#         # version = c.fetchone()
+#         # if version:
+#             # print('Running version: ', version)
+#         # else:
+#             # print('Not connected.')
 
-        c.execute("""
-                SELECT * FROM User
-                """)
-        results = c.fetchall()
-        print(results)
-    # connection.close()
-except Error as e:
-    print("Error while connecting to MySQL", e)
+#         c.execute("""
+#                 SELECT * FROM User
+#                 """)
+#         results = c.fetchall()
+#         print(results)
+#     # connection.close()
+# except Error as e:
+#     print("Error while connecting to MySQL", e)
 # finally:
 #     connection.close()
 
@@ -77,7 +84,7 @@ except Error as e:
 #     except Error as e:
 #         print(f"The error '{e}' occurred")
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
     # connection = create_connection()
     # execute_query(connection, "SHOW TABLES")
-    # prismaFindMany()
+    prismaFindMany()
