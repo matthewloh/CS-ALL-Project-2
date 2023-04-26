@@ -11,7 +11,7 @@ from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.validation import add_text_validation, add_regex_validation
+from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
 import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
@@ -81,7 +81,7 @@ user32 = windll.user32
 
 class Window(ttk.Window):
     def __init__(self, *args, **kwargs):
-        ttk.Window.__init__(self,themename="darkly", *args, **kwargs)
+        ttk.Window.__init__(self,themename="minty", *args, **kwargs)
         self.widgetsDict = {} 
         self.imageDict = {}
         self.initializeWindow()
@@ -107,7 +107,7 @@ class Window(ttk.Window):
         (r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, "Back Button", 
         self.postSelectFrame,
         lambda: self.postSelectFrame.grid_remove()),
-        (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 940, "Skip Button", 
+        (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button", 
         self.postSelectFrame,
         lambda: [
         self.show_frame(Dashboard), 
@@ -118,8 +118,14 @@ class Window(ttk.Window):
         
         def parseObjectsFromFrame(frame: Frame):
             for widgetname, widget in self.widgetsDict.items():
-                if (not widgetname.startswith("!la")):
-                    print(widget.winfo_parent(), widget.winfo_class(), widget.winfo_name())
+                # skip widgets that are children of labels in hostfr
+                if widgetname.startswith("!la") and widget.winfo_parent().endswith("hostfr"):
+                    continue
+                # skip widgets related to teacherreg or studentreg
+                parents = widget.winfo_parent().split(".")
+                if any(p.endswith("reg") for p in parents[-3:]):
+                    continue
+                print(widget.winfo_parent(), widget.winfo_class(), widget.winfo_name())
                     
         self.opensDevWindow(parseObjectsFromFrame)
         
@@ -252,18 +258,15 @@ class Window(ttk.Window):
         for widget in widgetlist:
             widget.grid_remove()
 
-    def start_webview(self):
-        frame = WebView2()
-        frame.load_url("http://localhost:5555")
     def removeAWidget(self):
         widgetname = self.widgetsDict["devkitentryorange"].get()
         return self.widgetsDict[widgetname]
 
     def tupleToDict(self, tup): #TODO: make this multipurpose
         if len(tup) == 5:
-            return dict(zip(("imagepath", "x", "y", "classname","root"), tup))
+            return dict(zip(("imagepath", "xpos", "ypos", "classname","root"), tup))
         if len(tup) == 6:
-            return dict(zip(("imagepath", "x", "y", "classname","root", "buttonFunction"), tup))
+            return dict(zip(("imagepath", "xpos", "ypos", "classname","root", "buttonFunction"), tup))
 
     def settingsUnpacker(self, listoftuples, typeoftuple):
         """
@@ -282,12 +285,17 @@ class Window(ttk.Window):
         frame = self.frames[cont]
         frame.grid()
         frame.tkraise()
+        ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+    
     def show_canvas(self, cont):
         canvas = self.canvasInDashboard[cont]
         canvas.grid()
         canvas.tk.call("raise", canvas._w)
+        ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+
     def get_page(self, classname):
         return self.frames[classname]
+
     def deletethewindowbar(self):
         hwnd: int = get_handle(self)
         style: int = GetWindowLongPtrW(hwnd, GWL_STYLE)
@@ -305,8 +313,8 @@ class Window(ttk.Window):
     def buttonCreator(
         self,
         imagepath,
-        x,
-        y,
+        xpos,
+        ypos,
         classname=None,
         buttonFunction=None,
         root=None,
@@ -316,6 +324,7 @@ class Window(ttk.Window):
         font=("Avenir Next Bold", 16),
         wraplength=None,
         pady=None,
+        hasImage=True
     ):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
@@ -334,8 +343,8 @@ class Window(ttk.Window):
         # just the vertical length of the image divided by 20 to get rowspan
         heightspan = int(image.height()/20)
         # the W value of the image divided by 20 to get the column position
-        columnarg = int(x/20)
-        rowarg = int(y/20)
+        columnarg = int(xpos/20)
+        rowarg = int(ypos/20)
         button_kwargs = {
             "root": root,
             "image": image,
@@ -350,15 +359,14 @@ class Window(ttk.Window):
             "name": classname.replace(" ", "").lower(),
             "text": text,
         }
-        # print(button_kwargs["command"])
-        self.updateWidgetsDict(root=button_kwargs["root"])
+
         Button(
-            button_kwargs["root"], image=button_kwargs["image"],
-            command=button_kwargs["command"] if buttonFunction else print(f"This is the {classname} button"),  
-            relief=button_kwargs["relief"],
+            root, image=image,
+            command=lambda:buttonFunction () if buttonFunction else print(f"This is the {classname} button"),  
+            relief=relief if not overrideRelief else overrideRelief,
             bg=WHITE, width=1, height=1,
             cursor="hand2", state=button_kwargs["state"], 
-            name= button_kwargs["name"],
+            name=button_kwargs["name"],
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
             autostyle=False,
         ).grid(
@@ -367,14 +375,14 @@ class Window(ttk.Window):
             rowspan=heightspan,
             columnspan=widthspan,
             sticky=NSEW,
-            pady=pady,
-        )
+            pady=pady)
+        self.updateWidgetsDict(root=root)
 
     def labelCreator(
         self, 
         imagepath, 
-        x, 
-        y, 
+        xpos, 
+        ypos, 
         classname=None,
         root=None,
         overrideRelief=FLAT,
@@ -398,22 +406,12 @@ class Window(ttk.Window):
         # just the vertical length of the image divided by 20 to get rowspan
         heightspan = int(image.height()/20)
         # the W value of the image divided by 20 to get the column position
-        columnarg = int(x/20)
-        rowarg = int(y/20)
-        label_kwargs = {
-            "root": root,
-            "image": image,
-            "relief": overrideRelief,
-            "width": 1,
-            "height": 1,
-            "state": NORMAL,
-            "name": classname.replace(" ", "").lower(),
-            "text": text,
-        }
-        self.updateWidgetsDict(root=label_kwargs["root"])
+        columnarg = int(xpos/20)
+        rowarg = int(ypos/20)
+
         Label(
-            label_kwargs["root"], image=label_kwargs["image"], relief=FLAT, width=1, height=1, 
-            cursor="", state=label_kwargs["state"], name=label_kwargs["name"], 
+            root, image=image, relief=FLAT, width=1, height=1, 
+            cursor="", state=NORMAL, name=classname, 
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
             autostyle=False,
         ).grid(
@@ -423,6 +421,8 @@ class Window(ttk.Window):
             columnspan=widthspan,
             sticky=NSEW
         )
+
+        self.updateWidgetsDict(root=root)
 
     def frameCreator(
         self,
@@ -436,20 +436,14 @@ class Window(ttk.Window):
         relief=FLAT,
         imgSettings=None,
         ):
+        classname = classname.replace(" ", "").lower()
         widthspan = int(framewidth / 20)
         heightspan = int(frameheight / 20)
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
 
-        frame_kwargs = {
-            "root": root,
-            "bg": bg,
-            "relief": relief,
-            "name": classname.replace(" ", ""),
-        }
-        self.updateWidgetsDict(root=frame_kwargs["root"])
-        Frame(frame_kwargs["root"], width=1, height=1, bg=frame_kwargs["bg"], relief=frame_kwargs["relief"],
-        name=frame_kwargs["name"].lower(), autostyle=False,
+        Frame(root, width=1, height=1, bg=bg, relief=relief,
+        name=classname, autostyle=False,
         ).grid(
             row=rowarg,
             column=columnarg,
@@ -457,13 +451,13 @@ class Window(ttk.Window):
             columnspan=widthspan,
             sticky=NSEW,
         )
-        self.updateWidgetsDict(root=frame_kwargs["root"])
+        self.updateWidgetsDict(root=root)
         if imgSettings:
             listofimages = list(enumerate(imgSettings)) 
         # imgBg is a list of tuples containing (imagepath, x, y, name)
         # example = [("Assets\Dashboard\Top Bar.png", 0, 0, "stringwhatever"),] -> 0 ('Assets\\Dashboard\\Top Bar.png', 0, 0, 'stringwhatever')
         for widgetname, widget in root.children.items():
-            if widgetname == classname.lower().replace(" ", ""):
+            if widgetname == classname:
                 gridGenerator(widget, widthspan, heightspan, WHITE)
                 widget.grid_propagate(False)
                 if imgSettings:
@@ -475,34 +469,26 @@ class Window(ttk.Window):
                             j[2] - ypos,
                             classname=j[3],
                             root=widget,
-                            buttonFunction=j[4]
-                        )
+                            buttonFunction=j[4])
 
     def entryCreator(
-        self, xpos,ypos,width, height, root=None, classname=None, bg=WHITE,relief=FLAT,fg=BLACK, textvariable=None, pady=None,):
-        entry_params = {
-            "xpos":xpos,
-            "ypos":ypos,
-            "height":height,
-            "width":width,
-            "root":root,
-            "classname":classname.lower().replace(" ", ""),
-            "bg":bg,
-            "relief":relief,
-            "font": ("Avenir Next", 16),
-            "fg":fg
-        }
-        # print(entry_params)
+        self, xpos, ypos,
+        width, height, 
+        root=None, classname=None, bg=WHITE,
+        relief=FLAT, fg=BLACK, textvariable=None, pady=None,
+        font=("Avenir Next Medium", 16)):
+
         classname= classname.lower().replace(" ", "")
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
         widthspan = int(width / 20)
         heightspan = int(height / 20)
-        self.updateWidgetsDict(root=entry_params["root"])
-        Entry(root, bg=bg, relief=SOLID,font=("Avenir Next Medium", 16),fg=fg, width=1,
-            name=entry_params["classname"],
+        self.updateWidgetsDict(root=root)
+        Entry(root, bg=bg, relief=SOLID,
+            font=font,fg=fg, width=1,
+            name=classname, 
             autostyle=False,
-            textvariable=textvariable, ).grid(
+            textvariable=textvariable).grid(
             row=rowarg,
             column=columnarg,
             rowspan=heightspan,
@@ -510,8 +496,7 @@ class Window(ttk.Window):
             sticky=NSEW,
             pady=pady,
         )
-        self.updateWidgetsDict(root=entry_params["root"])
-        add_regex_validation(self.widgetsDict[classname], "^[a-zA-Z0-9_]*$")
+        self.updateWidgetsDict(root=root)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
@@ -522,27 +507,21 @@ class Window(ttk.Window):
         relief=FLAT, 
         isTransparent=False, transparentcolor=TRANSPARENTGREEN,
         ):
+        classname = classname.lower().replace(" ", "")
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
         widthspan = int(width / 20)
         heightspan = int(height / 20)
-        canvas_params = {
-            "xpos":xpos,
-            "ypos":ypos,
-            "height":height,
-            "width":width,
-            "root":root,
-            "classname":classname.lower().replace(" ", ""),
-            "bg":bgcolor,
-            "highlightcolor":bgcolor,
-            "relief":relief
-        }
+
         if imgSettings:
             listofimages = list(
                 enumerate(imgSettings)
             ) 
-        self.updateWidgetsDict(root=canvas_params["root"])
-        Canvas(root, bg=canvas_params["bg"], highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=canvas_params["classname"], highlightthickness=0, autostyle=False).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        Canvas(root, bg=bgcolor, 
+        highlightcolor=bgcolor, 
+        relief=FLAT, width=1, height=1, 
+        name=classname, highlightthickness=0, autostyle=False
+        ).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 gridGenerator(widget, widthspan, heightspan, bgcolor)
@@ -558,17 +537,18 @@ class Window(ttk.Window):
                     for i, j in listofimages:
                         self.buttonCreator(
                             j[0],
-                            j[1] - xpos,
-                            j[2] - ypos,
+                            j[1],
+                            j[2],
                             classname=j[3],
                             root=widget,
                             buttonFunction=j[4]
                         )
+        self.updateWidgetsDict(root=root)
 
     def menubuttonCreator(
         self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, #Essential
         bgcolor=WHITE, 
-        relief=FLAT, font=("Avenir Next", 16),
+        relief=FLAT, font=("Helvetica", 16),
         text=None, variable=None, listofvalues=None, command=None,#Special Values
         ):
         """
@@ -583,25 +563,42 @@ class Window(ttk.Window):
         widthspan = int(width / 20)
         heightspan = int(height / 20)
         classname = classname.lower().replace(" ", "")
-        menustyle = ttk.Style()
-        menustyle.configure(f"{classname}.TMenubutton", font=font, background=bgcolor, foreground=BLACK)
+        themename = f"{str(root).split('.')[-1]}.TMenubutton"
+        menustyle = ttk.Style().configure(
+        style=themename, font=("Helvetica", 10),
+        background="#F9F5EB", foreground=BLACK, bordercolor="#78c2ad", 
+        relief="raised"
+        )
+
         self.frameCreator(xpos, ypos, width, height, root, classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
         frameref = self.widgetsDict[f"{classname}hostfr"]
-        menubutton = ttk.Menubutton(frameref, text=text, style=f"{classname}.TMenubutton", name=classname)
+        menubutton = ttk.Menubutton(
+        frameref, text=text.title(), 
+        style=themename, 
+        name=classname,
+        # bootstyle=(DANGER)
+        )
         menubutton.grid(row=0, column=0, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
-        menubutton.menu = Menu(menubutton, tearoff=0, name=f"{classname}menu", autostyle=False,)
+        menubtnmenu = Menu(
+        menubutton, tearoff=0, name=f"{classname}menu", 
+        bg=LIGHTPURPLE, relief=FLAT, font=("Helvetica", 12),
+        )
+
         for x in listofvalues:
-            menubutton.menu.add_radiobutton(label=x, variable=variable, value=x,
+            menubtnmenu.add_radiobutton(label=x, variable=variable, value=x,
             command=lambda:[command(), menubutton.config(text=variable.get())])
-        menubutton["menu"] = menubutton.menu
-        self.widgetsDict[menubutton["menu"]] = menubutton.menu
+        menubtnmenu.option_add('*Menu.fg', 'orange')
+        menubutton["menu"] = menubtnmenu
+        self.widgetsDict[menubutton["menu"]] = menubtnmenu
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
 
     def ttkEntryCreator(
-        self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None,
-        bgcolor=WHITE, relief=FLAT, font=("Avenir Next", 16),
-        textvariable=None, isPassword=False, passwordchar="*",
+        self, xpos=None, ypos=None, width=None, height=None, 
+        root=None, classname=None,
+        bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16),
+        validation=False, passwordchar="*",
+        isContactNo=False, isEmail=False,
         ):
         """
         Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
@@ -609,31 +606,52 @@ class Window(ttk.Window):
         Requires a var like StringVar() to be initialized and passed in.\n
         Styling handled by passing in a formatted classname and font to config a style.
         """
+        classname = classname.lower().replace(" ", "")
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
         widthspan = int(width / 20)
         heightspan = int(height / 20)
-        classname = classname.lower().replace(" ", "")
         # entrystyle = ttk.Style()
         # entrystyle.configure(f"{classname}.TEntry", font=font, background=bgcolor, foreground=WHITE)
         self.frameCreator(xpos, ypos, width, height, root, classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
+
+        @validator
+        def validatePassword(event):
+            """
+            Validates the password and confirms password entries.
+            """
+            parentname = str(root).split(".")[-1]
+            if self.widgetsDict[f"{parentname}passent"].get() == self.widgetsDict[f"{parentname}confpassent"].get():
+                return True
+            elif self.widgetsDict[f"{parentname}passent"].get() == "":
+                return False 
+            else:
+                return False
+            # pass
         frameref = self.widgetsDict[f"{classname}hostfr"]
-        if isPassword:
-            entry = ttk.Entry(frameref, textvariable=textvariable, 
-                            #   style=f"{classname}.TEntry",
-                                name=classname, font=font, background=bgcolor, show=passwordchar)
-            # self.widgetsDict[f"{classname}"].config(show=passwordchar)
+        themename = f"{str(root).split('.')[-1]}.TEntry"
+        entrystyle = ttk.Style().configure(
+        style=themename, font=font, background=NICEBLUE, foreground=BLACK,
+        )
+        entry = ttk.Entry(frameref, 
+                        #   style=themename, 
+                        bootstyle=PRIMARY,
+                            name=classname, font=font, background=bgcolor)
+        entry.grid(row=0, column=0, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        if validation == "isPassword":
             entry.config(show=passwordchar)
-            entry.grid(row=0, column=0, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
-            add_regex_validation(entry, "^[a-zA-Z0-9]*$")
-        else:     
-            entry = ttk.Entry(frameref, textvariable=textvariable, 
-                            #   style=f"{classname}.TEntry",
-                                name=classname, font=font, background=bgcolor)
-            entry.grid(row=0, column=0, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
-            add_regex_validation(entry, "^[a-zA-Z0-9]*$")
-        if isPassword:
+            add_regex_validation(widget=entry, pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$")
+        elif validation == "isConfPass":
             entry.config(show=passwordchar)
+            add_validation(widget=entry, func=validatePassword)
+        elif validation == "isEmail":
+            add_regex_validation(widget=entry, pattern="^[a-zA-Z0-9._%+-]+@(?:student\.newinti\.edu\.my|newinti\.edu\.my)$")
+        elif validation == "isContactNo":
+            add_regex_validation(widget=entry, pattern="^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
+        else:
+            pass
+     
+            
             
         self.widgetsDict[classname] = entry
         self.updateWidgetsDict(root=root)
@@ -710,8 +728,6 @@ class Window(ttk.Window):
 
         self.updateWidgetsDict(root=root)
 
-
-        
     def hex_to_rgb(self, hexstring):
         # Convert hexstring to integer
         hexint = int(hexstring[1:], 16)
@@ -735,7 +751,8 @@ class UserForms(Frame):
         if len(tup) == 6:
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname"], tup))
         elif len(tup) == 7:
-            return dict(zip(["xpos", "ypos", "width", "height", "root", "classname", "isPassword"], tup))
+            return dict(zip(["xpos", "ypos", "width", "height", "root", "classname", "validation"], tup))
+
     def userReg(self):
         self.controller.frameCreator(
         xpos=1000, ypos=40, framewidth= 800, frameheight= 920,
@@ -745,14 +762,21 @@ class UserForms(Frame):
         self.imgLabels = [
             (r"Assets\Login Page with Captcha\Sign Up Form.png", 0, 0, f"{self.name}BG", self.frameref),
         ]
+        passwordvar = StringVar(value="")
+        confPassvar = StringVar(value="")
         self.userRegEntries = [
             (40, 120, 720, 60, self.frameref, "fullname"),
-            (40, 220, 720, 60, self.frameref, "email"),
-            (40, 320, 340, 60, self.frameref, "password", "True"),
-            (40, 480, 340, 60, self.frameref, "confirmpassword", "True"),
-            (420, 320, 340, 60, self.frameref, "contactnumber"),
+            (40, 220, 720, 60, self.frameref, "email", "isEmail"), 
+            (40, 320, 340, 60, self.frameref, f"{self.name}passent", "isPassword"),
+            (40, 480, 340, 60, self.frameref, f"{self.name}confpassent", "isConfPass"),
+            (420, 320, 340, 60, self.frameref, "contactnumber", "isContactNo"),
             (420, 500, 340, 40, self.frameref, "captcha"),
         ]
+        self.completeRegButton = self.controller.buttonCreator(
+            r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
+            classname=f"{self.name}CompleteRegButton", buttonFunction=lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            root=self.parent
+        )
         # looping to get a variable for each entry
         self.entrylist = []
     def loadLecturerReg(self):
@@ -800,15 +824,15 @@ class UserForms(Frame):
         for name, values in lists.items():
             self.controller.menubuttonCreator(
                 xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
-                root=self.frameref, classname=name.capitalize(), text=f"Select {name.capitalize()}", listofvalues=values,
+                root=self.frameref, classname=name, text=f"Select {name}", listofvalues=values,
                 variable=vars[name], font=("Helvetica", 10), command=lambda name=name:[print(vars[name].get())]
             )
         # fullname, email, password, confirmpassword, contactnumber
         entries = {
             "fullname": self.controller.widgetsDict["fullname"],
             "email": self.controller.widgetsDict["email"],
-            "password": self.controller.widgetsDict["password"],
-            "confirmpassword": self.controller.widgetsDict["confirmpassword"],
+            "password": self.controller.widgetsDict[f"{self.name}passent"],
+            "confirmpassword": self.controller.widgetsDict[f"{self.name}confpassent"],
             "contactnumber": self.controller.widgetsDict["contactnumber"],
             "captcha": self.controller.widgetsDict["captcha"]
         }
@@ -834,8 +858,7 @@ class UserForms(Frame):
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
         buttonFunction=lambda:[foo_bar()],
         pady=5)
-        
-        
+    
     def loadStudentReg(self):
         self.userReg()
         self.imgLabels.append((r"Assets\Login Page with Captcha\StudentForm.png", 0 , 600, f"{self.name}Student", self.frameref))
@@ -899,8 +922,8 @@ class UserForms(Frame):
         entries = {
             "fullname": self.controller.widgetsDict["fullname"],
             "email": self.controller.widgetsDict["email"],
-            "password": self.controller.widgetsDict["password"],
-            "confirmpassword": self.controller.widgetsDict["confirmpassword"],
+            "password": self.controller.widgetsDict[f"{self.name}passent"],
+            "confirmpassword": self.controller.widgetsDict[f"{self.name}confpassent"],
             "contactnumber": self.controller.widgetsDict["contactnumber"],
             "captcha": self.controller.widgetsDict["captcha"]
         }
@@ -926,6 +949,8 @@ class UserForms(Frame):
         buttonFunction=lambda:[foo_bar()],
         pady=5)
 
+    def loginLecturer(self):
+        print("hello")
 class SlidePanel(Frame):
     def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
         super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN, name=name)
@@ -1056,9 +1081,9 @@ class Dashboard(Frame):
         # self.controller.widgetRef("dashboardcanvas").tk.call('raise', self.controller.widgetRef("dashboardcanvas")._w)
     def tupleToDict(self, tup):
         if len(tup) == 5:
-            return dict(zip(("imagepath", "x", "y", "classname","root"), tup))
+            return dict(zip(("imagepath", "xpos", "ypos", "classname","root"), tup))
         if len(tup) == 6:
-            return dict(zip(("imagepath", "x", "y", "classname","root", "buttonFunction"), tup))
+            return dict(zip(("imagepath", "xpos", "ypos", "classname","root", "buttonFunction"), tup))
     def closeSearchBarLogic(self):
         for widgetname, widget in self.children.items():
             if widgetname in ["searchbaropen", "exitsearchbtn", "searchbarresults", "searchbarentrycanvas"]:
@@ -1150,12 +1175,33 @@ class LearningHub(Canvas):
 
 class CourseView(Canvas):
     def __init__(self, parent, controller):
-        Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="courseview", autostyle=False)
+        Canvas.__init__(self, parent, width=1, height=1, bg="#F6F5D7", name="courseview", autostyle=False)
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="CourseView", font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
+        self.staticImgLabels = [
+            (r"Assets\My Courses\CoursesBG.png", 0, 0, "CoursesBG", self),
+        ]
+        self.controller.canvasCreator(80, 100, 1760, 720, root=self, classname="coursescanvas", bgcolor="#F6F5D7",
+            isTransparent=True, transparentcolor="#efefef")
+        canvas = self.controller.widgetsDict["coursescanvas"]
+        self.buttonImgLabels = [
+                (r"Assets\My Courses\CompArch.png", 0, 0, "cancourse", canvas,lambda: self.grid_remove()),
+                (r"Assets\My Courses\MathForCS.png", 0, 300, "csmathcourse", canvas,lambda: self.grid_remove()),
+                (r"Assets\My Courses\ObjectOP.png", 920, 0, "oopcourse", canvas ,lambda: self.grid_remove()),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.controller.settingsUnpacker(self.buttonImgLabels, "button")
+        self.controller.widgetsDict["coursescanvas"].tk.call("raise", self.controller.widgetsDict["coursescanvas"]._w)
+
+            # if widgetname.endswith("course"):
+                # buttonstoconfig.append(widget)
+        # for widget in buttonstoconfig:
+            # widget.bind("<Enter>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=RAISED))
+            # widget.bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
+        # self.controller.widgetsDict[f"{widget}"].bind("<Enter>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=RAISED))
+        # self.controller.widgetsDict[f"{widget}"].bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
+
 
 
 
@@ -1166,8 +1212,6 @@ class DiscussionsView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="Discussions", font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96, rowspan=5, sticky="nsew")
         self.staticImgLabels = [
             # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
             (r"Assets\DiscussionsView\DiscussionsViewBG.png", 0, 0, "DiscussionsBG", self),
