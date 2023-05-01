@@ -747,7 +747,26 @@ class UserForms(Frame):
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname"], tup))
         elif len(tup) == 7:
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname", "validation"], tup))
-
+    def prismaFormSubmit(self):
+            prisma = Prisma()
+            prisma.connect()
+            try:
+                prisma.user.delete_many()
+                prisma.user.create(
+                    data={
+                        "fullName": "Yes",
+                        "email": f"{self.name}",
+                        "password": f"{self.name} password",
+                        "contactNo": f"{self.name} contact number",
+                        "currentCourses": f"test {self.name}",
+                        "role": "STUDENT",
+                    }
+                )
+                user = prisma.user.find_many()
+                messagebox.showinfo("success", f"{user}")
+            except Exception as e:
+                messagebox.showerror("error", f"{e}")
+            prisma.disconnect()
     def userReg(self):
         self.controller.frameCreator(
         xpos=1000, ypos=40, framewidth= 800, frameheight= 920,
@@ -767,9 +786,12 @@ class UserForms(Frame):
             (420, 320, 340, 60, self.frameref, "contactnumber", "isContactNo"),
             (420, 500, 340, 40, self.frameref, "captcha"),
         ]
+        
         self.completeRegButton = self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}CompleteRegButton", buttonFunction=lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            classname=f"{self.name}CompleteRegButton", buttonFunction=
+            # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            lambda: self.prismaFormSubmit(),
             root=self.parent
         )
         # looping to get a variable for each entry
@@ -1229,6 +1251,7 @@ class AppointmentsView(Canvas):
             (r"Assets\AppointmentsView\BGForAppointments1920x780+0+200.png", 0, 120, "AppointmentsBG", self),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
+
 
 def runGui():
     window = Window()

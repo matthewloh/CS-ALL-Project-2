@@ -7,35 +7,44 @@ import os
 from dotenv import load_dotenv
 from mysql.connector import Error
 import mysql.connector
- 
+import logging
+logging.basicConfig()
 load_dotenv()
 
 from prisma import Prisma
+
 prisma = Prisma()
-prisma.query_raw
+
+
 
 # the user model is essentially the superset of the student and teacher model.
 # the user model has - id, fullname, email, password, contact no. and role that is either student or teacher
 # the role is a field in the user model that is used to differentiate between a student and a teacher
 def prismaFindMany():
     prisma.connect()
-    users = prisma.user.find_many(
-        where={
-        "age":{
-            "gt": 20
-        }
+    prisma.user.delete_many()
+    prisma.user.create(
+        data={
+            "fullName": "John Doe",
+            "email": "1234@gmail.com",
+            "password": "1234%231",
+            "contactNo": "+6012345678",
+            "currentCourses": "yes",
+            "role": "LECTURER",
         }
     )
-    print(users)
+    user = prisma.user.find_many()
+    print(user)
     prisma.disconnect()
 
-connection = mysql.connector.connect(
-    host=os.getenv("DB_HOST"),
-    database=os.getenv("DB_DATABASE"),
-    user=os.getenv("DB_USERNAME"),
-    password=os.getenv("DB_PASSWORD"),
-    ssl_ca=os.getenv("SSL_CERT")
-)
+
+# connection = mysql.connector.connect(
+#     host=os.getenv("DB_HOST"),
+#     database=os.getenv("DB_DATABASE"),
+#     user=os.getenv("DB_USERNAME"),
+#     password=os.getenv("DB_PASSWORD"),
+#     ssl_ca=os.getenv("SSL_CERT"),
+# )
 
 # try:
 #     if connection.is_connected():
@@ -84,7 +93,7 @@ connection = mysql.connector.connect(
 #     except Error as e:
 #         print(f"The error '{e}' occurred")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # connection = create_connection()
     # execute_query(connection, "SHOW TABLES")
     prismaFindMany()

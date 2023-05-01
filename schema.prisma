@@ -1,3 +1,100 @@
+// datasource db {
+//   provider     = "mysql"
+//   url          = env("DB_URL")
+//   relationMode = "prisma"
+// }
+
+// generator client {
+//   provider             = "prisma-client-py"
+//   interface            = "sync"
+//   recursive_type_depth = 5
+// }
+
+// // Prisma syntax is model <model name> { <field name> <field type> <field type modifiers includes ? and []> <field attributes starts with @> <block-level attributes starts with @@>} 
+// // <field type modifiers includes ? and []> -> ? means optional, [] means array, i.e. Posts[] means a user has multiple posts and the posts are stored in an array
+// // <field attributes starts with @> -> @id means the field is the primary key, @unique means the field is unique, @default() means the field has a default value, @relation() means the field is a foreign key, @updatedAt means the field is updated automatically when the row is updated, @@index() means the field is indexed
+// model User {
+//   id                 String          @id @default(cuid()) // The type of default id can be autoincrement() or uuid() or cuid() or autoincrement() or sequence() or custom() or expression(), UUIDS on a sidenote are 128-bit numbers that are completely random and unique across space and time
+//   name               String
+//   enrolledCourses    Course[]        @relation("EnrolledCourses") // @relation("name") is used to clear up ambiguity when there two exact references to the same table, like ids put into favorite posts and written posts
+//   email              String          @unique
+//   role               Role            @default(STUDENT) // enum type 
+//   // preferences   Json
+//   currentInstitution String
+//   currentSchool      String
+//   writtenPosts       Post[]          @relation("WrittenPosts") // @relation("name") is used to clear up ambiguity when there two exact references to the same table, like ids put into favorite posts and written posts
+//   favoritePosts      Post[]          @relation("FavoritePosts")
+//   userPreference     UserPreference? @relation(fields: [userPreferenceId], references: [id])
+//   userPreferenceId   String?         @unique // must be unique because each user can only have one set of preferences
+
+//   @@unique([name, email])
+//   @@index([name, email])
+// }
+
+// model Student {
+
+//   currentSession  String
+//   currentProgram  String
+//   enrolledCourses Course[] @relation("EnrolledCourses")
+// }
+
+// model UserPreference {
+//   id           String  @id @default(uuid())
+//   emailUpdates Boolean @default(true) // Do you want to receive email updates?
+//   user         User? // optional relationship, a user can have preferences or not
+//   // other preferences
+// }
+
+// // 
+// // # Pair of Models - Relationship
+// // - type of relationship -> description
+// // 
+// // # Post and User, the relationship between post and user is many to one 
+// // - many to one -> a user can have many posts, but a post can only have one user
+// // 
+// // # Categories and Posts, the relationship between them is many to many
+// // - many to many -> a category can have many posts, and a post can have many categories
+// // 
+// // # User and UserPreferences, the relationship between them is one to one
+// // - one to one -> a user has a table of preferences, and each preference has one user it links to
+// // 
+// model Post {
+//   id            String     @id @default(uuid())
+//   title         String
+//   averageRating Float
+//   createdAt     DateTime   @default(now())
+//   updatedAt     DateTime   @updatedAt
+//   author        User       @relation("WrittenPosts", fields: [authorId], references: [id]) // the field userId is the foreign key, aka what field in the Post table links to the id field in the User table through references: [id]
+//   authorId      String
+//   favoritedBy   User?      @relation("FavoritePosts", fields: [favoritedById], references: [id])
+//   favoritedById String?
+//   categories    Category[]
+//   // @@id([title, authorId]) we use this when we want to id something of a composite key, i.e. a post identified by its title and author
+
+//   @@index([authorId])
+//   @@index([favoritedById])
+// }
+
+// // Prisma automatically creates a join table for many to many relationships 
+// // In this example, the join table is called PostToCategory that describes the many to many relationship between Post and Category
+// model Category {
+//   id    String @id @default(uuid())
+//   name  String @unique
+//   posts Post[]
+// }
+
+// model Course {
+//   id          String @id @default(uuid())
+//   name        String
+//   description String
+//   students    User[] @relation("EnrolledCourses")
+// }
+
+// enum Role {
+//   STUDENT
+//   LECTURER
+//   SUPERUSER
+// }
 datasource db {
   provider     = "mysql"
   url          = env("DB_URL")
@@ -10,80 +107,19 @@ generator client {
   recursive_type_depth = 5
 }
 
-// Prisma syntax is model <model name> { <field name> <field type> <field type modifiers includes ? and []> <field attributes starts with @> <block-level attributes starts with @@>} 
-// <field type modifiers includes ? and []> -> ? means optional, [] means array, i.e. Posts[] means a user has multiple posts and the posts are stored in an array
-// <field attributes starts with @> -> @id means the field is the primary key, @unique means the field is unique, @default() means the field has a default value, @relation() means the field is a foreign key, @updatedAt means the field is updated automatically when the row is updated, @@index() means the field is indexed
-model User {
-  id               String          @id @default(uuid()) // The type of default id can be autoincrement() or uuid() or cuid() or autoincrement() or sequence() or custom() or expression(), UUIDS on a sidenote are 128-bit numbers that are completely random and unique across space and time
-  age              Int             @default(0)
-  name             String
-  enrolledCourses  Course[]        @relation("EnrolledCourses") // @relation("name") is used to clear up ambiguity when there two exact references to the same table, like ids put into favorite posts and written posts
-  email            String          @unique
-  role             Role            @default(STUDENT) // enum type 
-  // preferences   Json
-  writtenPosts     Post[]          @relation("WrittenPosts") // @relation("name") is used to clear up ambiguity when there two exact references to the same table, like ids put into favorite posts and written posts
-  favoritePosts    Post[]          @relation("FavoritePosts")
-  userPreference   UserPreference? @relation(fields: [userPreferenceId], references: [id])
-  userPreferenceId String?         @unique // must be unique because each user can only have one set of preferences
-
-  @@unique([name, email])
-  @@index([name, email])
-}
-
-model UserPreference {
-  id           String  @id @default(uuid())
-  emailUpdates Boolean @default(true) // Do you want to receive email updates?
-  user         User? // optional relationship, a user can have preferences or not
-  // other preferences
-}
-
-// 
-// # Pair of Models - Relationship
-// - type of relationship -> description
-// 
-// # Post and User, the relationship between post and user is many to one 
-// - many to one -> a user can have many posts, but a post can only have one user
-// 
-// # Categories and Posts, the relationship between them is many to many
-// - many to many -> a category can have many posts, and a post can have many categories
-// 
-// # User and UserPreferences, the relationship between them is one to one
-// - one to one -> a user has a table of preferences, and each preference has one user it links to
-// 
-model Post {
-  id            String     @id @default(uuid())
-  title         String
-  averageRating Float
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  author        User       @relation("WrittenPosts", fields: [authorId], references: [id]) // the field userId is the foreign key, aka what field in the Post table links to the id field in the User table through references: [id]
-  authorId      String
-  favoritedBy   User?      @relation("FavoritePosts", fields: [favoritedById], references: [id])
-  favoritedById String?
-  categories    Category[]
-  // @@id([title, authorId]) we use this when we want to id something of a composite key, i.e. a post identified by its title and author
-
-  @@index([authorId])
-  @@index([favoritedById])
-}
-
-// Prisma automatically creates a join table for many to many relationships 
-// In this example, the join table is called PostToCategory that describes the many to many relationship between Post and Category
-model Category {
-  id    String @id @default(uuid())
-  name  String @unique
-  posts Post[]
-}
-
-model Course {
-  id          String @id @default(uuid())
-  name        String
-  description String
-  students    User[] @relation("EnrolledCourses")
-}
-
 enum Role {
   STUDENT
   LECTURER
-  ADMIN
 }
+
+model User {
+  id             String @id @default(cuid())
+  fullName       String
+  email          String @unique
+  password       String
+  contactNo      String
+  currentCourses String
+  role           Role   @default(STUDENT)
+}
+
+// TODO: Add a model for courses
