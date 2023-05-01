@@ -1,7 +1,4 @@
 import ctypes
-import os
-import sys
-import threading
 from ctypes import windll
 from time import sleep
 import time
@@ -16,9 +13,7 @@ import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
 from prisma import Prisma
-import webview
 from multiprocessing import Process
-import elementcreator
 from elementcreator import gridGenerator
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 import clr
@@ -157,7 +152,7 @@ class Window(ttk.Window):
         windll.shcore.SetProcessDpiAwareness(1)
         quarterofscreenwidth = int(int(user32.GetSystemMetrics(0) / 2) / 4)
         quarterofscreenheight = int(int(user32.GetSystemMetrics(1) / 2) / 4)
-        elementcreator.gridGenerator(self, 1, 1, NICEPURPLE)
+        gridGenerator(self, 1, 1, NICEPURPLE)
         if self.winfo_screenwidth() <= 1920 and self.winfo_screenheight() <= 1080:
             self.geometry(f"1920x1080+0+0")
         elif self.winfo_screenwidth() > 1920 and self.winfo_screenheight() > 1080:
@@ -167,10 +162,10 @@ class Window(ttk.Window):
         self.bind("<Escape>", lambda e: self.destroy())
         self.parentFrame = Frame(self, bg=LIGHTYELLOW, width=1, height=1, name="parentframe", autostyle=False)
         self.parentFrame.grid(row=0, column=0, rowspan=1, columnspan=1, sticky=NSEW)
-        elementcreator.gridGenerator(self.parentFrame, 96, 54, WHITE)
+        gridGenerator(self.parentFrame, 96, 54, WHITE)
         self.postSelectFrame = Frame(self.parentFrame, bg=LIGHTYELLOW, width=1, height=1, name="postselectframe", autostyle=False)
         self.postSelectFrame.grid(row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
-        elementcreator.gridGenerator(self.postSelectFrame, 96, 54, WHITE)
+        gridGenerator(self.postSelectFrame, 96, 54, WHITE)
     def signUpPage(self, student=False, teacher=False):
         ref = self.widgetsDict["postselectframebg"]
         if student:
@@ -244,7 +239,7 @@ class Window(ttk.Window):
         )
         self.developerkittoplevel.title("Developer Kit")
         self.developerkittoplevel.bind("<Escape>", lambda e: self.destroy())
-        elementcreator.gridGenerator(self.developerkittoplevel, 40, 40, ORANGE)
+        gridGenerator(self.developerkittoplevel, 40, 40, ORANGE)
         self.developerkittoplevel.geometry(f"800x800+0+0")  
         self.developerkittoplevel.resizable(False, False)
     def removeManyWidgets(self):
@@ -951,6 +946,7 @@ class UserForms(Frame):
 
     def loginLecturer(self):
         print("hello")
+
 class SlidePanel(Frame):
     def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
         super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN, name=name)
@@ -1129,6 +1125,7 @@ class Dashboard(Frame):
                 self.controller.buttonCreator(
                     r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit", font=("Avenir Next", 20), wraplength=600
                 )
+
 class DashboardCanvas(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="dashboardcanvas", autostyle=False)
@@ -1202,10 +1199,6 @@ class CourseView(Canvas):
         # self.controller.widgetsDict[f"{widget}"].bind("<Enter>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=RAISED))
         # self.controller.widgetsDict[f"{widget}"].bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
 
-
-
-
-
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="discussionsview", autostyle=False)
@@ -1242,8 +1235,8 @@ def runGui():
     window.mainloop()
 
 if __name__ == "__main__":
-    # runGui()
-    t = Thread(ThreadStart(runGui))
-    t.ApartmentState = ApartmentState.STA
-    t.Start()
-    t.Join()
+    runGui()
+    # t = Thread(ThreadStart(runGui))
+    # t.ApartmentState = ApartmentState.STA
+    # t.Start()
+    # t.Join()
