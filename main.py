@@ -1235,8 +1235,7 @@ def runGui():
     window.mainloop()
 
 if __name__ == "__main__":
-    runGui()
-    # t = Thread(ThreadStart(runGui))
-    # t.ApartmentState = ApartmentState.STA
-    # t.Start()
-    # t.Join()
+    t = Thread(ThreadStart(runGui))
+    t.ApartmentState = ApartmentState.STA
+    t.Start()
+    t.Join()
