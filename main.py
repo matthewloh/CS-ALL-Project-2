@@ -1,5 +1,6 @@
 import ctypes
 from ctypes import windll
+import threading
 from time import sleep
 import time
 from tkinter import *
@@ -9,6 +10,8 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
+from pathlib import Path
+from itertools import cycle
 import mysql.connector
 from dotenv import load_dotenv
 from mysql.connector import Error
@@ -24,7 +27,7 @@ from System.Threading import Thread,ApartmentState,ThreadStart
 load_dotenv()
 
 from static import *
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageSequence
 
 # connection = mysql.connector.connect(
 #     host=os.getenv("DB_HOST"),
@@ -559,12 +562,12 @@ class Window(ttk.Window):
         heightspan = int(height / 20)
         classname = classname.lower().replace(" ", "")
         themename = f"{str(root).split('.')[-1]}.TMenubutton"
+        print(themename, classname)
         menustyle = ttk.Style().configure(
         style=themename, font=("Helvetica", 10),
         background="#F9F5EB", foreground=BLACK, bordercolor="#78c2ad", 
         relief="raised"
         )
-
         self.frameCreator(xpos, ypos, width, height, root, classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
         frameref = self.widgetsDict[f"{classname}hostfr"]
         menubutton = ttk.Menubutton(
@@ -582,7 +585,6 @@ class Window(ttk.Window):
         for x in listofvalues:
             menubtnmenu.add_radiobutton(label=x, variable=variable, value=x,
             command=lambda:[command(), menubutton.config(text=variable.get())])
-        menubtnmenu.option_add('*Menu.fg', 'orange')
         menubutton["menu"] = menubtnmenu
         self.widgetsDict[menubutton["menu"]] = menubtnmenu
         self.widgetsDict[classname] = menubutton
@@ -616,10 +618,10 @@ class Window(ttk.Window):
             Validates the password and confirms password entries.
             """
             parentname = str(root).split(".")[-1]
+            if self.widgetsDict[f"{parentname}passent"].get() == "":
+                return False 
             if self.widgetsDict[f"{parentname}passent"].get() == self.widgetsDict[f"{parentname}confpassent"].get():
                 return True
-            elif self.widgetsDict[f"{parentname}passent"].get() == "":
-                return False 
             else:
                 return False
             # pass
@@ -644,6 +646,8 @@ class Window(ttk.Window):
         elif validation == "isContactNo":
             add_regex_validation(widget=entry, pattern="^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
         else:
+            #just not blank
+            add_regex_validation(widget=entry, pattern="^.*\S.*$")
             pass
      
             
@@ -733,40 +737,105 @@ class Window(ttk.Window):
         colorkey = win32api.RGB(red, green, blue)
         return colorkey
 
+class AnimatedGif(Frame):
+    def __init__(self, master, controller, *args, **kwargs):
+        super().__init__(master, width=1, bg="#344557", autostyle=False)
+        self.controller = controller
+        self.grid(row=0, column=0, sticky=NSEW, rowspan=int(920/20), columnspan=int(800/20))
+        gridGenerator(self, int(800/20), int(920/20), "#344557")
+        # open the GIF and create a cycle iterator
+        file_path = Path(__file__).parent / "Assets\spinners.gif"
+        with Image.open(file_path) as im:
+            # create a sequence
+            sequence = ImageSequence.Iterator(im)
+            images = [ImageTk.PhotoImage(s) for s in sequence]
+            self.image_cycle = cycle(images)
+
+            # length of each frame
+            self.framerate = im.info["duration"]
+
+        self.img_container = Label(self, image=next(self.image_cycle), width=1, bg="#344557")
+        self.img_container.grid(row=int(300/20),column=int(200/20), columnspan=int(400/20), rowspan=int(300/20), sticky=NSEW)
+        self.controller.labelCreator(
+            r"Assets/signinguplabel.png", 140, 620, "signinguplabel", self)
+        self.after(self.framerate, self.next_frame)
+
+    def next_frame(self):
+        """Update the image for each frame"""
+        try:
+            self.img_container.configure(image=next(self.image_cycle))
+            self.after(self.framerate, self.next_frame)
+        except:
+            #happens because when switching from student to lecturer, a new animatedgifinstance is created and the old one is destroyed
+            print("gif error i will fix one day surely")
+
 class UserForms(Frame):
     def __init__(self, parent=None, controller=None, name=None):
-        super().__init__(parent, width=1, height=1, bg=WHITE, name=name)
+        super().__init__(parent, width=1, height=1, bg="#344557", name=name)
         self.controller = controller
         self.parent = parent
         self.name = name
 
-    def on_submit(self):
-        messagebox.showinfo("success", f"Welcome {self.fullname.get()}")
     def tupleToDict(self, tup):
         if len(tup) == 6:
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname"], tup))
         elif len(tup) == 7:
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname", "validation"], tup))
-    def prismaFormSubmit(self):
-            prisma = Prisma()
-            prisma.connect()
-            try:
-                prisma.user.delete_many()
-                prisma.user.create(
+
+    def prismaFormSubmit(self,  data:dict):
+        isloading = True
+        if isloading:
+            self.gif.grid()
+        #LECTURER OR STUDENT
+        prisma = Prisma()
+        prisma.connect()
+
+        try:
+            if data["role"] == "STUDENT":     
+                prisma.student.create(
                     data={
-                        "fullName": "Yes",
-                        "email": f"{self.name}",
-                        "password": f"{self.name} password",
-                        "contactNo": f"{self.name} contact number",
-                        "currentCourses": f"test {self.name}",
-                        "role": "STUDENT",
+                        "fullName": data["fullName"],
+                        "email": data["email"],
+                        "password": data["password"],
+                        "contactNo": data["contactNo"],
+                        "currEnrolledCourses": data["currentCourses"],
+                        "currInstitution": data["institution"],
+                        "currSchool": data["school"],
+                        "currSession": data["session"],
+                        "currProgram": data["programme"],
                     }
                 )
-                user = prisma.user.find_many()
+                user = prisma.student.find_many()
+                print(user)
+                self.gif.grid_forget()
                 messagebox.showinfo("success", f"{user}")
-            except Exception as e:
-                messagebox.showerror("error", f"{e}")
-            prisma.disconnect()
+            elif data["role"] == "LECTURER":
+                prisma.lecturer.create(
+                    data={
+                        "fullName": data["fullName"],
+                        "email": data["email"],
+                        "password": data["password"],
+                        "contactNo": data["contactNo"],
+                        "currTenure" : data["tenure"],
+                        "currInstitution": data["institution"],
+                        "currSchool" : data["school"],
+                        "currProgram" : data["programme"],
+                        "currTeachingCourses": data["currentCourses"],
+                    }
+                )
+                user = prisma.lecturer.find_many()
+                print(user)
+                self.gif.grid_forget()
+                messagebox.showinfo("success", f"{user}")
+        except Exception as e:
+            messagebox.showerror("error", f"{e}")
+        prisma.disconnect()
+    def send_data(self, data:dict):
+        t = threading.Thread(target=self.prismaFormSubmit, args=(data,))
+        self.gif = AnimatedGif(self, self.controller)
+        t.daemon = True
+        t.start()
+
     def userReg(self):
         self.controller.frameCreator(
         xpos=1000, ypos=40, framewidth= 800, frameheight= 920,
@@ -776,26 +845,14 @@ class UserForms(Frame):
         self.imgLabels = [
             (r"Assets\Login Page with Captcha\Sign Up Form.png", 0, 0, f"{self.name}BG", self.frameref),
         ]
-        passwordvar = StringVar(value="")
-        confPassvar = StringVar(value="")
         self.userRegEntries = [
-            (40, 120, 720, 60, self.frameref, "fullname"),
-            (40, 220, 720, 60, self.frameref, "email", "isEmail"), 
+            (40, 120, 720, 60, self.frameref, f"{self.name}fullname"),
+            (40, 220, 720, 60, self.frameref, f"{self.name}email", "isEmail"), 
             (40, 320, 340, 60, self.frameref, f"{self.name}passent", "isPassword"),
             (40, 480, 340, 60, self.frameref, f"{self.name}confpassent", "isConfPass"),
-            (420, 320, 340, 60, self.frameref, "contactnumber", "isContactNo"),
-            (420, 500, 340, 40, self.frameref, "captcha"),
+            (420, 320, 340, 60, self.frameref, f"{self.name}contactnumber", "isContactNo"),
+            (420, 500, 340, 40, self.frameref, f"{self.name}captcha"),
         ]
-        
-        self.completeRegButton = self.controller.buttonCreator(
-            r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}CompleteRegButton", buttonFunction=
-            # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
-            lambda: self.prismaFormSubmit(),
-            root=self.parent
-        )
-        # looping to get a variable for each entry
-        self.entrylist = []
     def loadLecturerReg(self):
         self.userReg()
         self.imgLabels.append((r"Assets\Login Page with Captcha\LecturerForm.png", 0 , 600, f"{self.name}Lecturer", self.frameref))
@@ -812,21 +869,21 @@ class UserForms(Frame):
             "course2": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
             "course3": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"]
         }
-        institution = StringVar(name=f"{self.name}institution")
-        school = StringVar(name=f"{self.name}school")
-        tenure = StringVar(name=f"{self.name}tenure")
-        programme = StringVar(name=f"{self.name}programme")
-        course1 = StringVar(name=f"{self.name}course1")
-        course2 = StringVar(name=f"{self.name}course2")
-        course3 = StringVar(name=f"{self.name}course3")
+        self.institution = StringVar(name=f"{self.name}institution")
+        self.school = StringVar(name=f"{self.name}school")
+        self.tenure = StringVar(name=f"{self.name}tenure")
+        self.programme = StringVar(name=f"{self.name}programme")
+        self.course1 = StringVar(name=f"{self.name}course1")
+        self.course2 = StringVar(name=f"{self.name}course2")
+        self.course3 = StringVar(name=f"{self.name}course3")
         vars = {
-            "institution": institution,
-            "school": school,
-            "tenure": tenure,
-            "programme": programme,
-            "course1": course1,
-            "course2": course2,
-            "course3": course3
+            "institution": self.institution,
+            "school": self.school,
+            "tenure": self.tenure,
+            "programme": self.programme,
+            "course1": self.course1,
+            "course2": self.course2,
+            "course3": self.course3
         }
         positions = {
             "institution": {"x": 140, "y": 660},
@@ -837,22 +894,21 @@ class UserForms(Frame):
             "course2": {"x": 280, "y": 840},
             "course3": {"x": 540, "y": 840}
         }
-
         for name, values in lists.items():
             self.controller.menubuttonCreator(
                 xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
                 root=self.frameref, classname=name, text=f"Select {name}", listofvalues=values,
                 variable=vars[name], font=("Helvetica", 10), command=lambda name=name:[print(vars[name].get())]
             )
-        # fullname, email, password, confirmpassword, contactnumber
         entries = {
-            "fullname": self.controller.widgetsDict["fullname"],
-            "email": self.controller.widgetsDict["email"],
+            "fullname": self.controller.widgetsDict[f"{self.name}fullname"],
+            "email": self.controller.widgetsDict[f"{self.name}email"],
             "password": self.controller.widgetsDict[f"{self.name}passent"],
             "confirmpassword": self.controller.widgetsDict[f"{self.name}confpassent"],
-            "contactnumber": self.controller.widgetsDict["contactnumber"],
-            "captcha": self.controller.widgetsDict["captcha"]
+            "contactnumber": self.controller.widgetsDict[f"{self.name}contactnumber"],
+            "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
         }
+
         def foo():
             mainwindowcorners = self.controller.winfo_geometry().split("+")
             xval = int(mainwindowcorners[1])
@@ -875,6 +931,28 @@ class UserForms(Frame):
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
         buttonFunction=lambda:[foo_bar()],
         pady=5)
+
+        self.controller.buttonCreator(
+            r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
+            classname=f"{self.name}completeregbutton", buttonFunction=
+            lambda: self.send_data(
+                data={
+                    "fullName": entries["fullname"].get(),
+                    "email": entries["email"].get(),
+                    "password": entries["password"].get(),
+                    "contactNo": entries["contactnumber"].get(),
+                    "tenure" : vars['tenure'].get(),
+                    "institution" : vars['institution'].get(),
+                    "school" : vars['school'].get(),
+                    "programme" : vars['programme'].get(),
+                    "currentCourses": f"{vars['course1'].get()}, {vars['course2'].get()}, {vars['course3'].get()}",
+                    "role": "LECTURER"
+                }
+            ),
+            root=self.parent
+        )
+        self.completeregbutton = self.controller.widgetsDict[f"{self.name}completeregbutton"]
+        # self.completeregbutton.config(state=DISABLED)
     
     def loadStudentReg(self):
         self.userReg()
@@ -882,14 +960,6 @@ class UserForms(Frame):
         self.controller.settingsUnpacker(self.imgLabels, "label")
         for i in self.userRegEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
-        self.studentRegEntries = [
-            # (200, 660, 160, 40, self.frameref, "currentinstitution"),
-            # (200, 740, 160, 40, self.frameref, "currentschool"),
-            # (600, 660, 160, 40, self.frameref, "semester"),
-            # (600, 740, 160, 40, self.frameref, "currentprogramme"),
-            # (200, 820, 560, 40, self.frameref, "enrolledcourses"),
-        ]
-        #self.studentRegEntries extends self.userRegEntries        
         lists = {
             "institution": ["INTI International College Penang", "INTI International University Nilai", "INTI International College Subang", "INTI College Sabah"],
             "school": ["SOCAT", "SOE", "CEPS", "SOBIZ", "Unlisted"],
@@ -899,23 +969,21 @@ class UserForms(Frame):
             "course2": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
             "course3": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"]
         }
-
-        institution = StringVar()
-        school = StringVar()
-        session = StringVar()
-        programme = StringVar()
-        course1 = StringVar()
-        course2 = StringVar()
-        course3 = StringVar()
-
+        self.institution = StringVar()
+        self.school = StringVar()
+        self.session = StringVar()
+        self.programme = StringVar()
+        self.course1 = StringVar()
+        self.course2 = StringVar()
+        self.course3 = StringVar()
         vars = {
-            "institution": institution,
-            "school": school,
-            "session": session,
-            "programme": programme,
-            "course1": course1,
-            "course2": course2,
-            "course3": course3,
+            "institution": self.institution,
+            "school": self.school,
+            "session": self.session,
+            "programme": self.programme,
+            "course1": self.course1,
+            "course2": self.course2,
+            "course3": self.course3,
         }
         positions = {
             "institution": {"x": 140, "y": 660},
@@ -926,7 +994,6 @@ class UserForms(Frame):
             "course2": {"x": 280, "y": 840},
             "course3": {"x": 540, "y": 840}
         }
-
         for name, values in lists.items():
             self.controller.menubuttonCreator(
                 xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
@@ -934,15 +1001,14 @@ class UserForms(Frame):
                 listofvalues=values, variable=vars[name], font=("Helvetica", 10),
                 command=lambda name=name: print(vars[name].get())
             )
-
         # TODO: add absolute positioning for the toast notification
         entries = {
-            "fullname": self.controller.widgetsDict["fullname"],
-            "email": self.controller.widgetsDict["email"],
+            "fullname": self.controller.widgetsDict[f"{self.name}fullname"],
+            "email": self.controller.widgetsDict[f"{self.name}email"],
             "password": self.controller.widgetsDict[f"{self.name}passent"],
             "confirmpassword": self.controller.widgetsDict[f"{self.name}confpassent"],
-            "contactnumber": self.controller.widgetsDict["contactnumber"],
-            "captcha": self.controller.widgetsDict["captcha"]
+            "contactnumber": self.controller.widgetsDict[f"{self.name}contactnumber"],
+            "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
         }
         def foo():
             mainwindowcorners = self.controller.winfo_geometry().split("+")
@@ -957,7 +1023,7 @@ class UserForms(Frame):
                 details.append(entry.get())
             detailstoast = ToastNotification(
             title="Submission details",
-            message=f"Full Name: {details[0]}\nEmail: {details[1]}\nPassword: {details[2]}\nConfirm Password: {details[3]}\nContact Number: {details[4]}\nInstitution: {institution.get()}\nSchool: {school.get()}\nSession: {session.get()}\nProgramme: {programme.get()}\nCourse 1: {course1.get()}\nCourse 2: {course2.get()}\nCourse 3: {course3.get()}",
+            message=f"Full Name: {details[0]}\nEmail: {details[1]}\nPassword: {details[2]}\nConfirm Password: {details[3]}\nContact Number: {details[4]}\nInstitution: {vars['institution'].get()}\nSchool: {vars['school'].get()}\nSession: {vars['session'].get()}\nProgramme: {vars['programme'].get()}\nCourse 1: {vars['course1'].get()}\nCourse 2: {vars['course2'].get()}\nCourse 3: {vars['course3'].get()}",
             duration=3000,
             position=foo()
             )
@@ -965,9 +1031,27 @@ class UserForms(Frame):
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
         buttonFunction=lambda:[foo_bar()],
         pady=5)
+        self.controller.buttonCreator(
+            r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
+            classname=f"{self.name}completeregbutton", buttonFunction=
+            # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            lambda: self.send_data(
+                data={
+                    "fullName": entries["fullname"].get(),
+                    "email": entries["email"].get(),
+                    "password": entries["password"].get(),
+                    "contactNo": entries["contactnumber"].get(),
+                    "currentCourses": f"{vars['course1'].get()}, {vars['course2'].get()}, {vars['course3'].get()}",
+                    "institution": vars["institution"].get(),
+                    "school": vars["school"].get(),
+                    "session": vars["session"].get(),
+                    "programme": vars["programme"].get(),
+                    "role": "STUDENT"
+                }
+            ),
+            root=self.parent
+        )
 
-    def loginLecturer(self):
-        print("hello")
 
 class SlidePanel(Frame):
     def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
@@ -1245,20 +1329,88 @@ class AppointmentsView(Canvas):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="appointmentsview", autostyle=False)
         self.controller = controller
         self.parent = parent
+        self.name = "appointmentsview"
         gridGenerator(self, 96, 46, WHITE)
         self.staticImgLabels = [
+            (r"Assets\AppointmentsView\BGForAppointments1920x780+0+200.png", 0, 0, "AppointmentsBG", self),
             (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
-            (r"Assets\AppointmentsView\BGForAppointments1920x780+0+200.png", 0, 120, "AppointmentsBG", self),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.controller.frameCreator(
+            xpos=120, ypos=580,
+            framewidth=1160, frameheight=180,
+            root=self, classname="appointmentsmenuframe", bg="#F6F5D7", 
+        )
+        buttontoloadmenubutton = ttk.Button(self.controller.widgetsDict["appointmentsmenuframe"], text="Appointments", command=lambda: self.loadmenubuttons())
+        buttontoloadmenubutton.place(x=0, y=0, width=200, height=60)
+        self.controller.frameCreator(120, 580, 1160, 180, self, classname="hostfr", bg=WHITE, relief=FLAT)
+        self.controller.widgetsDict["appointmentsmenuframe"].tk.call("raise", self.controller.widgetsDict["appointmentsmenuframe"]._w)
+        self.coursebuttonvar = StringVar()
+        self.lecturerbuttonvar = StringVar()
+        self.purposebuttonvar = StringVar()
+        ttk.Style().configure("TMenubutton", font=("Helvetica", 16, "bold"),
+        background=NICEBLUE, foreground=BLACK, relief=FLAT)
+        self.coursebuttonvar = StringVar()
+        self.coursemenubutton, self.coursemenubtnmenu, _ = self.create_menubutton(
+            parent=self.controller.widgetsDict["appointmentsmenuframe"],
+            text="Courses",
+            values=["Computer Architecture", "Mathematics for Computer Science", "Object Oriented Programming"],
+            variable=self.coursebuttonvar,
+            xpos=40,ypos=80
+        )
+        self.lecturerbuttonvar = StringVar()
+        self.lecturermenubutton, self.lecturermenubtnmenu, _ = self.create_menubutton(
+            parent=self.controller.widgetsDict["appointmentsmenuframe"],
+            text="Lecturers",
+            values=["Dr. John Doe", "Dr. Jane Doe", "Dr. John Smith"],
+            variable=self.lecturerbuttonvar,
+            xpos=420,ypos=80
+        )
+        self.purposebuttonvar = StringVar()
+        self.purposemenubutton, self.purposemenubtnmenu, _ = self.create_menubutton(
+            parent=self.controller.widgetsDict["appointmentsmenuframe"],
+            text="Purpose",
+            values=["Consultation", "Discussion", "Other"],
+            variable=self.purposebuttonvar,
+            xpos=800,ypos=80
+        )
+        self.controller.widgetsDict["coursemenubutton"] = self.coursemenubutton
+        self.controller.widgetsDict["lecturermenubutton"] = self.lecturermenubutton
+        self.controller.widgetsDict["purposemenubutton"] = self.purposemenubutton
 
-
+    def create_menubutton(self, parent, text, values, variable, xpos=0,ypos=0, command=None):
+        menubutton_var = StringVar()
+        style = ttk.Style()
+        style.configure("TMenubutton", font=("Helvetica", 16, "bold"), background="#e9d0c3", foreground=BLACK, relief=FLAT)
+        menubutton = ttk.Menubutton(parent, width=320, text=text, name=text.lower() + "menubutton")
+        menubutton.place( x=xpos, y=ypos,
+             width=320, height=60)
+        menubutton_menu = Menu(menubutton, tearoff=0)
+        for value in values:
+            menubutton_menu.add_radiobutton(label=value, variable=menubutton_var, value=value,
+                command=lambda: self.loadmenubuttons(menubutton, menubutton_var))
+        if command:
+            menubutton.config(command=command)
+        menubutton.config(menu=menubutton_menu)
+        variable.set(menubutton_var.get())
+        return menubutton, menubutton_menu, menubutton_var
+    
+    def loadmenubuttons(self, menubutton, menubutton_var):
+        # retrieve the course name from the coursemenubutton
+        menubutton.config(text=menubutton_var.get())
+        course = self.controller.widgetsDict["coursemenubutton"].cget("text")
+        if course.startswith("Computer"):
+            messagebox.showerror("Error", "Please select a course")
+        else:
+            # if the course is not empty, load the buttons
+            print(course)
 def runGui():
     window = Window()
     window.mainloop()
 
 if __name__ == "__main__":
-    t = Thread(ThreadStart(runGui))
-    t.ApartmentState = ApartmentState.STA
-    t.Start()
-    t.Join()
+    runGui()
+    # t = Thread(ThreadStart(runGui))
+    # t.ApartmentState = ApartmentState.STA
+    # t.Start()
+    # t.Join()
