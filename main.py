@@ -91,46 +91,29 @@ class Window(ttk.Window):
         (r"Assets\LandingPage\Landing Page Title.png", 0, 0, "Title Label", self.parentFrame),
         (r"Assets\Login Page with Captcha\LoginPageTeachers.png", 0, 0, "postselectframebg", self.postSelectFrame),
         ]
-        self.settingsUnpacker(self.labelSettingsParentFrame, "label")
         self.loadedImgs = [
             ImageTk.PhotoImage(Image.open(r"Assets\Login Page with Captcha\LoginPageStudents.png")),
             ImageTk.PhotoImage(Image.open(r"Assets\Login Page with Captcha\LoginPageTeachers.png")),
             ImageTk.PhotoImage(Image.open(r"Assets/Login Page with Captcha/Sign In Page.png")),
         ]
-        buttonSettingsForParentFrame = [
+
+        buttonSettingsPSF = [
             (r"Assets\LandingPage\Student Button.png", 1080, 320, "Student Button", 
             self.parentFrame, lambda: self.signUpPage(student=True)),
             (r"Assets\LandingPage\Teacher Button.png", 240, 320, "Teacher Button",
-            self.parentFrame, lambda: self.signUpPage(teacher=True)) 
+            self.parentFrame, lambda: self.signUpPage(teacher=True)), 
+            (r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, "Back Button", 
+            self.postSelectFrame,
+            lambda: self.postSelectFrame.grid_remove()),
+            (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button", 
+            self.postSelectFrame,
+            lambda: self.loadSignIn())
         ]
-        self.settingsUnpacker(buttonSettingsForParentFrame, "button")
-        self.btnSettingsPostSelectFrame = [
-        (r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, "Back Button", 
-        self.postSelectFrame,
-        lambda: self.postSelectFrame.grid_remove()),
-        (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button", 
-        self.postSelectFrame,
-        lambda: [
-        # self.show_frame(Dashboard), 
-        # self.show_canvas(DashboardCanvas), 
-        # self.get_page(Dashboard).loadSpecificAssets("student"),
-        self.loadSignIn(),
-        ]
-        )]
-        self.settingsUnpacker(self.btnSettingsPostSelectFrame, "button")
+
+        self.settingsUnpacker(self.labelSettingsParentFrame, "label")
+        self.settingsUnpacker(buttonSettingsPSF, "button")
         
-        def parseObjectsFromFrame(frame: Frame):
-            for widgetname, widget in self.widgetsDict.items():
-                # skip widgets that are children of labels in hostfr
-                if widgetname.startswith("!la") and widget.winfo_parent().endswith("hostfr"):
-                    continue
-                # skip widgets related to teacherreg or studentreg
-                parents = widget.winfo_parent().split(".")
-                if any(p.endswith("reg") for p in parents[-3:]):
-                    continue
-                print(widget.winfo_parent(), widget.winfo_class(), widget.winfo_name())
-                    
-        self.opensDevWindow(parseObjectsFromFrame)
+        self.openDevWindow()
         
         self.frames = {}
         self.canvasInDashboard = {}
@@ -171,6 +154,7 @@ class Window(ttk.Window):
         self.postSelectFrame = Frame(self.parentFrame, bg=LIGHTYELLOW, width=1, height=1, name="postselectframe", autostyle=False)
         self.postSelectFrame.grid(row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
         gridGenerator(self.postSelectFrame, 96, 54, WHITE)
+
     def signUpPage(self, student=False, teacher=False):
         ref = self.widgetsDict["postselectframebg"]
         if student:
@@ -267,8 +251,18 @@ class Window(ttk.Window):
         except:
             pass
 
-    def opensDevWindow(self, parseObjectsFromFrame):
+    def openDevWindow(self):
         self.new_method()
+        def parseObjectsFromFrame():
+            for widgetname, widget in self.widgetsDict.items():
+                # skip widgets that are children of labels in hostfr
+                if widgetname.startswith("!la") and widget.winfo_parent().endswith("hostfr"):
+                    continue
+                # skip widgets related to teacherreg or studentreg
+                parents = widget.winfo_parent().split(".")
+                if any(p.endswith("reg") for p in parents[-3:]):
+                    continue
+                print(widget.winfo_parent(), widget.winfo_class(), widget.winfo_name())
         # self.developerkittoplevel.attributes("-topmost", True)
         self.settingsUnpacker([(r"Assets\DeveloperKit\BG.png", 0, 0, "DevKitBG", self.developerkittoplevel)], "label")
         buttonSettingsDevKit = [
@@ -277,7 +271,7 @@ class Window(ttk.Window):
         (r"Assets\DeveloperKit\GetSpecificWidget.png", 40, 240, "GetWidgetFromFrame", self.developerkittoplevel,
         lambda: self.removeAWidget().grid_remove()),
         (r"Assets\DeveloperKit\CollectAllWidgets.png", 520, 0, "CollectWidgets", self.developerkittoplevel, 
-        lambda: parseObjectsFromFrame(self)),
+        lambda: parseObjectsFromFrame()),
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
         lambda: self.start_webview()),
         (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
@@ -336,13 +330,13 @@ class Window(ttk.Window):
         frame = self.frames[cont]
         frame.grid()
         frame.tkraise()
-        ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+        # ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
     
     def show_canvas(self, cont):
         canvas = self.canvasInDashboard[cont]
         canvas.grid()
         canvas.tk.call("raise", canvas._w)
-        ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+        # ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
 
     def get_page(self, classname):
         return self.frames[classname]
@@ -791,13 +785,23 @@ class Window(ttk.Window):
         return colorkey
 
 class AnimatedGif(Frame):
-    def __init__(self, master, controller, *args, **kwargs):
-        super().__init__(master, width=1, bg="#344557", autostyle=False)
+    def __init__(self, parent=None, controller=None, 
+                xpos=0, ypos=0, framewidth=0, frameheight=0,
+                classname=None, imagepath=None, imagexpos=0, imageypos=0,
+                bg=WHITE, 
+                *args, **kwargs):
+        super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname)
         self.controller = controller
-        self.grid(row=0, column=0, sticky=NSEW, rowspan=int(920/20), columnspan=int(800/20))
-        gridGenerator(self, int(800/20), int(920/20), "#344557")
+        classname = classname.replace(" ", "").lower()
+        widthspan = int(framewidth / 20)
+        heightspan = int(frameheight / 20)
+        columnarg = int(xpos / 20)
+        rowarg = int(ypos / 20)
+        self.configure(bg=bg)
+        gridGenerator(self, widthspan, heightspan, bg)
+        self.grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         # open the GIF and create a cycle iterator
-        file_path = Path(__file__).parent / "Assets\spinners.gif"
+        file_path = Path(__file__).parent / imagepath
         with Image.open(file_path) as im:
             # create a sequence
             sequence = ImageSequence.Iterator(im)
@@ -806,13 +810,20 @@ class AnimatedGif(Frame):
 
             # length of each frame
             self.framerate = im.info["duration"]
-
+            print(self.framerate)
+        #getting the width and height of the image
+        imagetogetdetails = ImageTk.PhotoImage(Image.open(file_path))
+        self.imgwidth = imagetogetdetails.width()
+        self.imgheight = imagetogetdetails.height()
+        imgrow = int(imageypos / 20)
+        imgcolumn = int(imagexpos / 20)
+        imgrowspan = int(self.imgheight / 20)
+        imgcolumnspan = int(self.imgwidth / 20)
         self.img_container = Label(self, image=next(self.image_cycle), width=1, bg="#344557")
-        self.img_container.grid(row=int(300/20),column=int(200/20), columnspan=int(400/20), rowspan=int(300/20), sticky=NSEW)
-        self.controller.labelCreator(
-            r"Assets/signinguplabel.png", 140, 620, "signinguplabel", self)
+        self.img_container.grid(
+        column= imgcolumn, row=imgrow, columnspan=imgcolumnspan, rowspan=imgrowspan, sticky=NSEW)
         self.after(self.framerate, self.next_frame)
-
+        self.controller.widgetsDict[classname] = self
     def next_frame(self):
         """Update the image for each frame"""
         try:
@@ -898,7 +909,13 @@ class UserForms(Frame):
         prisma.disconnect()
     def send_data(self, data:dict):
         t = threading.Thread(target=self.prismaFormSubmit, args=(data,))
-        self.gif = AnimatedGif(self, self.controller)
+        self.gif = AnimatedGif(
+            parent=self, controller=self.controller,
+            xpos=0, ypos=0, bg="#344557",
+            framewidth=800, frameheight=920, classname="loadingspinner",
+            imagepath=r"Assets\spinners.gif", imagexpos=200, imageypos=300)
+        self.controller.labelCreator(
+            r"Assets/signinguplabel.png", 140, 620, "signinguplabel", self.gif)
         t.daemon = True
         t.start()
 
@@ -1233,17 +1250,13 @@ class Dashboard(Frame):
         (r"Assets\Dashboard\BellTopBar.png", 1820, 20, "BellTopBar", self.framereference, lambda: print("hello-3")),
         (r"Assets\Dashboard\01DashboardChip.png", 20, 1020, "DashboardChip", self.framereference, lambda: self.controller.show_canvas(DashboardCanvas)),
         (r"Assets\Dashboard\02SearchChip.png", 160, 1020, "SearchChip", self.framereference, lambda: [self.controller.show_canvas(SearchPage),]),
-        
         (r"Assets\Dashboard\03ChatbotChip.png", 300, 1020, "ChatbotChip", self.framereference, 
-        lambda: [self.controller.show_canvas(Chatbot), self.chatbottoast.show_toast(), 
-        ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())]),
-        
+        lambda: [self.controller.show_canvas(Chatbot), self.chatbottoast.show_toast()]),
         (r"Assets\Dashboard\04LearningHubChip.png", 440, 1020, "LearningHubChip", self.framereference, lambda: self.controller.show_canvas(LearningHub)),
         (r"Assets\Dashboard\05MyCoursesChip.png", 580, 1020, "MyCoursesChip", self.framereference, lambda: self.controller.show_canvas(CourseView)),
         (r"Assets\Dashboard\06MyDiscussionsChip.png", 720, 1020, "MyDiscussionsChip", self.framereference, lambda: self.controller.show_canvas(DiscussionsView)),
         (r"Assets\Dashboard\07MyFavoritesChip.png", 860, 1020, "MyFavoritesChip", self.framereference, lambda: self.controller.show_canvas(FavoritesView)),
         (r"Assets\Dashboard\08MyAppointmentsChip.png", 1000, 1020, "MyAppointmentsChip", self.framereference, lambda: self.controller.show_canvas(AppointmentsView)),
-        # (r"Assets\Dashboard\ChatbotButton.png", 1660, 780, "ChatbotButton", self.framereference, lambda: print("hello-13"))
         ]
         self.chatbottoast = ToastNotification(
             title="You have entered the webbrowser view",
@@ -1258,23 +1271,20 @@ class Dashboard(Frame):
             (r"Assets\Dashboard\TopbarSearchOpen.png", 0, 0, "SearchBarOpen", self.framereference),
             (r"Assets\Dashboard\ExitSearch.png", 0, 0, "ExitSearchBtn", self.framereference, lambda : self.closeSearchBarLogic()),
         ]
+        self.dashboardcanvasref = self.controller.widgetsDict["dashboardcanvas"]
     def loadAllStaticAssets(self, button_settings, label_settings):
         self.controller.settingsUnpacker(label_settings, "label")
         self.controller.settingsUnpacker(button_settings, "button")
-        # self.controller.canvasCreator(0, 0, 800, 600, root=self.maincanvasref, classname="StudentDashboardCanvas1", bgcolor=WHITE, isTransparent=True, transparentcolor="#FF3F3E",
-        #     imgSettings=[
-        #         (r"Assets\Dashboard\bigangry.png", 80, 240, "bigangry", lambda: self.grid_remove()),
-        #         (r"Assets\Dashboard\transparencytest28040.png", 280, 240, "nametest", lambda: self.grid_remove()),
-        #         # (r"Assets\Dashboard\VALORANT.png", 1360, 240, "VALORANTCAT"),
-        #     ])
-        # self.controller.canvasCreator(0, 0, 660, 600, root=self.maincanvasref, classname="StudentDashboardCanvas2", bgcolor=WHITE, isTransparent=True, transparentcolor="#FFBC5A",
-        #     imgSettings=[
-        #         (r"Assets\Dashboard\Frame2.png", 860, 220, "Frame2", lambda: [self.grid_remove(), ]),
-        #     ])
+
     def loadSpecificAssets(self, role):
         self.controller.widgetsDict["dashboardcanvas"].tk.call('raise', self.controller.widgetsDict["dashboardcanvas"]._w)
         if role == "student":
             self.controller.labelCreator( r"Assets\Dashboard\StudentDashboard.png", 0, 0, classname="StudentDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
+            self.gif = AnimatedGif(
+            parent=self.controller.widgetsDict["dashboardcanvas"], controller=self.controller,
+            xpos=180, ypos= 460, bg="#344557", 
+            framewidth=400, frameheight=300, classname="cutebunny",
+            imagepath=r"Assets\bunnygifresized400x300.gif", imagexpos=0, imageypos=0)
         elif role == "teacher":
             self.controller.labelCreator( r"Assets\Dashboard\TeacherDashboard.png", 0, 80, classname="TeacherDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
         # self.controller.widgetRef("dashboardcanvas").tk.call('raise', self.controller.widgetRef("dashboardcanvas")._w)
