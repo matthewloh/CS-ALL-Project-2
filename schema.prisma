@@ -112,16 +112,6 @@ enum Role {
   LECTURER
 }
 
-model User {
-  id             String @id @default(cuid())
-  fullName       String
-  email          String @unique
-  password       String
-  contactNo      String
-  currentCourses String
-  role           Role   @default(STUDENT)
-}
-
 model Student {
   id                  String @id @default(cuid())
   fullName            String

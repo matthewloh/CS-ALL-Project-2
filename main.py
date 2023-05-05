@@ -20,6 +20,8 @@ from multiprocessing import Process
 from elementcreator import gridGenerator
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 import clr
+import bcrypt
+import jwt
 clr.AddReference('System.Windows.Forms')
 clr.AddReference('System.Threading')
 from System.Windows.Forms import Control
@@ -92,7 +94,8 @@ class Window(ttk.Window):
         self.settingsUnpacker(self.labelSettingsParentFrame, "label")
         self.loadedImgs = [
             ImageTk.PhotoImage(Image.open(r"Assets\Login Page with Captcha\LoginPageStudents.png")),
-            ImageTk.PhotoImage(Image.open(r"Assets\Login Page with Captcha\LoginPageTeachers.png"))
+            ImageTk.PhotoImage(Image.open(r"Assets\Login Page with Captcha\LoginPageTeachers.png")),
+            ImageTk.PhotoImage(Image.open(r"Assets/Login Page with Captcha/Sign In Page.png")),
         ]
         buttonSettingsForParentFrame = [
             (r"Assets\LandingPage\Student Button.png", 1080, 320, "Student Button", 
@@ -108,10 +111,12 @@ class Window(ttk.Window):
         (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button", 
         self.postSelectFrame,
         lambda: [
-        self.show_frame(Dashboard), 
-        self.show_canvas(DashboardCanvas), 
-        self.get_page(Dashboard).loadSpecificAssets("student")])
+        # self.show_frame(Dashboard), 
+        # self.show_canvas(DashboardCanvas), 
+        # self.get_page(Dashboard).loadSpecificAssets("student"),
+        self.loadSignIn(),
         ]
+        )]
         self.settingsUnpacker(self.btnSettingsPostSelectFrame, "button")
         
         def parseObjectsFromFrame(frame: Frame):
@@ -129,10 +134,7 @@ class Window(ttk.Window):
         
         self.frames = {}
         self.canvasInDashboard = {}
-        for F in (
-            Dashboard,
-            # RegistrationPage, LoginPage, 
-        ):
+        for F in (Dashboard, ):
             frame = F(parent=self.parentFrame, controller=self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
@@ -173,17 +175,68 @@ class Window(ttk.Window):
         ref = self.widgetsDict["postselectframebg"]
         if student:
             ref.configure(image=self.loadedImgs[0])
-            studentform = UserForms(self.postSelectFrame, self, "studentreg")
-            studentform.userReg()
-            studentform.loadStudentReg()
+            self.studentform = UserForms(self.postSelectFrame, self, "studentreg")
+            self.studentform.userReg()
+            self.studentform.loadStudentReg()
         elif teacher:
             ref.configure(image=self.loadedImgs[1])
-            teacherform = UserForms(self.postSelectFrame, self, "teacherreg")
-            teacherform.userReg()
-            teacherform.loadLecturerReg()
-
+            self.teacherform = UserForms(self.postSelectFrame, self, "teacherreg")
+            self.teacherform.userReg()
+            self.teacherform.loadLecturerReg()
         self.postSelectFrame.grid(), self.postSelectFrame.tkraise()
-
+    def loadSignIn(self):
+        ref = self.widgetsDict["postselectframebg"]
+        ref.configure(image=self.loadedImgs[2])
+        try:
+            if self.studentform:
+                self.widgetsDict["studentreg"].grid_remove()
+                self.widgetsDict["studentregcompleteregbutton"].grid_remove()
+                self.studentform.loadSignIn()
+        except AttributeError:
+            pass
+        try:
+            if self.teacherform:
+                self.widgetsDict["teacherreg"].grid_remove()
+                self.widgetsDict["teacherregcompleteregbutton"].grid_remove()
+                self.teacherform.loadSignIn()
+        except AttributeError:
+            pass
+        def reloadForm():
+            try:
+                if self.studentform:
+                    self.studentform.grid()
+                    self.widgetsDict["studentregcompleteregbutton"].grid()
+                    self.widgetsDict["postselectframebg"].configure(image=self.loadedImgs[0])
+            except AttributeError:
+                pass
+            try:
+                if self.teacherform:
+                    self.teacherform.grid()
+                    self.widgetsDict["teacherregcompleteregbutton"].grid()
+                    self.widgetsDict["postselectframebg"].configure(image=self.loadedImgs[1])
+            except AttributeError:
+                pass
+            self.widgetsDict["signinform"].grid_remove()
+            self.widgetsDict["backbutton"].configure(
+                command=lambda: [
+                    self.postSelectFrame.grid_remove(),
+                ])
+            self.widgetsDict["skipbutton"].configure(
+                command=lambda: [
+                    self.loadSignIn(),
+                ])
+        self.widgetsDict["backbutton"].configure(
+            command=lambda: [
+                reloadForm(),
+            ]
+        )
+        self.widgetsDict["skipbutton"].configure(
+            command=lambda: [     
+            self.show_frame(Dashboard), 
+            self.show_canvas(DashboardCanvas), 
+            self.get_page(Dashboard).loadSpecificAssets("student"),
+            ]
+        )
     def createImageReference(self, imagepath:str, classname:str):
         image = ImageTk.PhotoImage(Image.open(imagepath))
         self.imageDict[classname] = image
@@ -783,9 +836,6 @@ class UserForms(Frame):
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname", "validation"], tup))
 
     def prismaFormSubmit(self,  data:dict):
-        isloading = True
-        if isloading:
-            self.gif.grid()
         #LECTURER OR STUDENT
         prisma = Prisma()
         prisma.connect()
@@ -806,7 +856,12 @@ class UserForms(Frame):
                     }
                 )
                 user = prisma.student.find_many()
-                print(user)
+                toast = ToastNotification(
+                    title="Success",
+                    message=f"{user}",
+                    duration=3000
+                )
+                toast.show_toast()
                 self.gif.grid_forget()
                 messagebox.showinfo("success", f"{user}")
             elif data["role"] == "LECTURER":
@@ -825,10 +880,21 @@ class UserForms(Frame):
                 )
                 user = prisma.lecturer.find_many()
                 print(user)
+                toast = ToastNotification(
+                    title="Success",
+                    message=f"{user}",
+                    duration=3000
+                )
+                toast.show_toast()
                 self.gif.grid_forget()
-                messagebox.showinfo("success", f"{user}")
         except Exception as e:
-            messagebox.showerror("error", f"{e}")
+            self.gif.grid_forget()
+            toast = ToastNotification(
+                    title="Error",
+                    message=f"There was an error creating your account. Please try again. {e}",
+                    duration=3000
+                )
+            toast.show_toast()
         prisma.disconnect()
     def send_data(self, data:dict):
         t = threading.Thread(target=self.prismaFormSubmit, args=(data,))
@@ -853,6 +919,10 @@ class UserForms(Frame):
             (420, 320, 340, 60, self.frameref, f"{self.name}contactnumber", "isContactNo"),
             (420, 500, 340, 40, self.frameref, f"{self.name}captcha"),
         ]
+        self.controller.buttonCreator(
+        r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, classname="Back Button", 
+        root=self.parent,
+        buttonFunction=lambda: self.parent.grid_remove())
     def loadLecturerReg(self):
         self.userReg()
         self.imgLabels.append((r"Assets\Login Page with Captcha\LecturerForm.png", 0 , 600, f"{self.name}Lecturer", self.frameref))
@@ -939,7 +1009,7 @@ class UserForms(Frame):
                 data={
                     "fullName": entries["fullname"].get(),
                     "email": entries["email"].get(),
-                    "password": entries["password"].get(),
+                    "password": self.encryptPassword(entries["password"].get()),
                     "contactNo": entries["contactnumber"].get(),
                     "tenure" : vars['tenure'].get(),
                     "institution" : vars['institution'].get(),
@@ -1039,7 +1109,7 @@ class UserForms(Frame):
                 data={
                     "fullName": entries["fullname"].get(),
                     "email": entries["email"].get(),
-                    "password": entries["password"].get(),
+                    "password": self.encryptPassword(entries["password"].get()),
                     "contactNo": entries["contactnumber"].get(),
                     "currentCourses": f"{vars['course1'].get()}, {vars['course2'].get()}, {vars['course3'].get()}",
                     "institution": vars["institution"].get(),
@@ -1051,6 +1121,33 @@ class UserForms(Frame):
             ),
             root=self.parent
         )
+    def encryptPassword(self, password: str) -> str:
+        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    def validatePassword(self, password: str, encrypted: str) -> str:
+        return bcrypt.checkpw(password.encode("utf-8"), encrypted.encode("utf-8"))
+
+    def loadSignIn(self):
+        self.controller.frameCreator(
+        xpos=1140, ypos=240, framewidth= 600, frameheight= 600,
+        root=self.parent, classname="signinform", 
+        )
+        self.signinformref = self.controller.widgetsDict["signinform"]
+        self.signInLabels = [
+            (r"Assets\Login Page with Captcha\LoginForm.png", 0, 0, f"loginformbg", self.signinformref),
+        ]
+        self.signInButtons = [
+            (r"Assets\Login Page with Captcha\SignInButton.png", 120, 360, "signinbutton", self.signinformref, lambda: print("test")),
+            (r"Assets\Login Page with Captcha\GoToRegisterBtn.png", 40, 480, "gotoregisterbutton", self.signinformref, lambda: print("test")),
+        ]
+        self.userLoginEntries = [
+            (60, 80, 480, 80, self.signinformref, "signinemail", "isEmail"),
+            (60, 240, 480, 80, self.signinformref, "signinpassent", "isPassword"),
+        ]
+        self.controller.settingsUnpacker(self.signInLabels, "label")
+        self.controller.settingsUnpacker(self.signInButtons, "button")
+        for i in self.userLoginEntries:
+            self.controller.ttkEntryCreator(**self.tupleToDict(i))
 
 
 class SlidePanel(Frame):
@@ -1409,8 +1506,12 @@ def runGui():
     window.mainloop()
 
 if __name__ == "__main__":
-    runGui()
-    # t = Thread(ThreadStart(runGui))
-    # t.ApartmentState = ApartmentState.STA
-    # t.Start()
-    # t.Join()
+    # runGui()
+    try:
+        t = Thread(ThreadStart(runGui))
+        t.ApartmentState = ApartmentState.STA
+        t.Start()
+        t.Join()
+    except Exception as e:
+        print(e)
+        print("probably a runtime error with threading right")

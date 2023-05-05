@@ -4,3 +4,5 @@ prisma
 mysql-connector-python 
 ttkbootstrap
 python-dotenv
+bcrypt
+jwt
