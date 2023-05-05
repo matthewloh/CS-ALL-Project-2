@@ -22,20 +22,16 @@ prisma = Prisma()
 # the role is a field in the user model that is used to differentiate between a student and a teacher
 def prismaFindMany():
     prisma.connect()
-    prisma.student.delete_many()
-    prisma.lecturer.delete_many()
-    # prisma.lecturer.create(
-    #     data={
-    #         "fullName": "John Doe",
-    #         "email": "1234@gmail.com",
-    #         "password": "1234%231",
-    #         "contactNo": "+6012345678",
-    #         "currentCourses": "yes",
-    #         "role": "LECTURER",
-    #     }
-    # )
-    # user = prisma.user.find_many()
-    # print(user)
+    user = prisma.lecturer.find_many(
+        where={
+            "currTeachingCourses" : {
+                "contains": "Object-Oriented Programming"
+            }
+        }
+        
+    )
+    for item in user:
+        print(str(item) + "\n")
     prisma.disconnect()
 
 

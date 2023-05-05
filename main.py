@@ -1420,7 +1420,6 @@ class FavoritesView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-
 class AppointmentsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="appointmentsview", autostyle=False)
