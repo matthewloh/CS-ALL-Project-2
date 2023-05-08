@@ -256,20 +256,20 @@ class Window(ttk.Window):
                     print("yeah")
             print("this has triggered")
         else:
-            print("this has not triggered")
+            print("the screen is working as intended")
 
     def resizeEvent(self, event):
         self.eventId = None
         if not (str(event.widget).split(".")[-1].startswith("!label")):
-            print(event.widget)
-            if event.widget == self:
-                self.resizeDelay = 100
-                if self.eventId:
-                    self.after_cancel(self.eventId)
-                if self.state() == "zoomed":
-                    self.eventId = self.after(self.resizeDelay, self.resize)
-                elif self.state() == "normal":
-                    self.eventId = self.after(self.resizeDelay, self.resize)
+            if len(str(event.widget).split(".")) < 3:
+                if event.widget == self:
+                    self.resizeDelay = 100
+                    if self.eventId:
+                        self.after_cancel(self.eventId)
+                    if self.state() == "zoomed":
+                        self.eventId = self.after(self.resizeDelay, self.resize)
+                    elif self.state() == "normal":
+                        self.eventId = self.after(self.resizeDelay, self.resize)
 
 
     def updateWidgetsDict(self, root: Frame):
@@ -1470,25 +1470,63 @@ class CourseView(Canvas):
         # self.controller.widgetsDict[f"{widget}"].bind("<Enter>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=RAISED))
         # self.controller.widgetsDict[f"{widget}"].bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
 class AnimatedStarBtn(Frame):
-    def __init__(self, parent=None, controller=None, xpos=0, ypos=0, framewidth=0, frameheight=0, classname=None, imagepath=None, imagexpos=0,imageypos=0,bg=WHITE, ):
+    def __init__(self, 
+        parent=None, controller=None, 
+        xpos=0, ypos=0, framewidth=0, frameheight=0, 
+        classname=None, imagepath=None, imagexpos=0,imageypos=0, bg=WHITE, ):
         super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname) 
         self.controller = controller
+        self.grid_propagate(False)
         classname = classname.replace(" ", "").lower()
-        file_path = Path(__file__).parent / imagepath
+        widthspan = int(framewidth / 20)
+        heightspan = int(frameheight / 20)
+        columnarg = int(xpos / 20)
+        rowarg = int(ypos / 20)
+        self.configure(bg=bg)
+        gridGenerator(self, widthspan, heightspan, bg)
+        self.grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        
+        file_path = Path(__file__).parent / r"Assets\DiscussionsView\stargifs.gif"
         with Image.open(file_path) as im:
             #sequence
             sequence = ImageSequence.Iterator(im)
-            images = [ImageTk.PhotoImage(sequence_frame) for sequence_frame in sequence]
-            self.image_cycle = cycle(images)
+            self.images = [ImageTk.PhotoImage(sequence_frame) for sequence_frame in sequence]
+            self.image_cycle = cycle(self.images)
+            #length of each frame
             self.framerate = im.info['duration']
-        self.img_container = Button(self, image=next(self.image_cycle))
-        self.img_container.grid(row=0, column=0, sticky="nsew")
-        self.animation_length = len(images)
+        
+        self.frame_index = 0
+        self.end_index = len(self.images) - 1 
+        imagetogetdetails = ImageTk.PhotoImage(Image.open(file_path))
+        self.imgwidth = 40
+        self.imgheight = 40
+        imgrow = int(imageypos / 20)
+        imgcolumn = int(imagexpos / 20)
+        imgrowspan = int(self.imgheight / 20)
+        imgcolumnspan = int(self.imgwidth / 20)
+
+        self.img_container = Button(self, image=next(self.image_cycle), width=1, bg="#344557",
+                                    command=lambda: self.trigger_animation())
+        self.img_container.grid(
+        column= imgcolumn, row=imgrow, columnspan=imgcolumnspan, rowspan=imgrowspan, sticky=NSEW)
+        self.animation_length = len(self.images)
+
         self.animation_status = StringVar(value="start")
         self.animation_status.trace('w', self.animate)
 
+        # self.after(self.framerate, self.next_frame)
+
+    def next_frame(self):
+        self.img_container.configure(image=next(self.image_cycle))
         self.after(self.framerate, self.next_frame)
+
+    def infinite_animate(self):
+        self.frame_index += 1
+        self.frame_index = 0 if self.frame_index > self.animation_length else self.frame_index
+        self.img_container.configure(image=next(self.image_cycle))
+        self.after(self.framerate, self.infinite_animate)
     def trigger_animation(self):
+        print(self.animation_status.get())
         if self.animation_status.get() == "start":
             self.frame_index = 0
             self.animation_status.set("forward")
@@ -1498,23 +1536,21 @@ class AnimatedStarBtn(Frame):
     def animate(self, *args):
         if self.animation_status.get() == "forward":
             self.frame_index += 1
-            self.img_container.configure(image=next(self.image_cycle))
+            self.img_container.configure(image=self.images[self.frame_index - 1])
+            
             if self.frame_index < self.animation_length:
-                self.after(self.framerate, self.animate)
+                self.after(20, self.animate)
             else:
                 self.animation_status.set("end")
         
         if self.animation_status.get() == "backward":
             self.frame_index -= 1 
-            self.img_container.configure(image=next(self.image_cycle))
+            self.img_container.configure(image=self.images[self.frame_index])
             if self.frame_index > 0:
-                self.after(self.framerate, self.animate)
+                self.after(20, self.animate)
             else:
                 self.animation_status.set("start")
 
-    def next_frame(self):
-        self.img_container.configure(image=next(self.image_cycle))
-        self.after(self.framerate, self.next_frame)
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="discussionsview", autostyle=False)
@@ -1562,20 +1598,25 @@ class DiscussionsView(Canvas):
                 "text": discussiontitle,
                 "fg": "black",
             }
-            discResultsStarBtn = {
-                "imagepath": r"Assets\DiscussionsView\Deactivated Star.png",
-                "xpos": initialcoordinates[0] + 740,
-                "ypos": initialcoordinates[1] + 20,
-                "classname": f"discresult{number}star",
-                "buttonFunction": lambda number=number: 
-                [print("Favorited", f"This is favorite button {number+1}"),
-                # toggleStarImage(number, state=False)
-                ],
-                "root": self,
-                "overrideRelief": "raised",
-            }
             self.controller.buttonCreator(**discResultsSettings)
-            self.controller.buttonCreator(**discResultsStarBtn)
+            starBtn = AnimatedStarBtn(
+                parent=self, xpos=initialcoordinates[0] + 740, ypos=initialcoordinates[1] + 20,
+                framewidth=40, frameheight=40, classname=f"discresult{number}star",
+                imagexpos=0, imageypos=0
+            )
+            # discResultsStarBtn = {
+            #     "imagepath": r"Assets\DiscussionsView\Deactivated Star.png",
+            #     "xpos": initialcoordinates[0] + 740,
+            #     "ypos": initialcoordinates[1] + 20,
+            #     "classname": f"discresult{number}star",
+            #     "buttonFunction": lambda number=number: 
+            #     [print("Favorited", f"This is favorite button {number+1}"),
+            #     # toggleStarImage(number, state=False)
+            #     ],
+            #     "root": self,
+            #     "overrideRelief": "raised",
+            # }
+            # self.controller.buttonCreator(**discResultsStarBtn)
             initialcoordinates = (initialcoordinates[0], initialcoordinates[1] + 100)
 
 

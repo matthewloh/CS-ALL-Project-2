@@ -1,89 +1,14 @@
+import json
+import logging
+import datetime
+import os
+from dotenv import load_dotenv
+# ~~~~ MYSQL ~~~~
 # import os
 # from dotenv import load_dotenv
 # from mysql.connector import Error
+# from mysql.connector import Error
 # import mysql.connector
-
-import datetime
-from prisma import Prisma
-import os
-from dotenv import load_dotenv
-from mysql.connector import Error
-import mysql.connector
-import logging
-logging.basicConfig()
-load_dotenv()
-
-
-prisma = Prisma()
-
-
-# the user model is essentially the superset of the student and teacher model.
-# the user model has - id, fullname, email, password, contact no. and role that is either student or teacher
-# the role is a field in the user model that is used to differentiate between a student and a teacher
-def prismaFindMany():
-    prisma.connect()
-    prisma.comment.delete_many()
-    prisma.post.delete_many()
-    post = prisma.post.create({
-        "title": "My new post",
-        "published": True,
-    })
-    print(f"post: {post.json(indent=2)}\n")
-    first = prisma.comment.create({
-        "content": "First comment!",
-        "post": {
-            "connect": {
-                "id": post.id
-            }
-        }
-    }, include={"post": True}
-    )
-    print(f"first comment: {first.json(indent=2)}\n")
-    second = prisma.comment.create({
-        "content": "Second comment!",
-        "post": {
-            "connect": {
-                "id": post.id
-            }
-        }
-    })
-    print(f"second comment: {second.json(indent=2)}\n")
-
-    comments = prisma.comment.find_many(
-        where={
-            "post_id": post.id
-        }
-    )
-    print(f"comments of posts with id {post.id}")
-    for comment in comments:
-        print(comment.json(indent=2))
-
-    prisma.disconnect()
-
-
-def prismacreateuser():
-    prisma.connect()
-    course = prisma.course.create(
-        data={
-            "name": "Software Engineering",
-            "courseDetails": """Software Engineering is the application of engineering to the development of software in a systematic method. 
-            Notable definitions of software engineering include: the systematic application of scientific and technological knowledge, methods, 
-            and experience to the design, implementation, testing, and documentation of software.""",
-        }
-    )
-    print(f"{course.json(indent=2)}\n")
-    user = prisma.user.create(
-        data={
-            "fullName": "Matthew Loh Yet Marn",
-            "email": "p21013568@student.newinti.edu.my",
-            "password": "inserthashhere",
-            "isAdmin": True,
-            "contactNo": "0123456789",
-            "courses": {
-                "connect": {"userId_courseId": course.id}
-            },
-        },
-    )
 # connection = mysql.connector.connect(
 #     host=os.getenv("DB_HOST"),
 #     database=os.getenv("DB_DATABASE"),
@@ -139,8 +64,266 @@ def prismacreateuser():
 #     except Error as e:
 #         print(f"The error '{e}' occurred")
 
+# ~~~~ PRISMA ~~~~
+from prisma import Prisma
+load_dotenv()
 
+logging.basicConfig()
+
+prisma = Prisma()
+# the model goes as such, first create an institution and a school.
+
+
+def prismaCreateInstitution():
+    prisma.connect()
+    # prisma.school.delete_many()
+    # prisma.institution.delete_many()
+    institution = prisma.institution.create(
+        data={
+            "institutionCode": "IICP",
+            "school": {
+                "create": {
+                    "schoolCode": "SOC",
+                    "name": "School of Computing",
+                    "description": "The School Of Computing includes BCSCU, BCTCU, DCS for now.",
+                }
+            }
+        },
+        include={"school": True}
+    )
+
+    print(f"{institution.json(indent=2)}\n")
+
+
+def prismaCreateProgramme():
+    prisma.connect()
+    test = (prisma.institution.find_many(include={"school": True}))
+
+    """
+    Returns:
+    [Institution(id='clhf0quvy0000vtmka1lvufai', institutionCode='IICP', school=[School(id='clhf0quvy0001vtmkv6i6pmqu', schoolCode='SOC', name='School of Computing', description='The School Of Computing includes BCSCU, BCTCU, DCS for now.', institutionId='clhf0quvy0000vtmka1lvufai', institution=None, programme=None, students=None)])]
+    """
+    jsonified = {
+        "id": test[0].id,
+        "institutionCode": test[0].institutionCode,
+        "school": {
+            "id": test[0].school[0].id,
+            "schoolCode": test[0].school[0].schoolCode,
+            "name": test[0].school[0].name,
+            "description": test[0].school[0].description,
+            "institutionId": test[0].school[0].institutionId,
+            "institution": test[0].school[0].institution,
+            "programme": test[0].school[0].programme,
+            "students": test[0].school[0].students,
+        }
+    }
+    jsonified = json.dumps(jsonified, indent=2)
+    # print(jsonified)
+    findschool = prisma.school.find_first(where={"schoolCode": "SOC"})
+    """
+    Returns:
+    [School(id='clhf0quvy0001vtmkv6i6pmqu', schoolCode='SOC', name='School of Computing', description='The School Of Computing includes BCSCU, BCTCU, DCS for now.', institutionId='clhf0quvy0000vtmka1lvufai', institution=None, programme=None, students=None)]
+    """
+    jsonifiedSchool = {
+        "id": findschool.id,
+        "schoolCode": findschool.schoolCode,
+        "name": findschool.name,
+        "description": findschool.description,
+        "institutionId": findschool.institutionId,
+        "institution": findschool.institution,
+        "programme": findschool.programme,
+        "students": findschool.students,
+    }
+    jsonifiedSchool = json.dumps(jsonifiedSchool, indent=2)
+    # print(jsonifiedSchool)
+    prisma.programme.delete_many()
+    programme = prisma.programme.create(
+        data={
+            "programmeCode": "BCSCU",
+            "programmeName": "Bachelor of Computer Science in Collaboration with Coventry University",
+            "programmeDesc": "Computer science explores the core of modern technology, offering powerful problem-solving methods.",
+            "school": {
+                "connect": {
+                    "id": findschool.id
+                }
+            }
+        },
+        include={"school": True, "modules": True, "lecturers": True}
+    )
+    print(f"{programme.json(indent=2)}\n")
+    prisma.disconnect()
+
+
+def prismaCreateModules():
+    prisma.connect()
+    programme = prisma.programme.find_first(where={"programmeCode": "BCSCU"})
+    prisma.module.delete_many()
+    modules = prisma.module.create(
+        data={
+            "moduleCode": "INT4004CEM",
+            "moduleTitle": "Computer Architecture and Networks",
+            "moduleDesc": "This module aims to provide students with a comprehensive understanding of the fundamental concepts of computer architecture and networks.",
+            "programme": {
+                "connect": {
+                    "id": programme.id
+                }
+            },
+            "lecturer": ""
+        }
+    )
+    print(f"{modules.json(indent=2)}\n")
+
+
+def prismaCreateLecturer():
+    prisma.connect()
+    programme = prisma.programme.find_first(where={"programmeCode": "BCSCU"})
+    prisma.module.delete_many()
+    prisma.lecturer.delete_many()
+    # modules = prisma.module.create_many(
+    #     data=[
+    #         {}
+    #     ]
+    # )
+    lecturer = prisma.lecturer.create(
+        data={
+            "fullName": "Dr. Vaithegy Doraisamy",
+            "email": "vaithegy.doraisamy@newinti.edu.my",
+            "password": "hashofapassword",
+            "contactNo": "+60149447359",
+            "programme": {
+                "connect": {
+                    "id": programme.id
+                }
+            }
+        },
+        include={"programme": True, "modules": True}
+
+    )
+    print(f"Lecturer created:\n{lecturer.json(indent=2)}\n")
+    prismaCreateModules()
+
+
+def prismaCreateModules():
+    # prisma.connect()
+    programme = prisma.programme.find_first(where={"programmeCode": "BCSCU"})
+    lecturer = prisma.lecturer.find_first(
+        where={"fullName": "Dr. Vaithegy Doraisamy"})
+    # print(lecturer)
+    prisma.module.delete_many()
+    firstcourse = prisma.module.create(
+        data={
+            "moduleCode": "INT4004CEM",
+            "moduleTitle": "Computer Architecture and Networks",
+            "moduleDesc": "This module aims to provide students with a comprehensive understanding of the fundamental concepts of computer architecture and networks.",
+            "programme": {
+                "connect": {
+                    "id": programme.id
+                }
+            },
+            "lecturer": {
+                "connect": {
+                    "id": lecturer.id
+                }
+            }
+        }, include={"programme": True, "lecturer": True, "moduleEnrollments": True}
+    )
+    print(f"Module 1 created:\n{firstcourse.json(indent=2)}\n")
+    secondcourse = prisma.module.create(
+        data={
+            "moduleCode": "INT4007CEM/INT4009CEM",
+            "moduleTitle": "Computer Science Activity Led Learning Project 2",
+            "moduleDesc": """This module hosts the second Activity Led Learning (ALL) Project. Students are set a project related to their chosen course which requires skills and knowledge presented and developed in the other modules studied in the semester, object-oriented programming and computer architecture and network.""",
+            "programme": {
+                "connect": {
+                    "id": programme.id
+                }
+            },
+            "lecturer": {
+                "connect": {
+                    "id": lecturer.id
+                }
+            }
+        }
+    )
+    print(f"Module 2 created:\n{secondcourse.json(indent=2)}\n")
+    check = prisma.lecturer.find_first(
+        where={"fullName": "Dr. Vaithegy Doraisamy"},
+        include={"modules": True}
+    )
+    print(f"Check Lecturer Profile:\n{check.json(indent=2)}\n")
+    prisma.disconnect()
+
+
+def prismaCreateStudent():
+    prisma.connect()
+    school = prisma.school.find_first(where={"schoolCode": "SOC"})
+    programme = prisma.programme.find_first(where={"programmeCode": "BCSCU"})
+    module1 = prisma.module.find_first(where={"moduleCode": "INT4004CEM"})
+    module2 = prisma.module.find_first(
+        where={"moduleCode": "INT4007CEM/INT4009CEM"})
+    prisma.moduleenrollment.delete_many()
+    prisma.student.delete_many()
+    # We need to use moduleEnrollments to create a student instead of directly using modules
+    student = prisma.student.create(
+        data={
+            "fullName": "Matthew Loh Yet Marn",
+            "email": "p21013568@student.newinti.edu.my",
+            "password": "hashofapassword123",
+            "contactNo": "+60193884019",
+            "school": {
+                "connect": {
+                    "id": school.id
+                }
+            },
+            "modules": {
+                "create": [
+                    {
+                        "enrollmentGrade": 0,
+                        "moduleId": module1.id
+                    },
+                    {
+                        "enrollmentGrade": 0,
+                        "moduleId": module2.id
+                    }
+                ]
+            }, 
+        }, include={"modules": True, "school": True}
+    )
+    print(f"Student created:\n{student.json(indent=2)}\n")
+def prismaqueryAll():
+    prisma.connect()
+    institution = prisma.institution.find_many(
+        include={"school": True}
+    )
+    for i in institution:
+        print(f"Institution: {i.json(indent=2)}\n")
+    school = prisma.school.find_many(
+        include={"institution": True, "programme": True, "students": True}
+    )
+    for s in school:
+        print(f"School: {s.json(indent=2)}\n")    
+    lecturers = prisma.lecturer.find_many(
+        include={"programme": True, "modules": True}
+    )
+    for l in lecturers:
+        print(f"Lecturer: {l.json(indent=2)}\n")
+    modules = prisma.module.find_many(
+        include={"programme": True, "lecturer": True, "moduleEnrollments": True}
+    )
+    for m in modules:
+        print(f"Module: {m.json(indent=2)}\n")
+    students = prisma.student.find_many(
+        include={"school": True, "modules": True}
+    )
+    for s in students:
+        print(f"Student: {s.json(indent=2)}\n")
 if __name__ == "__main__":
+    # ~~~~ MYSQL ~~~~
     # connection = create_connection()
     # execute_query(connection, "SHOW TABLES")
-    prismacreateuser()
+    # ~~~~ PRISMA ~~~~
+    # prismaCreateInstitution()
+    # prismaCreateProgramme()
+    # prismaCreateLecturer()
+    # prismaCreateStudent()
+    prismaqueryAll()
