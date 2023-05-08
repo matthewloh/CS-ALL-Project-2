@@ -78,14 +78,15 @@ def get_handle(root) -> int:
     return GetWindowLongPtrW(root.winfo_id(), GWLP_HWNDPARENT)
 
 user32 = windll.user32
+eventId = None
 
 class Window(ttk.Window):
     def __init__(self, *args, **kwargs):
-        ttk.Window.__init__(self,themename="minty", *args, **kwargs)
+        ttk.Window.__init__(self,themename="minty", *args, **kwargs )
         self.widgetsDict = {} 
         self.imageDict = {}
+        self.imagePathDict = {}
         self.initializeWindow()
- 
         self.labelSettingsParentFrame = [
         (r"Assets\LandingPage\BackgroundImage.png", 0, 0, "Background Image",self.parentFrame),
         (r"Assets\LandingPage\Landing Page Title.png", 0, 0, "Title Label", self.parentFrame),
@@ -105,6 +106,8 @@ class Window(ttk.Window):
             (r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, "Back Button", 
             self.postSelectFrame,
             lambda: self.postSelectFrame.grid_remove()),
+            (r"Assets\LandingPage\GoFullScreen.png", 1620, 960, "GoFullScreenBtn", self.parentFrame, 
+            lambda: [self.togglethewindowbar()]),
             (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button", 
             self.postSelectFrame,
             lambda: self.loadSignIn())
@@ -114,7 +117,7 @@ class Window(ttk.Window):
         self.settingsUnpacker(buttonSettingsPSF, "button")
         
         self.openDevWindow()
-        
+        self.bind("<Configure>", self.resizeEvent)
         self.frames = {}
         self.canvasInDashboard = {}
         for F in (Dashboard, ):
@@ -168,6 +171,7 @@ class Window(ttk.Window):
             self.teacherform.userReg()
             self.teacherform.loadLecturerReg()
         self.postSelectFrame.grid(), self.postSelectFrame.tkraise()
+
     def loadSignIn(self):
         ref = self.widgetsDict["postselectframebg"]
         ref.configure(image=self.loadedImgs[2])
@@ -208,7 +212,7 @@ class Window(ttk.Window):
             self.widgetsDict["skipbutton"].configure(
                 command=lambda: [
                     self.loadSignIn(),
-                ])
+                ])  
         self.widgetsDict["backbutton"].configure(
             command=lambda: [
                 reloadForm(),
@@ -221,9 +225,52 @@ class Window(ttk.Window):
             self.get_page(Dashboard).loadSpecificAssets("student"),
             ]
         )
+
     def createImageReference(self, imagepath:str, classname:str):
-        image = ImageTk.PhotoImage(Image.open(imagepath))
-        self.imageDict[classname] = image
+        self.imagePathDict[classname] = imagepath #stores a key value pair of "classname" : "imagepath"
+        image = ImageTk.PhotoImage(Image.open(imagepath)) #creates a Tkinter image object
+        self.imageDict[classname] = image  # stores a key value pair of "classname" : "image" to prevent garbage collection
+    def resize(self):
+        # the ratio of 1080p to the current screen size TODO: add aspect ratio sensing
+        currentdimensions= (self.winfo_width(), self.winfo_height())
+        print(f"Current dimensions: {currentdimensions}")
+        # how many times larger is the screensize than the original 1920 x 1080
+        ratio = (currentdimensions[0] / 1920, 
+                 currentdimensions[1] / 1080)
+        print(f"Ratio: {ratio}")
+        # take the original imagepath and resize it to the current screen size, then store it in the imageDict
+        # only resize when the currentdimensions changes
+        # do not constantly loop over the imageDict resizing the images
+        if currentdimensions != (1920, 1080):
+            for key, imagepath in self.imagePathDict.items():
+                orgimg = Image.open(imagepath)
+                orgimgwidth, orgimgheight = orgimg.size
+                # print(f"Original image dimensions: {orgimgwidth} x {orgimgheight}, {key}")
+                newimgwidth, newimgheight = int(orgimgwidth * ratio[0]), int(orgimgheight * ratio[1])
+                # print(f"New image dimensions: {newimgwidth} x {newimgheight}, {key}")
+                image = ImageTk.PhotoImage(Image.open(imagepath).resize((newimgwidth, newimgheight), Image.Resampling.LANCZOS))
+                self.imageDict[key] = image
+                try:
+                    self.widgetsDict[key].configure(image=image)
+                except KeyError:
+                    print("yeah")
+            print("this has triggered")
+        else:
+            print("this has not triggered")
+
+    def resizeEvent(self, event):
+        self.eventId = None
+        if not (str(event.widget).split(".")[-1].startswith("!label")):
+            print(event.widget)
+            if event.widget == self:
+                self.resizeDelay = 100
+                if self.eventId:
+                    self.after_cancel(self.eventId)
+                if self.state() == "zoomed":
+                    self.eventId = self.after(self.resizeDelay, self.resize)
+                elif self.state() == "normal":
+                    self.eventId = self.after(self.resizeDelay, self.resize)
+
 
     def updateWidgetsDict(self, root: Frame):
         for widgetname, widget in self.children.items():
@@ -275,7 +322,7 @@ class Window(ttk.Window):
         (r"Assets\DeveloperKit\xd1.png", 680, 0, "XD1 Button", self.developerkittoplevel, 
         lambda: self.start_webview()),
         (r"Assets\DeveloperKit\ToggleZoom.png", 680, 320, "Toggle Zoom Button", self.developerkittoplevel, 
-        lambda: [self.deletethewindowbar(), self.state("zoomed")])
+        lambda: [self.togglethewindowbar()]),
         ]
         self.settingsUnpacker(buttonSettingsDevKit, "button")
         self.entryCreator(40, 120, 360, 80, root=self.developerkittoplevel, classname="DevKitEntryGreen", bg="light green")
@@ -341,12 +388,15 @@ class Window(ttk.Window):
     def get_page(self, classname):
         return self.frames[classname]
 
+    def togglethewindowbar(self):
+        self.deletethewindowbar() if self.state() == "normal" else self.showthewindowbar()
+
     def deletethewindowbar(self):
         hwnd: int = get_handle(self)
         style: int = GetWindowLongPtrW(hwnd, GWL_STYLE)
         style &= ~(WS_CAPTION | WS_THICKFRAME)
         SetWindowLongPtrW(hwnd, GWL_STYLE, style)
-        # self.state("zoomed")
+        self.state("zoomed")
 
     def showthewindowbar(self):
         hwnd: int = get_handle(self)
@@ -810,7 +860,6 @@ class AnimatedGif(Frame):
 
             # length of each frame
             self.framerate = im.info["duration"]
-            print(self.framerate)
         #getting the width and height of the image
         imagetogetdetails = ImageTk.PhotoImage(Image.open(file_path))
         self.imgwidth = imagetogetdetails.width()
@@ -1166,7 +1215,6 @@ class UserForms(Frame):
         for i in self.userLoginEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
 
-
 class SlidePanel(Frame):
     def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
         super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN, name=name)
@@ -1189,14 +1237,21 @@ class SlidePanel(Frame):
         new_exstyle = wnd_exstyle | win32con.WS_EX_LAYERED
         win32gui.SetWindowLong(hwnd,win32con.GWL_EXSTYLE,new_exstyle)
         win32gui.SetLayeredWindowAttributes(hwnd,transparentcolor,255,win32con.LWA_COLORKEY)
-        self.controller.sidebarimage = ImageTk.PhotoImage(Image.open(r"Assets\Dashboard\sidebar320x940.png"))
-        self.sidebarlabel = Label(self, image=self.controller.sidebarimage, bg=TRANSPARENTGREEN,width=1,height=1, name="sidebar")
+        imagepaths = [
+            (r"Assets\Dashboard\sidebar320x940.png", "sidebarimage"),
+            (r"Assets\Dashboard\SidebarPfp200x200.png", "sidebarpfpimage"),
+            (r"Assets\Dashboard\SignOutSidebar.png", "signoutbuttonimg"),
+        ]
+        for i in imagepaths:
+            self.controller.createImageReference(i[0], i[1])
+        self.sidebarimage = self.controller.imageDict["sidebarimage"]
+        self.sidebarpfpimage = self.controller.imageDict["sidebarpfpimage"]
+        self.signoutbuttonimg = self.controller.imageDict["signoutbuttonimg"]
+        self.sidebarlabel = Label(self, image=self.sidebarimage, bg=TRANSPARENTGREEN,width=1,height=1, name="sidebar")
         self.sidebarlabel.grid(row=0, column=0, rowspan=rowspan, columnspan=16, sticky=NSEW)
-        self.controller.sidebarpfpimage = ImageTk.PhotoImage(Image.open(r"Assets\Dashboard\SidebarPfp200x200.png"))
-        self.sidebarpfp = Button(self, image=self.controller.sidebarpfpimage, bg=LIGHTYELLOW, name="sidebarpfp", command=lambda:print("pfp clicked"))
+        self.sidebarpfp = Button(self, image=self.sidebarpfpimage, bg=LIGHTYELLOW, name="sidebarpfp", command=lambda:print("pfp clicked"))
         self.sidebarpfp.place(x=60, y=40, width=200, height=200)
-        self.controller.signoutbuttonimg = ImageTk.PhotoImage(Image.open(r"Assets\Dashboard\SignOutSidebar.png"))
-        self.signoutbutton = Button(self, image=self.controller.signoutbuttonimg, bg=LIGHTYELLOW, name="signoutbutton", command=lambda:self.controller.widgetsDict["dashboard"].tk.call("lower", self.controller.widgetsDict["dashboard"]._w))
+        self.signoutbutton = Button(self, image=self.signoutbuttonimg, bg=LIGHTYELLOW, name="signoutbutton", command=lambda:self.controller.widgetsDict["dashboard"].tk.call("lower", self.controller.widgetsDict["dashboard"]._w))
         self.signoutbutton.place(x=40, y=720, width=240, height=100)
         
     def animate(self):
@@ -1240,7 +1295,6 @@ class Dashboard(Frame):
         gridGenerator(self, 96, 54, LIGHTYELLOW)
         self.animatedpanel = SlidePanel(self, self.controller ,startcolumn=0, startrow=4, endrow=3, endcolumn=15, rowspan=46, startcolumnspan=1, endcolumnspan=16, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name="animatedpanel")
         self.staticImgLabels = [
-        # (r"Assets\Dashboard\StudentDashboard.png", 0, 80, "StudentDashboardLabel", self.framereference),
         (r"Assets\Dashboard\Top Bar.png", 0, 0, "TopBar", self.framereference),
         ]
         self.staticImgBtns = [
@@ -1515,12 +1569,11 @@ def runGui():
     window.mainloop()
 
 if __name__ == "__main__":
-    # runGui()
-    try:
-        t = Thread(ThreadStart(runGui))
-        t.ApartmentState = ApartmentState.STA
-        t.Start()
-        t.Join()
-    except Exception as e:
-        print(e)
-        print("probably a runtime error with threading right")
+    runGui()
+    # try:
+    #     t = Thread(ThreadStart(runGui))
+    #     t.ApartmentState = ApartmentState.STA
+    #     t.Start()
+    #     t.Join()
+    # except Exception as e:
+    #     runGui()

@@ -3,6 +3,8 @@
 # from mysql.connector import Error
 # import mysql.connector
 
+import datetime
+from prisma import Prisma
 import os
 from dotenv import load_dotenv
 from mysql.connector import Error
@@ -11,10 +13,8 @@ import logging
 logging.basicConfig()
 load_dotenv()
 
-from prisma import Prisma
 
 prisma = Prisma()
-
 
 
 # the user model is essentially the superset of the student and teacher model.
@@ -22,16 +22,42 @@ prisma = Prisma()
 # the role is a field in the user model that is used to differentiate between a student and a teacher
 def prismaFindMany():
     prisma.connect()
-    user = prisma.lecturer.find_many(
-        where={
-            "currTeachingCourses" : {
-                "contains": "Object-Oriented Programming"
+    prisma.comment.delete_many()
+    prisma.post.delete_many()
+    post = prisma.post.create({
+        "title": "My new post",
+        "published": True,
+    })
+    print(f"post: {post.json(indent=2)}\n")
+    first = prisma.comment.create({
+        "content": "First comment!",
+        "post": {
+            "connect": {
+                "id": post.id
             }
         }
-        
+    }, include={"post": True}
     )
-    for item in user:
-        print(str(item) + "\n")
+    print(f"first comment: {first.json(indent=2)}\n")
+    second = prisma.comment.create({
+        "content": "Second comment!",
+        "post": {
+            "connect": {
+                "id": first.post.id
+            }
+        }
+    })
+    print(f"second comment: {second.json(indent=2)}\n")
+
+    comments = prisma.comment.find_many(
+        where={
+            "post_id": post.id
+        }
+    )
+    print(f"comments of posts with id {post.id}")
+    for comment in comments:
+        print(comment.json(indent=2))
+
     prisma.disconnect()
 
 
