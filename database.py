@@ -43,7 +43,7 @@ def prismaFindMany():
         "content": "Second comment!",
         "post": {
             "connect": {
-                "id": first.post.id
+                "id": post.id
             }
         }
     })
@@ -61,6 +61,29 @@ def prismaFindMany():
     prisma.disconnect()
 
 
+def prismacreateuser():
+    prisma.connect()
+    course = prisma.course.create(
+        data={
+            "name": "Software Engineering",
+            "courseDetails": """Software Engineering is the application of engineering to the development of software in a systematic method. 
+            Notable definitions of software engineering include: the systematic application of scientific and technological knowledge, methods, 
+            and experience to the design, implementation, testing, and documentation of software.""",
+        }
+    )
+    print(f"{course.json(indent=2)}\n")
+    user = prisma.user.create(
+        data={
+            "fullName": "Matthew Loh Yet Marn",
+            "email": "p21013568@student.newinti.edu.my",
+            "password": "inserthashhere",
+            "isAdmin": True,
+            "contactNo": "0123456789",
+            "courses": {
+                "connect": {"userId_courseId": course.id}
+            },
+        },
+    )
 # connection = mysql.connector.connect(
 #     host=os.getenv("DB_HOST"),
 #     database=os.getenv("DB_DATABASE"),
@@ -116,7 +139,8 @@ def prismaFindMany():
 #     except Error as e:
 #         print(f"The error '{e}' occurred")
 
+
 if __name__ == "__main__":
     # connection = create_connection()
     # execute_query(connection, "SHOW TABLES")
-    prismaFindMany()
+    prismacreateuser()

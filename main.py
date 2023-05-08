@@ -416,6 +416,7 @@ class Window(ttk.Window):
         relief=SUNKEN,
         overrideRelief=FLAT,
         text=None,
+        fg=WHITE,
         font=("Avenir Next Bold", 16),
         wraplength=None,
         pady=None,
@@ -462,7 +463,8 @@ class Window(ttk.Window):
             bg=WHITE, width=1, height=1,
             cursor="hand2", state=button_kwargs["state"], 
             name=button_kwargs["name"],
-            text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
+            text=text, font=font, wraplength=wraplength, compound=CENTER, fg=fg, 
+            justify=LEFT,
             autostyle=False,
         ).grid(
             row=rowarg,
@@ -471,7 +473,9 @@ class Window(ttk.Window):
             columnspan=widthspan,
             sticky=NSEW,
             pady=pady)
+        
         self.updateWidgetsDict(root=root)
+        self.widgetsDict[classname].grid_propagate(False)
 
     def labelCreator(
         self, 
@@ -1465,7 +1469,52 @@ class CourseView(Canvas):
             # widget.bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
         # self.controller.widgetsDict[f"{widget}"].bind("<Enter>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=RAISED))
         # self.controller.widgetsDict[f"{widget}"].bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
+class AnimatedStarBtn(Frame):
+    def __init__(self, parent=None, controller=None, xpos=0, ypos=0, framewidth=0, frameheight=0, classname=None, imagepath=None, imagexpos=0,imageypos=0,bg=WHITE, ):
+        super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname) 
+        self.controller = controller
+        classname = classname.replace(" ", "").lower()
+        file_path = Path(__file__).parent / imagepath
+        with Image.open(file_path) as im:
+            #sequence
+            sequence = ImageSequence.Iterator(im)
+            images = [ImageTk.PhotoImage(sequence_frame) for sequence_frame in sequence]
+            self.image_cycle = cycle(images)
+            self.framerate = im.info['duration']
+        self.img_container = Button(self, image=next(self.image_cycle))
+        self.img_container.grid(row=0, column=0, sticky="nsew")
+        self.animation_length = len(images)
+        self.animation_status = StringVar(value="start")
+        self.animation_status.trace('w', self.animate)
 
+        self.after(self.framerate, self.next_frame)
+    def trigger_animation(self):
+        if self.animation_status.get() == "start":
+            self.frame_index = 0
+            self.animation_status.set("forward")
+        if self.animation_status.get() == "end":
+            self.frame_index = self.animation_length
+            self.animation_status.set("backward")
+    def animate(self, *args):
+        if self.animation_status.get() == "forward":
+            self.frame_index += 1
+            self.img_container.configure(image=next(self.image_cycle))
+            if self.frame_index < self.animation_length:
+                self.after(self.framerate, self.animate)
+            else:
+                self.animation_status.set("end")
+        
+        if self.animation_status.get() == "backward":
+            self.frame_index -= 1 
+            self.img_container.configure(image=next(self.image_cycle))
+            if self.frame_index > 0:
+                self.after(self.framerate, self.animate)
+            else:
+                self.animation_status.set("start")
+
+    def next_frame(self):
+        self.img_container.configure(image=next(self.image_cycle))
+        self.after(self.framerate, self.next_frame)
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller):
         Canvas.__init__(self, parent, width=1, height=1, bg= WHITE, name="discussionsview", autostyle=False)
@@ -1477,6 +1526,59 @@ class DiscussionsView(Canvas):
             (r"Assets\DiscussionsView\DiscussionsViewBG.png", 0, 0, "DiscussionsBG", self),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.loadDiscussionTopics()
+    def loadDiscussionTopics(self):
+        # ~~~~ BACKEND FUNCTIONALITY ~~~~
+        # TODO: add this database functionality
+        # posting a request to the database and getting the credentials
+        # searching for discussions where user is present in
+        discussiontitlesList = ["This is sample discussion topic 1", "This is sample discussion topic 2", "This is a sample discussion topic 3"]
+        initialcoordinates = (100, 320)
+        for number, discussiontitle in list(enumerate(discussiontitlesList)):
+        # ~~~~ FRONTEND FUNCTIONALITY ~~~~
+            def toggleStarImage(number, state:bool):
+                imgpaths = [
+                    r"Assets\DiscussionsView\Deactivated Star.png",
+                    r"Assets\DiscussionsView\ActivatedStar.png",
+                ]
+                loaded = [
+                    ImageTk.PhotoImage(Image.open(imgpaths[0])),
+                    ImageTk.PhotoImage(Image.open(imgpaths[1])),
+                ]
+                ref = self.controller.widgetsDict[f"discresult{number}star"]
+                # true = activated, false = deactivated
+                if state:
+                    ref.config(image=loaded[1])
+                else:
+                    ref.config(image=loaded[0])
+                state = not state
+            discResultsSettings = {
+                "imagepath": r"Assets\DiscussionsView\discussionstitlecomponentbg.png",
+                "xpos": initialcoordinates[0],
+                "ypos": initialcoordinates[1],
+                "classname": f"discresult{number}",
+                "buttonFunction": lambda number=number: messagebox.showinfo("Discussion", f"This is a sample discussion {number+1}"),
+                "root": self,
+                "text": discussiontitle,
+                "fg": "black",
+            }
+            discResultsStarBtn = {
+                "imagepath": r"Assets\DiscussionsView\Deactivated Star.png",
+                "xpos": initialcoordinates[0] + 740,
+                "ypos": initialcoordinates[1] + 20,
+                "classname": f"discresult{number}star",
+                "buttonFunction": lambda number=number: 
+                [print("Favorited", f"This is favorite button {number+1}"),
+                # toggleStarImage(number, state=False)
+                ],
+                "root": self,
+                "overrideRelief": "raised",
+            }
+            self.controller.buttonCreator(**discResultsSettings)
+            self.controller.buttonCreator(**discResultsStarBtn)
+            initialcoordinates = (initialcoordinates[0], initialcoordinates[1] + 100)
+
+
 
 class FavoritesView(Canvas):
     def __init__(self, parent, controller):
