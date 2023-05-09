@@ -254,53 +254,79 @@ def prismaCreateModules():
 
 def prismaCreateStudent():
     prisma.connect()
-    # school = prisma.school.find_first(where={"schoolCode": "SOC"})
-    # module1 = prisma.module.find_first(where={"moduleCode": "INT4004CEM"})
-    # module2 = prisma.module.find_first(
-    #     where={"moduleCode": "INT4007CEM/INT4009CEM"})
-    # prisma.moduleenrollment.delete_many()
-    # prisma.student.delete_many()
+    school = prisma.school.find_first(where={"schoolCode": "SOC"})
+    module1 = prisma.module.find_first(
+        where={"moduleCode": "INT4004CEM"},
+        include={"lecturer": True, "moduleEnrollments": True, "programme": True}
+    )
+    findlecturer = prisma.lecturer.find_many(
+        where={"id": module1.lecturer.id},
+        include={"userProfile": True, "modules": True, "school": True}
+    )
+    module2 = prisma.module.find_first(
+        where={"moduleCode": "INT4007CEM/INT4009CEM"})
+    print(f"Find Lecturer:\n{findlecturer.json(indent=2)}\n")
+    print(f"Module 1:\n{module1.json(indent=2)}\n")
+    print(f"Module 2:\n{module2.json(indent=2)}\n")
+    prisma.moduleenrollment.delete_many()
+    prisma.student.delete_many()
+    prisma.userprofile.delete_many()
+    prisma.userprofile.delete(
+        where={"email": "p21013568@student.newinti.edu.my"}
+    )
     # # We need to use moduleEnrollments to create a student instead of directly using modules
-    # student = prisma.student.create(
-    #     data={
-    #         "fullName": "Matthew Loh Yet Marn",
-    #         "email": "p21013568@student.newinti.edu.my",
-    #         "password": "hashofapassword123",
-    #         "contactNo": "+60193884019",
-    #         "school": {
-    #             "connect": {
-    #                 "id": school.id
-    #             }
-    #         },
-    #         "modules": {
-    #             "create": [
-    #                 {
-    #                     "enrollmentGrade": 0,
-    #                     "moduleId": module1.id
-    #                 },
-    #                 {
-    #                     "enrollmentGrade": 0,
-    #                     "moduleId": module2.id
-    #                 }
-    #             ]
-    #         },
-    #     }, include={"modules": True, "school": True}
-    # )
-    # print(f"Student created:\n{student.json(indent=2)}\n")
+    student = prisma.student.create(
+        data={
+            "userProfile": {
+                "create": {
+                    "fullName": "Matthew Loh Yet Marn",
+                    "email": "p21013568@student.newinti.edu.my",
+                    "password": "hashofapassword",
+                    "contactNo": "+60193884019"
+                }
+            },
+            "school": {
+                "connect": {
+                    "id": school.id
+                }
+            },
+            "modules": {
+                "create": [
+                    {
+                        "enrollmentGrade": 0,
+                        "moduleId": module1.id
+                    },
+                    {
+                        "enrollmentGrade": 0,
+                        "moduleId": module2.id
+                    }
+                ]
+            }
+        }
+    )
+    print(f"Student created:\n{student.json(indent=2)}\n")
     # getting the programme of the student by getting the linked module's id and then getting the programme's id
     student = prisma.student.find_first(
-        where={"fullName": "Matthew Loh Yet Marn"},
+        where={
+            "userProfile": {
+                "email": "p21013568@student.newinti.edu.my",
+            }
+        },
+        include={"modules": True, "school": True, "userProfile": True}
     )
     print(f"Student:\n{student.json(indent=2)}\n")
     moduleenrollment = prisma.moduleenrollment.find_many(
         where={"studentId": student.id}
     )
+    print(f"Module Enrollment:\n{moduleenrollment}\n")
     for me in moduleenrollment:
         # print(f"Module Enrollment:\n{me.json(indent=2)}\n")
         module = prisma.module.find_first(
-            where={"id": me.moduleId}, include={"programme": True, "lecturer": True}
+            where={
+                "id": me.moduleId
+            }
         )
-        print(f"Module:\n{module.json(indent=2)}\n")
+        print(f"Module {me.moduleId}:\n{module.json(indent=2)}\n")
     # print(f"Programme of student:\n{programme.json(indent=2)}\n")
 
 
@@ -342,6 +368,6 @@ if __name__ == "__main__":
     # ~~~~ PRISMA ~~~~
     # prismaCreateInstitution()
     # prismaCreateProgramme()
-    prismaCreateLecturer()
-    # prismaCreateStudent()
+    # prismaCreateLecturer()
+    prismaCreateStudent()
     # prismaqueryAll()
