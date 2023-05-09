@@ -233,7 +233,7 @@ class Window(ttk.Window):
     def resize(self):
         # the ratio of 1080p to the current screen size TODO: add aspect ratio sensing
         currentdimensions= (self.winfo_width(), self.winfo_height())
-        print(f"Current dimensions: {currentdimensions}")
+        # print(f"Current dimensions: {currentdimensions}")
         # how many times larger is the screensize than the original 1920 x 1080
         ratio = (currentdimensions[0] / 1920, 
                  currentdimensions[1] / 1080)
@@ -663,7 +663,7 @@ class Window(ttk.Window):
         heightspan = int(height / 20)
         classname = classname.lower().replace(" ", "")
         themename = f"{str(root).split('.')[-1]}.TMenubutton"
-        print(themename, classname)
+        # print(themename, classname)
         menustyle = ttk.Style().configure(
         style=themename, font=("Helvetica", 10),
         background="#F9F5EB", foreground=BLACK, bordercolor="#78c2ad", 
@@ -1207,8 +1207,10 @@ class UserForms(Frame):
             (r"Assets\Login Page with Captcha\LoginForm.png", 0, 0, f"loginformbg", self.signinformref),
         ]
         self.signInButtons = [
-            (r"Assets\Login Page with Captcha\SignInButton.png", 120, 360, "signinbutton", self.signinformref, lambda: print("test")),
-            (r"Assets\Login Page with Captcha\GoToRegisterBtn.png", 40, 480, "gotoregisterbutton", self.signinformref, lambda: print("test")),
+            (r"Assets\Login Page with Captcha\SignInButton.png", 120, 360, "signinbutton", self.signinformref, 
+            lambda: print("test")),
+            (r"Assets\Login Page with Captcha\GoToRegisterBtn.png", 40, 480, "gotoregisterbutton", self.signinformref, 
+            lambda: print("test")),
         ]
         self.userLoginEntries = [
             (60, 80, 480, 80, self.signinformref, "signinemail", "isEmail"),
@@ -1712,11 +1714,11 @@ def runGui():
     window.mainloop()
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     t = Thread(ThreadStart(runGui))
-    #     t.ApartmentState = ApartmentState.STA
-    #     t.Start()
-    #     t.Join()
-    # except Exception as e:
-    #     runGui()
+    # runGui()
+    try:
+        t = Thread(ThreadStart(runGui))
+        t.ApartmentState = ApartmentState.STA
+        t.Start()
+        t.Join()
+    except Exception as e:
+        print("sorry")

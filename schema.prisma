@@ -12,23 +12,23 @@ generator client {
 
 model Lecturer {
   // Scalar Fields
-  id            String      @id @default(cuid())
-  fullName      String
-  email         String      @unique
-  password      String
-  contactNo     String
-  tenure        Tenure      @default(FULLTIME)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id        String   @id @default(cuid())
+  fullName  String
+  email     String   @unique
+  password  String
+  contactNo String
+  tenure    Tenure   @default(FULLTIME)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   // Relation Fields
   // One and only one lecturer to zero or one institution
   // One and only one lecturer teaches zero or many modules
-  modules       Module[]
+  modules   Module[]
   // One to many lecturers are employed by one programme
-  programmeId   String
-  programme     Programme   @relation(fields: [programmeId], references: [id])
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
 
-  @@index([programmeId])
+  @@index([schoolId])
 }
 
 model Institution {
@@ -51,6 +51,7 @@ model School {
   programme     Programme[]
   // A department has zero or many students
   students      Student[]
+  lecturer      Lecturer[]
 
   // One institution to many schools
   @@index([institutionId])
@@ -91,14 +92,13 @@ model ModuleEnrollment {
 
 // I.E: School of Computing offers Programmes like BCSCU, BCTCU,
 model Programme {
-  id            String     @id @default(cuid())
-  programmeCode String     @unique
+  id            String   @id @default(cuid())
+  programmeCode String   @unique
   programmeName String
   programmeDesc String?
   schoolId      String
-  school        School     @relation(fields: [schoolId], references: [id])
+  school        School   @relation(fields: [schoolId], references: [id])
   modules       Module[]
-  lecturers     Lecturer[]
 
   // One school to many programmes
   @@index([schoolId])
