@@ -10,25 +10,37 @@ generator client {
   recursive_type_depth = 5
 }
 
-model Lecturer {
-  // Scalar Fields
-  id        String   @id @default(cuid())
+model UserProfile {
+  id        String     @id @default(cuid())
   fullName  String
-  email     String   @unique
+  email     String     @unique
   password  String
   contactNo String
-  tenure    Tenure   @default(FULLTIME)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isAdmin   Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   // Relation Fields
-  // One and only one lecturer to zero or one institution
+  // Many students or lecturers can have one and only one user profile
+  lecturer  Lecturer[]
+  student   Student[]
+}
+
+model Lecturer {
+  // Scalar Fields
+  id          String      @id @default(cuid())
+  tenure      Tenure      @default(FULLTIME)
+  // Relation Fields
+  // One to one relationship between lecturer and userprofile
+  userId      String
+  userProfile UserProfile @relation(fields: [userId], references: [id])
   // One and only one lecturer teaches zero or many modules
-  modules   Module[]
+  modules     Module[]
   // One to many lecturers are employed by one programme
-  schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId    String
+  school      School      @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId])
+  @@index([userId])
 }
 
 model Institution {
@@ -58,22 +70,20 @@ model School {
 }
 
 model Student {
-  id        String             @id @default(cuid())
-  fullName  String
-  email     String             @unique
-  password  String
-  contactNo String
-  session   Sessions           @default(APR2023)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id          String             @id @default(cuid())
+  session     Sessions           @default(APR2023)
   // Relation Fields
+  // One to one relationship between student and userprofile
+  userId      String
+  userProfile UserProfile        @relation(fields: [userId], references: [id])
   // Zero or many students are enrolled can be enrolled in zero or one programmes
-  schoolId  String?
-  school    School?            @relation(fields: [schoolId], references: [id])
+  schoolId    String?
+  school      School?            @relation(fields: [schoolId], references: [id])
   // One and only one student can be enrolled in zero or one programmes
-  modules   ModuleEnrollment[]
+  modules     ModuleEnrollment[]
 
   @@index([schoolId])
+  @@index([userId])
 }
 
 // Explicit many to many join table for ModuleEnrollment

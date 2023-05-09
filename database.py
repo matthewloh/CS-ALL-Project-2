@@ -157,23 +157,42 @@ def prismaCreateLecturer():
     school = prisma.school.find_first(where={"schoolCode": "SOC"})
     prisma.module.delete_many()
     prisma.lecturer.delete_many()
+    prisma.userprofile.delete_many()
     lecturer = prisma.lecturer.create(
         data={
-            "fullName": "Dr. Vaithegy Doraisamy",
-            "email": "vaithegy.doraisamy@newinti.edu.my",
-            "password": "hashofapassword",
-            "contactNo": "+60149447359",
             "school": {
                 "connect": {
                     "id": school.id
                 }
+            },
+            "userProfile": {
+                "create": {
+                    "fullName": "Dr. Vaithegy Doraisamy",
+                    "email": "vaithegy.doraisamy@newinti.edu.my",
+                    "password": "hashofapassword",
+                    "contactNo": "+60149447359"
+                }
             }
         },
-        include={
-            "school": True,
-            "modules": True
-        }
+        include={"userProfile": True, "modules": True, "school": True}
     )
+    # lecturer = prisma.lecturer.create(
+    #     data={
+    #         "fullName": "Dr. Vaithegy Doraisamy",
+    #         "email": "vaithegy.doraisamy@newinti.edu.my",
+    #         "password": "hashofapassword",
+    #         "contactNo": "+60149447359",
+    #         "school": {
+    #             "connect": {
+    #                 "id": school.id
+    #             }
+    #         }
+    #     },
+    #     include={
+    #         "school": True,
+    #         "modules": True
+    #     }
+    # )
     print(f"Lecturer created:\n{lecturer.json(indent=2)}\n")
     prismaCreateModules()
 
@@ -181,10 +200,14 @@ def prismaCreateLecturer():
 def prismaCreateModules():
     # prisma.connect()
     programme = prisma.programme.find_first(where={"programmeCode": "BCSCU"})
+    # lecturer = prisma.userprofile.find_first(where={"fullName": "Dr. Vaithegy Doraisamy"})
     lecturer = prisma.lecturer.find_first(
-        where={"fullName": "Dr. Vaithegy Doraisamy"})
-    # print(lecturer)
-    prisma.module.delete_many()
+        where={
+            "userProfile": {"fullName": "Dr. Vaithegy Doraisamy"}
+        },
+        include={"userProfile": True, "modules": True, "school": True}
+    )
+    print(f"Lecturer returned:\n{lecturer.json(indent=2)}\n")
     firstcourse = prisma.module.create(
         data={
             "moduleCode": "INT4004CEM",
@@ -221,11 +244,11 @@ def prismaCreateModules():
         }
     )
     print(f"Module 2 created:\n{secondcourse.json(indent=2)}\n")
-    check = prisma.lecturer.find_first(
-        where={"fullName": "Dr. Vaithegy Doraisamy"},
-        include={"modules": True, "school": True}
-    )
-    print(f"Check Lecturer Profile:\n{check.json(indent=2)}\n")
+    # check = prisma.lecturer.find_first(
+    #     where={"fullName": "Dr. Vaithegy Doraisamy"},
+    #     include={"modules": True, "school": True}
+    # )
+    # print(f"Check Lecturer Profile:\n{check.json(indent=2)}\n")
     prisma.disconnect()
 
 
@@ -289,7 +312,8 @@ def prismaqueryAll():
     for i in institution:
         print(f"Institution: {i.json(indent=2)}\n")
     school = prisma.school.find_many(
-        include={"institution": True, "programme": True, "students": True, "lecturer": True}
+        include={"institution": True, "programme": True,
+                 "students": True, "lecturer": True}
     )
     for s in school:
         print(f"School: {s.json(indent=2)}\n")
@@ -318,6 +342,6 @@ if __name__ == "__main__":
     # ~~~~ PRISMA ~~~~
     # prismaCreateInstitution()
     # prismaCreateProgramme()
-    # prismaCreateLecturer()
+    prismaCreateLecturer()
     # prismaCreateStudent()
-    prismaqueryAll()
+    # prismaqueryAll()
