@@ -62,7 +62,7 @@ model School {
   // One and only programme offers zero or many programmes
   programme     Programme[]
   // A department has zero or many students
-  students      Student[]
+  students      Student[]  
   lecturer      Lecturer[]
 
   // One institution to many schools

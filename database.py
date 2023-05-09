@@ -361,6 +361,94 @@ def prismaqueryAll():
         print(f"Student: {s.json(indent=2)}\n")
 
 
+def prisQueryModuleEnrollment():
+    prisma.connect()
+    moduleenrollment = prisma.moduleenrollment.find_many(
+        include={
+            "student": {
+                "include": {
+                    "userProfile": True,
+                    "school": True
+                }
+            },
+            "module": {
+                "include": {
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                    "programme": {
+                        "include": {
+                            "modules": {"where": {"moduleCode": "INT4004CEM"}}
+                        }
+                    }
+                }
+            }
+        }
+    )
+    for me in moduleenrollment:
+        print(f"Module Enrollment:\n{me.json(indent=2)}\n")
+        module = prisma.module.find_first(
+            where={
+                "id": me.moduleId
+            }
+        )
+        print(f"Module {me.moduleId}:\n{module.json(indent=2)}\n")
+
+def prisQueryUserProfile():
+    prisma.connect()
+    userprofile = prisma.userprofile.find_many(
+        where={
+            "isAdmin": False
+        }, include={
+            "lecturer": {
+                "include": {
+                    "modules": {
+                        "include": {
+                            "moduleEnrollments": True,
+                            "programme": {
+                                "include": {
+                                    "school": {
+                                        "include": {
+                                            "programme": True,
+                                            "students": True,
+                                            "lecturer": True
+                                        }
+                                    }
+
+                                }
+                            },
+                            "lecturer": True
+                        }
+                    },
+                    "school": True,
+                    "userProfile": True
+                }
+            },
+            "student": {
+                "include": {
+                    "userProfile": {
+                        "include": {
+                            "lecturer": True,
+                        }
+                    },
+                    "school": True,
+                    "modules": {
+                        "include": {
+                            "student": True,
+                            "module": True
+                        } 
+                        
+                    }
+                }
+            }
+        }
+    )
+    for up in userprofile:
+        print(f"User Profile:\n{up.json(indent=2)}\n")
+
+
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # connection = create_connection()
@@ -369,5 +457,7 @@ if __name__ == "__main__":
     # prismaCreateInstitution()
     # prismaCreateProgramme()
     # prismaCreateLecturer()
-    prismaCreateStudent()
+    # prismaCreateStudent()
     # prismaqueryAll()
+    # prisQueryModuleEnrollment()
+    prisQueryUserProfile()
