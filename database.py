@@ -66,12 +66,19 @@ from dotenv import load_dotenv
 
 # ~~~~ PRISMA ~~~~
 from prisma import Prisma
+from prisma.models import UserProfile
+from prisma.bases import BaseUserProfile
+
+
+
 load_dotenv()
 
 logging.basicConfig()
 
-prisma = Prisma()
-# the model goes as such, first create an institution and a school.
+prisma = Prisma(auto_register=True)
+
+
+
 
 
 def prismaCreateInstitution():
@@ -396,29 +403,20 @@ def prisQueryModuleEnrollment():
         )
         print(f"Module {me.moduleId}:\n{module.json(indent=2)}\n")
 
+
 def prisQueryUserProfile():
     prisma.connect()
     userprofile = prisma.userprofile.find_many(
         where={
-            "isAdmin": False
-        }, include={
+            "email": {
+                "endswith": "@student.newinti.edu.my"
+            }
+        },
+        include={
             "lecturer": {
                 "include": {
                     "modules": {
                         "include": {
-                            "moduleEnrollments": True,
-                            "programme": {
-                                "include": {
-                                    "school": {
-                                        "include": {
-                                            "programme": True,
-                                            "students": True,
-                                            "lecturer": True
-                                        }
-                                    }
-
-                                }
-                            },
                             "lecturer": True
                         }
                     },
@@ -438,8 +436,8 @@ def prisQueryUserProfile():
                         "include": {
                             "student": True,
                             "module": True
-                        } 
-                        
+                        }
+
                     }
                 }
             }
@@ -448,6 +446,93 @@ def prisQueryUserProfile():
     for up in userprofile:
         print(f"User Profile:\n{up.json(indent=2)}\n")
 
+
+def prisCreateMultipleModules():
+    prisma.connect()
+    # programme = prisma.programme.find_first(
+    #     where={
+    #         "programmeCode": "BCSCU"
+    #     }
+    # )
+    # prisma.module.delete_many(
+    #     where={
+    #         "moduleTitle": "Mathematics for Computer Science" or "Object Oriented Programming",
+    #     }
+    # )
+    # prisma.module.delete(
+    #     where={
+    #         "moduleCode": "INT4068CEM"
+    #     }
+    # )
+    # prisma.module.delete(
+    #     where={
+    #         "moduleCode": "INT4003CEM"
+    #     }
+    # )
+    # modules = prisma.module.create_many(
+    #     data=[
+    #         {
+    #             "moduleCode": "INT4068CEM",
+    #             "moduleTitle": "Mathematics for Computer Science",
+    #             "moduleDesc": "This module introduces the mathematical foundations of computer science, including logic, sets, relations, functions, and graphs. It also covers the basics of counting and discrete probability, and the analysis of algorithms.",
+    #             "programmeId": programme.id
+    #         },
+    #         {
+    #             "moduleCode": "INT4003CEM",
+    #             "moduleTitle": "Object Oriented Programming",
+    #             "moduleDesc": "This module introduces the concepts of object-oriented programming using the C++ programming language. Topics include classes, objects, encapsulation, inheritance, polymorphism, and templates.",
+    #             "programmeId": programme.id
+    #         }
+    #     ],
+    # )
+    actualmodules = prisma.module.find_many()
+    counter = 0
+    for m in actualmodules:
+        counter += 1
+        # print(f"Module {counter}:\n{m.json(indent=2)}\n")
+        module = prisma.module.find_first(
+            where={
+                "moduleTitle": m.moduleTitle
+            },
+            include={
+                "lecturer": True,
+                "programme": True,
+                "moduleEnrollments": True,
+            }
+        )
+        print(f"{counter}. {m.moduleTitle}:\n{module.json(indent=2)}\n")
+        for m in module.moduleEnrollments:
+            search = m.studentId
+            student = prisma.student.find_first(
+                where={
+                    "id": search
+                },
+                include={
+                    "userProfile": True,
+                }
+            )
+            print(
+                f"Student {student.userProfile.fullName} in {module.moduleTitle}:\n{student.json(indent=2)}\n")
+# https://prisma-client-py.readthedocs.io/en/stable/reference/model-actions/
+# https://prisma-client-py.readthedocs.io/en/stable/reference/selecting-fields/#writing-queries
+class UserInPost(BaseUserProfile):
+    fullName: str
+    email: str
+    contactNo: str
+def usingpartialTypes():
+    prisma.connect()
+    user = UserInPost.prisma().find_first(
+        where={
+            "fullName": "Matthew Loh Yet Marn"
+        },
+    )
+    _user = prisma.userprofile.find_first(
+        where={
+            "fullName": "Matthew Loh Yet Marn"
+        },
+    )
+    print(f"User:\n{user.json(indent=2)}\n")
+    print(f"_User:\n{_user.json(indent=2)}\n")
 
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
@@ -460,4 +545,6 @@ if __name__ == "__main__":
     # prismaCreateStudent()
     # prismaqueryAll()
     # prisQueryModuleEnrollment()
-    prisQueryUserProfile()
+    # prisQueryUserProfile()
+    # prisCreateMultipleModules()
+    usingpartialTypes()

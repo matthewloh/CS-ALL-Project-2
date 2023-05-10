@@ -1,13 +1,13 @@
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "sync"
+  recursive_type_depth = "5"
+}
+
 datasource db {
   provider     = "mysql"
   url          = env("DB_URL")
   relationMode = "prisma"
-}
-
-generator client {
-  provider             = "prisma-client-py"
-  interface            = "sync"
-  recursive_type_depth = 5
 }
 
 model UserProfile {
@@ -19,24 +19,17 @@ model UserProfile {
   isAdmin   Boolean    @default(false)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  // Relation Fields
-  // Many students or lecturers can have one and only one user profile
   lecturer  Lecturer[]
   student   Student[]
 }
 
 model Lecturer {
-  // Scalar Fields
   id          String      @id @default(cuid())
   tenure      Tenure      @default(FULLTIME)
-  // Relation Fields
-  // One to one relationship between lecturer and userprofile
   userId      String
-  userProfile UserProfile @relation(fields: [userId], references: [id])
-  // One and only one lecturer teaches zero or many modules
-  modules     Module[]
-  // One to many lecturers are employed by one programme
   schoolId    String
+  userProfile UserProfile @relation(fields: [userId], references: [id])
+  modules     Module[]
   school      School      @relation(fields: [schoolId], references: [id])
 
   @@index([schoolId])
@@ -46,47 +39,36 @@ model Lecturer {
 model Institution {
   id              String           @id @default(cuid())
   institutionCode InstitutionCodes @default(IICP)
-  // One and only one lecturer to zero or one institution
-  school          School[] // One and only one institution to one to many schools
+  school          School[]
 }
 
-// I.E: School of Computing, School of Engineering
 model School {
   id            String      @id @default(cuid())
   schoolCode    String      @unique
   name          String
   description   String?
-  // One to many schools is operated by one and only one institution
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id])
-  // One and only programme offers zero or many programmes
   programme     Programme[]
-  // A department has zero or many students
-  students      Student[]  
+  students      Student[]
   lecturer      Lecturer[]
 
-  // One institution to many schools
   @@index([institutionId])
 }
 
 model Student {
   id          String             @id @default(cuid())
   session     Sessions           @default(APR2023)
-  // Relation Fields
-  // One to one relationship between student and userprofile
   userId      String
-  userProfile UserProfile        @relation(fields: [userId], references: [id])
-  // Zero or many students are enrolled can be enrolled in zero or one programmes
   schoolId    String?
+  userProfile UserProfile        @relation(fields: [userId], references: [id])
   school      School?            @relation(fields: [schoolId], references: [id])
-  // One and only one student can be enrolled in zero or one programmes
   modules     ModuleEnrollment[]
 
   @@index([schoolId])
   @@index([userId])
 }
 
-// Explicit many to many join table for ModuleEnrollment
 model ModuleEnrollment {
   createdAt       DateTime @default(now())
   enrollmentGrade Int?
@@ -100,7 +82,6 @@ model ModuleEnrollment {
   @@index([moduleId])
 }
 
-// I.E: School of Computing offers Programmes like BCSCU, BCTCU,
 model Programme {
   id            String   @id @default(cuid())
   programmeCode String   @unique
@@ -110,25 +91,18 @@ model Programme {
   school        School   @relation(fields: [schoolId], references: [id])
   modules       Module[]
 
-  // One school to many programmes
   @@index([schoolId])
 }
 
-// I.E : BCSCU has modules like Computer Architecture and Network, Mathematics For Computer Science, 
 model Module {
-  id          String    @id @default(cuid())
-  moduleCode  String    @unique
-  moduleTitle String
-  moduleDesc  String?   @db.Text
-  // Relation Fields
-  // One and one only program offers zero or many modules
-  programmeId String
-  programme   Programme @relation(fields: [programmeId], references: [id])
-  // One and only one professor teaches zero or many modules
-  lecturerId  String
-  lecturer    Lecturer  @relation(fields: [lecturerId], references: [id])
-
-  // One and only one module has zero to many ModuleEnrollments
+  id                String             @id @default(cuid())
+  moduleCode        String             @unique
+  moduleTitle       String
+  moduleDesc        String?            @db.Text
+  programmeId       String
+  lecturerId        String?
+  programme         Programme          @relation(fields: [programmeId], references: [id])
+  lecturer          Lecturer?          @relation(fields: [lecturerId], references: [id])
   moduleEnrollments ModuleEnrollment[]
 
   @@index([programmeId])
@@ -153,132 +127,3 @@ enum Sessions {
   JAN2024
   APR2024
 }
-
-// future model here
-// UserLecturerStudent (a composite of user id and lectureid or studentid)
-// this table will be used for profile and user preferences like course feedback
-// model User {
-//   id        String    @id @default(cuid())
-//   fullName  String
-//   email     String    @unique
-//   password  String
-//   isAdmin   Boolean   @default(false)
-//   contactNo String
-//   createdAt DateTime? @default(now())
-//   updatedAt DateTime? @updatedAt
-
-//   // Relation Fields
-//   // profile          Profile? // a user can have a profile or not
-//   // posts            Post[] // in discussions forum, a user can have many posts
-//   courses      CourseEnrollment[] // 1 to many relationship, a user can be enrolled in many courses
-//   feedback     CourseFeedback[] // 1 to many relationship, a user can give feedback to many courses
-//   posts        Post[] // 1 to many relationship, a user can have many posts
-//   postComments PostComments[] // 1 to many relationship, a user can have many post comments
-//   // one user can have only one profile
-//   userProfile  Profile?
-// }
-
-// model Profile {
-//   id                  String   @id @default(cuid())
-//   // role agnostic fields
-//   createdAt           DateTime @default(now())
-//   updatedAt           DateTime @updatedAt
-//   currInstitution     String?
-//   currSchool          String?
-//   currProgram         String?
-//   // role specific fields
-//   currSession         String?
-//   currTenure          String?
-//   currEnrolledCourses String?
-//   currTeachingCourses String?
-//   // Relation Fields
-
-//   userId String @unique // 1 to 1 relationship, a profile can only belong to one user
-//   user   User   @relation(fields: [userId], references: [id])
-// }
-
-// model CourseEnrollment {
-//   createdAt DateTime @default(now()) // when the user is instantiated into the course
-//   role      UserRole // enum of STUDENT, LECTURER
-
-//   // Relation Fields
-//   userId   String
-//   courseId String
-//   // user     User @relation(fields: [userId], references: [id])
-//   // course   Course @relation(fields: [courseId], references: [id])
-//   User     User   @relation(fields: [userId], references: [id])
-
-//   @@id([userId, courseId])
-//   @@index([userId, role]) // 
-// }
-
-// model Course {
-//   id            String  @id @default(cuid())
-//   name          String
-//   courseDetails String?
-//   // Relation Fields
-//   // members        CourseEnrollment[]
-//   // feedback        CourseFeedback[]
-//   post          Post[]
-// }
-
-// model CourseFeedback {
-//   id     String  @id @default(cuid())
-//   rating Int
-//   // comment     String?
-//   // imageUrl    String?
-//   // Relation Fields
-//   // course        Course
-//   // user          User
-//   User   User?   @relation(fields: [userId], references: [id])
-//   userId String?
-
-//   @@index([userId])
-// }
-
-// model Post {
-//   id        String   @id @default(cuid())
-//   title     String
-//   content   String?
-//   published Boolean  @default(false)
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   // Relation Fields
-//   courseId     String // the course that this post belongs to
-//   course       Course         @relation(fields: [courseId], references: [id])
-//   userId       String // the user that created this post
-//   user         User           @relation(fields: [userId], references: [id])
-//   studentId    String?
-//   PostComments PostComments[]
-
-//   @@index([courseId, userId])
-//   @@index([userId])
-// }
-
-// model PostComments {
-//   id          String   @id @default(cuid())
-//   createdAt   DateTime @default(now())
-//   content     String?
-//   // Relation Fields
-//   commenterId String
-//   commenter   User     @relation(fields: [commenterId], references: [id])
-//   postId      String
-//   post        Post     @relation(fields: [postId], references: [id])
-
-//   @@index([commenterId])
-//   @@index([postId])
-// }
-
-// enum Role {
-//   STUDENT
-//   LECTURER
-//   SUPERUSER
-// }
-
-// enum UserRole {
-//   STUDENT
-//   LECTURER
-// }
-
-// TODO: Add a model for courses

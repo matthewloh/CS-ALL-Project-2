@@ -906,20 +906,52 @@ class UserForms(Frame):
 
         try:
             if data["role"] == "STUDENT":     
-                prisma.student.create(
-                    data={
-                        "fullName": data["fullName"],
-                        "email": data["email"],
-                        "password": data["password"],
-                        "contactNo": data["contactNo"],
-                        "currEnrolledCourses": data["currentCourses"],
-                        "currInstitution": data["institution"],
-                        "currSchool": data["school"],
-                        "currSession": data["session"],
-                        "currProgram": data["programme"],
+                school = prisma.school.find_first(
+                    where={
+                        "schoolCode": data["school"]
                     }
                 )
-                user = prisma.student.find_many()
+                student = prisma.student.create(
+                    data={
+                        "userProfile": {
+                            "create": {
+                                "fullName": data["fullName"],
+                                "email": data["email"],
+                                "password": data["password"],
+                                "contactNo": data["contactNo"],
+                            }
+                        },
+                        "school": {
+                            "connect": {
+                                "id": school["id"]
+                            }
+                        },
+                    }
+                )
+                for module in data["currentCourses"]:
+                    module = prisma.module.find_first(
+                        where={
+                            "moduleTitle": module
+                        }
+                    )
+                    prisma.moduleenrollment.create(
+                        data={
+                            "enrollmentGrade": 0,
+                            "studentId": student.id,
+                            "moduleId": module.id
+                        }
+                    )
+                user = prisma.student.find_first(
+                    where={
+                        "id": student.id
+                    },
+                    include={
+                        "userProfile": True,
+                        "school": True,
+                        "moduleEnrollments": True 
+                    }
+                )
+                user = f"User: {user.json(indent=2)}"
                 toast = ToastNotification(
                     title="Success",
                     message=f"{user}",
@@ -1085,7 +1117,7 @@ class UserForms(Frame):
                     "institution" : vars['institution'].get(),
                     "school" : vars['school'].get(),
                     "programme" : vars['programme'].get(),
-                    "currentCourses": f"{vars['course1'].get()}, {vars['course2'].get()}, {vars['course3'].get()}",
+                    "currentCourses": [f"{vars['course1'].get()}", f"{vars['course2'].get()}", f"{vars['course3'].get()}"],
                     "role": "LECTURER"
                 }
             ),
@@ -1102,7 +1134,7 @@ class UserForms(Frame):
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
         lists = {
             "institution": ["INTI International College Penang", "INTI International University Nilai", "INTI International College Subang", "INTI College Sabah"],
-            "school": ["SOCAT", "SOE", "CEPS", "SOBIZ", "Unlisted"],
+            "school": ["SOC", "SOE", "CEPS", "SOBIZ", "Unlisted"],
             "session": ["APR2023", "AUG2023", "JAN2024", "APR2024", "AUG2025"],
             "programme": ["BCSCU", "BCTCU", "DCS", "DCIT", "Unlisted"],
             "course1": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
@@ -1181,7 +1213,7 @@ class UserForms(Frame):
                     "email": entries["email"].get(),
                     "password": self.encryptPassword(entries["password"].get()),
                     "contactNo": entries["contactnumber"].get(),
-                    "currentCourses": f"{vars['course1'].get()}, {vars['course2'].get()}, {vars['course3'].get()}",
+                    "currentCourses": [f"{vars['course1'].get()}", f"{vars['course2'].get()}", f"{vars['course3'].get()}"],
                     "institution": vars["institution"].get(),
                     "school": vars["school"].get(),
                     "session": vars["session"].get(),
