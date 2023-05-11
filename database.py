@@ -542,17 +542,32 @@ class ModuleWithID(BaseModule):
 
 def creatingmoduleenrollments():
     prisma.connect()
+    # data = {
+    #     "fullName": "Matthew Loh Yet Marn",
+    #     "email": "dummy",
+    #     "password": "test1234",
+    #     "contactNo": "+60193884019",
+    #     "school": "SOC",
+    #     # "session": "APR2023",
+    #     "tenure": "FULLTIME",
+    #     "currentCourses": ["Mathematics for Computer Science", "Object-Oriented Programming",
+    #                        "Computer Science Activity Led Learning 2", "Computer Architecture and Networks"],
+    #     # "role": "STUDENT",
+    #     "role": "LECTURER",
+    # }
     data = {
-        "fullName": "Matthew Loh Yet Marn",
-        "email": "dummy",
-        "password": "test1234",
-        "contactNo": "+60193884019",
+        "fullName": "Wei Jian Teng",
+        "email": "weijian.teng@newinti.edu.my",
+        "password": "testpassword",
+        "contactNo": "+60191234567",
         "school": "SOC",
-        "session": "APR2023",
-        "currentCourses": ["Mathematics for Computer Science", "Object-Oriented Programming",
-                           "Computer Science Activity Led Learning 2", "Computer Architecture and Networks"],
-        "role": "STUDENT",
+        # "session": "APR2023",
+        "tenure": "FULLTIME",
+        "currentCourses": ["Mathematics for Computer Science"],
+        # "role": "STUDENT",
+        "role": "LECTURER",
     }
+
     # try:
     if data["role"] == "STUDENT":
         school = prisma.school.find_first(
@@ -644,21 +659,107 @@ def creatingmoduleenrollments():
             )
         print(f"Updated Student:\n{update.json(indent=2)}\n")
     elif data["role"] == "LECTURER":
-        prisma.lecturer.create(
-            data={
-                "fullName": data["fullName"],
-                "email": data["email"],
-                "password": data["password"],
-                "contactNo": data["contactNo"],
-                "currTenure": data["tenure"],
-                "currInstitution": data["institution"],
-                "currSchool": data["school"],
-                "currProgram": data["programme"],
-                "currTeachingCourses": data["currentCourses"],
+        school = prisma.school.find_first(
+            where={
+                "schoolCode": data["school"]
             }
         )
-        user = prisma.lecturer.find_many()
-        print(user)
+        modules = prisma.module.find_many(
+            where={
+                "lecturer": {
+                    "is": {
+                        "userProfile": {
+                            "is": {
+                                "email": data["email"]
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        for module in modules:
+            prisma.module.update(
+                where={
+                    "id": module.id
+                },
+                data={
+                    "lecturer": {
+                        "disconnect": True
+                    }
+                }
+            )
+        prisma.lecturer.delete_many(
+            where={
+                "userProfile": {
+                    "is": {
+                        "email": data["email"]
+                    }
+                }
+            }
+        )
+        prisma.userprofile.delete_many(
+            where={
+                "email": data["email"]
+            }
+        )
+        lecturer = prisma.lecturer.create(
+            data={
+                "userProfile": {
+                    "create": {
+                        "fullName": data["fullName"],
+                        "email": data["email"],
+                        "password": data["password"],
+                        "contactNo": data["contactNo"],
+                    }
+                },
+                "school": {
+                    "connect": {
+                        "id": school.id
+                    }
+                },
+                "tenure": data["tenure"],
+            }
+        )
+        for modules in data["currentCourses"]:
+            module = prisma.module.find_first(
+                where={
+                    "moduleTitle": modules
+                }
+            )
+            newmodule = prisma.module.update(
+                where={
+                    "id": module.id
+                },
+                data={
+                    "lecturer": {
+                        "connect": {
+                            "id": lecturer.id
+                        }
+                    }
+                },
+                include={
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                    "moduleEnrollments": {
+                        "include": {
+                            "student": {
+                                "include": {
+                                    "userProfile": {
+                                        "include": {
+                                            "student": True
+                                        }
+                                    }
+                                }
+                            },
+                        }
+                    },
+                }
+            )
+        print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
+        print(f"Modules:\n{newmodule.json(indent=2)}\n")
     # except Exception as e:
     #     print(e)
     prisma.disconnect()

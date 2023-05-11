@@ -1,7 +1,7 @@
 generator client {
   provider             = "prisma-client-py"
   interface            = "sync"
-  recursive_type_depth = "5"
+  recursive_type_depth = "-1"
 }
 
 datasource db {
@@ -95,18 +95,43 @@ model Programme {
 }
 
 model Module {
-  id                String             @id @default(cuid())
-  moduleCode        String             @unique
+  id                String              @id @default(cuid())
+  moduleCode        String              @unique
   moduleTitle       String
-  moduleDesc        String?            @db.Text
+  moduleDesc        String?             @db.Text
   programmeId       String
   lecturerId        String?
-  programme         Programme          @relation(fields: [programmeId], references: [id])
-  lecturer          Lecturer?          @relation(fields: [lecturerId], references: [id])
+  programme         Programme           @relation(fields: [programmeId], references: [id])
+  lecturer          Lecturer?           @relation(fields: [lecturerId], references: [id])
   moduleEnrollments ModuleEnrollment[]
+  moduleDiscussions ModuleDiscussions[]
 
   @@index([programmeId])
   @@index([lecturerId])
+}
+
+model ModuleDiscussions {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?  @db.Text
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id])
+  replies   Reply[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([moduleId])
+}
+
+model Reply {
+  id                  String            @id @default(cuid())
+  content             String?           @db.Text
+  moduleDiscussionsId Int
+  moduleDiscussions   ModuleDiscussions @relation(fields: [moduleDiscussionsId], references: [id])
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([moduleDiscussionsId])
 }
 
 enum Tenure {

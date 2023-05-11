@@ -1,8 +1,7 @@
+from static import *
 import ctypes
 from ctypes import windll
 import threading
-from time import sleep
-import time
 from tkinter import *
 from tkinter import messagebox
 # A drop in replacement for ttk that uses bootstrap styles
@@ -19,17 +18,11 @@ from prisma import Prisma
 from multiprocessing import Process
 from elementcreator import gridGenerator
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
-import clr
 import bcrypt
-import jwt
-clr.AddReference('System.Windows.Forms')
-clr.AddReference('System.Threading')
-from System.Windows.Forms import Control
-from System.Threading import Thread,ApartmentState,ThreadStart  
+# TODO: please stop formatting my imports you're breaking my code
+# this contains my pywin32 imports, PIL imports, pythonnet
+from nonstandardimports import *
 load_dotenv()
-
-from static import *
-from PIL import Image, ImageTk, ImageSequence
 
 
 # connection = mysql.connector.connect(
@@ -58,11 +51,7 @@ from PIL import Image, ImageTk, ImageSequence
 #     # connection.close()
 # except Error as e:
 #     print("Error while connecting to MySQL", e)
-# ~~~~~ The Ability to Make a Colorkey in a Canvas / Widget Transparent Using Windows Only ~~~~~ #
-# https://stackoverflow.com/questions/53021603/how-to-make-a-tkinter-canvas-background-transparent
-import win32api
-import win32con
-import win32gui
+
 # https://stackoverflow.com/a/68621773
 # This bit of code allows us to remove the window bar present in tkinter
 # More information on the ctypes library can be found here:
@@ -137,7 +126,6 @@ class Window(ttk.Window):
             frame.controller.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas",
                                            bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
             self.updateWidgetsDict(frame)
-            frame.tk.call("raise", frame._w)
             frame.grid_remove()
         for FRAME in (DashboardCanvas, SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, FavoritesView, AppointmentsView):
             canvas = FRAME(
@@ -263,7 +251,6 @@ class Window(ttk.Window):
         # how many times larger is the screensize than the original 1920 x 1080
         ratio = (currentdimensions[0] / 1920,
                  currentdimensions[1] / 1080)
-        print(f"Ratio: {ratio}")
         # take the original imagepath and resize it to the current screen size, then store it in the imageDict
         # only resize when the currentdimensions changes
         # do not constantly loop over the imageDict resizing the images
@@ -271,20 +258,21 @@ class Window(ttk.Window):
             for key, imagepath in self.imagePathDict.items():
                 orgimg = Image.open(imagepath)
                 orgimgwidth, orgimgheight = orgimg.size
-                # print(f"Original image dimensions: {orgimgwidth} x {orgimgheight}, {key}")
+                print(
+                    f"Original image dimensions: {orgimgwidth} x {orgimgheight}, {key}")
                 newimgwidth, newimgheight = int(
                     orgimgwidth * ratio[0]), int(orgimgheight * ratio[1])
-                # print(f"New image dimensions: {newimgwidth} x {newimgheight}, {key}")
+                print(
+                    f"New image dimensions: {newimgwidth} x {newimgheight}, {key}")
                 image = ImageTk.PhotoImage(Image.open(imagepath).resize(
                     (newimgwidth, newimgheight), Image.Resampling.LANCZOS))
                 self.imageDict[key] = image
                 try:
                     self.widgetsDict[key].configure(image=image)
                 except KeyError:
-                    print("yeah")
-            print("this has triggered")
+                    pass
         else:
-            print("the screen is working as intended")
+            pass
 
     def resizeEvent(self, event):
         self.eventId = None
@@ -455,7 +443,8 @@ class Window(ttk.Window):
         font=("Avenir Next Bold", 16),
         wraplength=None,
         pady=None,
-        hasImage=True
+        hasImage=True,
+        bg=WHITE
     ):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
@@ -496,7 +485,7 @@ class Window(ttk.Window):
             command=lambda: buttonFunction() if buttonFunction else print(
                 f"This is the {classname} button"),
             relief=relief if not overrideRelief else overrideRelief,
-            bg=WHITE, width=1, height=1,
+            bg=bg, width=1, height=1,
             cursor="hand2", state=button_kwargs["state"],
             name=button_kwargs["name"],
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=fg,
@@ -860,11 +849,6 @@ class Window(ttk.Window):
             ctypes.windll.user32.SetForegroundWindow(
                 ctypes.windll.kernel32.GetConsoleWindow())
 
-        def exitCompletely():
-            widgetslist = [frame, navigationbar]
-            for widget in widgetslist:
-                widget.destroy()
-
         self.buttonCreator(r"Assets\Chatbot\Backbutton.png", 0, 0, classname=f"{classname}backbutton",
                            buttonFunction=lambda: goBack(),
                            root=navigationbar)
@@ -993,19 +977,19 @@ class UserForms(Frame):
     def loadLecturerReg(self):
         self.userReg()
         self.imgLabels.append((r"Assets\Login Page with Captcha\LecturerForm.png",
-                              0, 600, f"{self.name}Lecturer", self.frameref))
+                              0, 600, f"{self.name}lecturer", self.frameref))
         self.controller.settingsUnpacker(self.imgLabels, "label")
         for i in self.userRegEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
         # implementing the joining of the two lists
         lists = {
             "institution": ["INTI International College Penang", "INTI International University Nilai", "INTI International College Subang", "INTI College Sabah"],
-            "school": ["SOCAT", "SOE", "CEPS", "SOBIZ", "Unlisted"],
-            "tenure": ["Full Time", "Part Time", "Unlisted"],
+            "school": ["SOC", "SOE", "CEPS", "SOBIZ"],
+            "tenure": ["FULLTIME", "PARTTIME"],
             "programme": ["BCSCU", "BCTCU", "DCS", "DCIT", "Unlisted"],
-            "course1": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
-            "course2": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"],
-            "course3": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", "None"]
+            "course1": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", ""],
+            "course2": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", ""],
+            "course3": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", ""]
         }
         self.institution = StringVar(name=f"{self.name}institution")
         self.school = StringVar(name=f"{self.name}school")
@@ -1174,7 +1158,7 @@ class UserForms(Frame):
                                       pady=5)
         self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=# lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            classname=f"{self.name}completeregbutton", buttonFunction=  # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
             lambda: self.send_data(
                 data={
                     "fullName": entries["fullname"].get(),
@@ -1202,7 +1186,6 @@ class UserForms(Frame):
         # LECTURER OR STUDENT
         prisma = Prisma()
         prisma.connect()
-
         try:
             if data["role"] == "STUDENT":
                 school = prisma.school.find_first(
@@ -1210,13 +1193,33 @@ class UserForms(Frame):
                         "schoolCode": data["school"]
                     }
                 )
-                for module in data["currentCourses"]:
-                    module = prisma.module.find_first(
-                        where={
-                            "moduleTitle": module
+                prisma.moduleenrollment.delete_many(
+                    where={
+                        "student": {
+                            "is": {
+                                "userProfile": {
+                                    "is": {
+                                        "email": data["email"]
+                                    }
+                                }
+                            }
                         }
-                    )
-                    module.id
+                    }
+                )
+                prisma.student.delete_many(
+                    where={
+                        "userProfile": {
+                            "is": {
+                                "email": data["email"]
+                            }
+                        }
+                    }
+                )
+                prisma.userprofile.delete_many(
+                    where={
+                        "email": data["email"]
+                    }
+                )
                 student = prisma.student.create(
                     data={
                         "userProfile": {
@@ -1233,27 +1236,44 @@ class UserForms(Frame):
                             }
                         },
                         "session": data["session"],
-                        "modules": {
-                            "create": {
-                                "enrollmentGrade": 0,
-                                "moduleId": {
-
+                    }
+                )
+                modulestoenroll = []
+                for module in data["currentCourses"]:
+                    module = prisma.module.find_first(
+                        where={
+                            "moduleTitle": module
+                        }
+                    )
+                    modulestoenroll.append(module.id)
+                for i in range(len(modulestoenroll)):
+                    student = prisma.student.find_first(
+                        where={
+                            "userProfile": {
+                                "is": {
+                                    "email": data["email"]
                                 }
                             }
                         }
-                    }
-                )
-                user = prisma.student.find_first(
-                    where={
-                        "id": student.id
-                    },
-                    include={
-                        "userProfile": True,
-                        "school": True,
-                        "moduleEnrollments": True
-                    }
-                )
-                user = f"User: {user.json(indent=2)}"
+                    )
+                    update = prisma.student.update(
+                        where={
+                            "id": student.id
+                        },
+                        data={
+                            "modules": {
+                                "create": {
+                                    "enrollmentGrade": 0,
+                                    "moduleId": modulestoenroll[i]
+                                }
+                            }
+                        },
+                        include={
+                            "userProfile": True,
+                            "modules": True,
+                        }
+                    )
+                user = print(f"Created Student: {update.json(indent=2)}")
                 toast = ToastNotification(
                     title="Success",
                     message=f"{user}",
@@ -1263,24 +1283,114 @@ class UserForms(Frame):
                 self.gif.grid_forget()
                 messagebox.showinfo("success", f"{user}")
             elif data["role"] == "LECTURER":
-                prisma.lecturer.create(
-                    data={
-                        "fullName": data["fullName"],
-                        "email": data["email"],
-                        "password": data["password"],
-                        "contactNo": data["contactNo"],
-                        "currTenure": data["tenure"],
-                        "currInstitution": data["institution"],
-                        "currSchool": data["school"],
-                        "currProgram": data["programme"],
-                        "currTeachingCourses": data["currentCourses"],
+                school = prisma.school.find_first(
+                    where={
+                        "schoolCode": data["school"]
                     }
                 )
-                user = prisma.lecturer.find_many()
-                print(user)
+                modules = prisma.module.find_many(
+                    where={
+                        "lecturer": {
+                            "is": {
+                                "userProfile": {
+                                    "is": {
+                                        "email": data["email"]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                )
+                for module in modules:
+                    if modules == "":
+                        continue
+                    prisma.module.update(
+                        where={
+                            "id": module.id
+                        },
+                        data={
+                            "lecturer": {
+                                "disconnect": True
+                            }
+                        }
+                    )
+                prisma.lecturer.delete_many(
+                    where={
+                        "userProfile": {
+                            "is": {
+                                "email": data["email"]
+                            }
+                        }
+                    }
+                )
+                prisma.userprofile.delete_many(
+                    where={
+                        "email": data["email"]
+                    }
+                )
+                lecturer = prisma.lecturer.create(
+                    data={
+                        "userProfile": {
+                            "create": {
+                                "fullName": data["fullName"],
+                                "email": data["email"],
+                                "password": data["password"],
+                                "contactNo": data["contactNo"],
+                            }
+                        },
+                        "school": {
+                            "connect": {
+                                "id": school.id
+                            }
+                        },
+                        "tenure": data["tenure"],
+                    }
+                )
+                for modules in data["currentCourses"]:
+                    if modules == "":
+                        continue
+                    module = prisma.module.find_first(
+                        where={
+                            "moduleTitle": modules
+                        }
+                    )
+                    newmodule = prisma.module.update(
+                        where={
+                            "id": module.id
+                        },
+                        data={
+                            "lecturer": {
+                                "connect": {
+                                    "id": lecturer.id
+                                }
+                            }
+                        },
+                        include={
+                            "lecturer": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            },
+                            "moduleEnrollments": {
+                                "include": {
+                                    "student": {
+                                        "include": {
+                                            "userProfile": {
+                                                "include": {
+                                                    "student": True
+                                                }
+                                            }
+                                        }
+                                    },
+                                }
+                            },
+                        }
+                    )
+                print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
+                print(f"Modules:\n{newmodule.json(indent=2)}\n")
                 toast = ToastNotification(
                     title="Success",
-                    message=f"{user}",
+                    message=f"{newmodule.json(indent=2), lecturer.json(indent=2)}",
                     duration=3000
                 )
                 toast.show_toast()
@@ -1288,13 +1398,14 @@ class UserForms(Frame):
         except Exception as e:
             self.gif.grid_forget()
             toast = ToastNotification(
-                    title="Error",
-                    message=f"There was an error creating your account. Please try again. {e}",
-                    duration=3000
-                )
+                title="Error",
+                message=f"There was an error creating your account. Please try again. {e}",
+                duration=3000
+            )
             toast.show_toast()
             print(e)
         prisma.disconnect()
+        self.controller.loadSignIn()
 
     def send_data(self, data: dict):
         t = threading.Thread(target=self.prismaFormSubmit, args=(data,))
@@ -1320,7 +1431,7 @@ class UserForms(Frame):
         ]
         self.signInButtons = [
             (r"Assets\Login Page with Captcha\SignInButton.png", 120, 360, "signinbutton", self.signinformref,
-             lambda: print("test")),
+             lambda: self.signInThreaded()),
             (r"Assets\Login Page with Captcha\GoToRegisterBtn.png", 40, 480, "gotoregisterbutton", self.signinformref,
              lambda: print("test")),
         ]
@@ -1332,6 +1443,37 @@ class UserForms(Frame):
         self.controller.settingsUnpacker(self.signInButtons, "button")
         for i in self.userLoginEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
+
+    def signInThreaded(self):
+        t = threading.Thread(target=self.signIn)
+        t.daemon = True
+        t.start()
+        t.join()
+
+    def signIn(self):
+        prisma = Prisma()
+        prisma.connect()
+        emailtext = self.controller.widgetsDict["signinemail"].get()
+        entrytext = self.controller.widgetsDict["signinpassent"].get()
+        user = prisma.userprofile.find_first(
+            where={
+                "email": emailtext
+            }
+        )
+        validated = self.validatePassword(
+            password=entrytext, encrypted=user.password)
+        if validated:
+            toast = ToastNotification(
+                title="Success",
+                message=f"Successfully logged in as {user.fullName}",
+                duration=3000,
+            )
+            toast.show_toast()
+            self.controller.show_frame(Dashboard)
+            self.controller.show_canvas(DashboardCanvas)
+            self.controller.widgetsDict["dashboard"].loadSpecificAssets(
+                "student")
+        prisma.disconnect()
 
 
 class SlidePanel(Frame):
@@ -1415,7 +1557,6 @@ class Dashboard(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent, width=1, height=1,
                        bg=LIGHTYELLOW, name="dashboard", autostyle=False)
-        # gridGenerator(parent, 96, 54, LIGHTYELLOW)
         self.controller = controller
         self.parent = parent
         self.framereference = self
@@ -1526,7 +1667,6 @@ class Dashboard(Frame):
                 widget.bind("<Tab>", lambda e: self.closeSearchBarLogic())
 
     def searchByQuery(self, query):
-        print(query)
         self.controller.canvasCreator(160, 60, 940, 240, self, classname="SearchBarEntryCanvas",
                                       bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
         for widgetname, widget in self.children.items():
@@ -1640,7 +1780,7 @@ class AnimatedStarBtn(Frame):
     def __init__(self,
                  parent=None, controller=None,
                  xpos=0, ypos=0, framewidth=0, frameheight=0,
-                 classname=None, imagepath=None, imagexpos=0, imageypos=0, bg=WHITE, ):
+                 classname=None, imagexpos=0, imageypos=0, bg=WHITE):
         super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname)
         self.controller = controller
         self.grid_propagate(False)
@@ -1697,7 +1837,6 @@ class AnimatedStarBtn(Frame):
         self.after(self.framerate, self.infinite_animate)
 
     def trigger_animation(self):
-        print(self.animation_status.get())
         if self.animation_status.get() == "start":
             self.frame_index = 0
             self.animation_status.set("forward")
@@ -1739,62 +1878,57 @@ class DiscussionsView(Canvas):
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.loadDiscussionTopics()
+    # https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors
+
+    def add_text(self, im, text, size, colour, index, name):
+        font = ImageFont.truetype(r"Fonts\AvenirNext-Regular.ttf", size)
+        draw = ImageDraw.Draw(im)
+        xcoord, ycoord = im.size
+        xcoord = 20  # Align text to the left
+        y_offset = size * index  # Vertical offset based on font size and index
+        ycoord = ycoord/2 - (font.getbbox(text)[3]/2) + y_offset
+        draw.text((xcoord, ycoord), text, font=font, fill=colour)
+        im = ImageTk.PhotoImage(im)
+        self.controller.imageDict[f"{name}"] = im
+        return im
 
     def loadDiscussionTopics(self):
         # ~~~~ BACKEND FUNCTIONALITY ~~~~
         # TODO: add this database functionality
         # posting a request to the database and getting the credentials
         # searching for discussions where user is present in
-        discussiontitlesList = ["This is sample discussion topic 1",
-                                "This is sample discussion topic 2", "This is a sample discussion topic 3"]
+        discussiontitlesList = ["Sample discussion topic 1",
+                                "Sample discussion topic 2",
+                                "Sample discussion topic 3"]
         initialcoordinates = (100, 320)
         for number, discussiontitle in list(enumerate(discussiontitlesList)):
-            # ~~~~ FRONTEND FUNCTIONALITY ~~~~
-            def toggleStarImage(number, state: bool):
-                imgpaths = [
-                    r"Assets\DiscussionsView\Deactivated Star.png",
-                    r"Assets\DiscussionsView\ActivatedStar.png",
-                ]
-                loaded = [
-                    ImageTk.PhotoImage(Image.open(imgpaths[0])),
-                    ImageTk.PhotoImage(Image.open(imgpaths[1])),
-                ]
-                ref = self.controller.widgetsDict[f"discresult{number}star"]
-                # true = activated, false = deactivated
-                if state:
-                    ref.config(image=loaded[1])
-                else:
-                    ref.config(image=loaded[0])
-                state = not state
+            # # ~~~~ FRONTEND FUNCTIONALITY ~~~~
             discResultsSettings = {
                 "imagepath": r"Assets\DiscussionsView\discussionstitlecomponentbg.png",
                 "xpos": initialcoordinates[0],
                 "ypos": initialcoordinates[1],
-                "classname": f"discresult{number}",
-                "buttonFunction": lambda number=number: messagebox.showinfo("Discussion", f"This is a sample discussion {number+1}"),
-                "root": self,
-                "text": discussiontitle,
-                "fg": "black",
             }
-            self.controller.buttonCreator(**discResultsSettings)
-            starBtn = AnimatedStarBtn(
+            xpos = discResultsSettings["xpos"]
+            ypos = discResultsSettings["ypos"]
+            widthspan = int(840/20)
+            heightspan = int(80/20)
+            editedtext = self.add_text(Image.open(
+                discResultsSettings["imagepath"]), discussiontitle, 40, (0, 0, 0), 0, name=f"{number}")
+            Button(self, image=editedtext, command=lambda num = number: print(f"{num} result clicked"), width=1, height=1, name=f"{number}result").grid(
+                row=int(ypos/20), column=int(xpos/20), rowspan=heightspan, columnspan=widthspan, sticky="nsew"
+            )
+            self.controller.updateWidgetsDict(self)
+            # self.controller.buttonCreator(**discResultsSettings)
+            # imgp = discResultsSettings["imagepath"]
+            # self.controller.imageDict[f"discresult{number}"] = newimg
+            # self.controller.widgetsDict[f"discresult{number}"].configure(
+            #     image=im
+            # )
+            AnimatedStarBtn(
                 parent=self, xpos=initialcoordinates[0] + 740, ypos=initialcoordinates[1] + 20,
                 framewidth=40, frameheight=40, classname=f"discresult{number}star",
                 imagexpos=0, imageypos=0
             )
-            # discResultsStarBtn = {
-            #     "imagepath": r"Assets\DiscussionsView\Deactivated Star.png",
-            #     "xpos": initialcoordinates[0] + 740,
-            #     "ypos": initialcoordinates[1] + 20,
-            #     "classname": f"discresult{number}star",
-            #     "buttonFunction": lambda number=number:
-            #     [print("Favorited", f"This is favorite button {number+1}"),
-            #     # toggleStarImage(number, state=False)
-            #     ],
-            #     "root": self,
-            #     "overrideRelief": "raised",
-            # }
-            # self.controller.buttonCreator(**discResultsStarBtn)
             initialcoordinates = (
                 initialcoordinates[0], initialcoordinates[1] + 100)
 
