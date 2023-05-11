@@ -60,8 +60,8 @@ model Student {
   id          String             @id @default(cuid())
   session     Sessions           @default(APR2023)
   userId      String
-  schoolId    String?
   userProfile UserProfile        @relation(fields: [userId], references: [id])
+  schoolId    String?
   school      School?            @relation(fields: [schoolId], references: [id])
   modules     ModuleEnrollment[]
 

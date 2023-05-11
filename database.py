@@ -67,8 +67,7 @@ from dotenv import load_dotenv
 # ~~~~ PRISMA ~~~~
 from prisma import Prisma
 from prisma.models import UserProfile
-from prisma.bases import BaseUserProfile
-
+from prisma.bases import BaseUserProfile, BaseModule, BaseModuleEnrollment
 
 
 load_dotenv()
@@ -76,9 +75,6 @@ load_dotenv()
 logging.basicConfig()
 
 prisma = Prisma(auto_register=True)
-
-
-
 
 
 def prismaCreateInstitution():
@@ -515,17 +511,22 @@ def prisCreateMultipleModules():
                 f"Student {student.userProfile.fullName} in {module.moduleTitle}:\n{student.json(indent=2)}\n")
 # https://prisma-client-py.readthedocs.io/en/stable/reference/model-actions/
 # https://prisma-client-py.readthedocs.io/en/stable/reference/selecting-fields/#writing-queries
+
+
 class UserInPost(BaseUserProfile):
     fullName: str
     email: str
     contactNo: str
+
+
 def usingpartialTypes():
     prisma.connect()
     user = UserInPost.prisma().find_first(
         where={
-            "fullName": "Matthew Loh Yet Marn"
+            "contactNo": "+60193884019"
         },
     )
+    print(user.id)
     _user = prisma.userprofile.find_first(
         where={
             "fullName": "Matthew Loh Yet Marn"
@@ -533,6 +534,135 @@ def usingpartialTypes():
     )
     print(f"User:\n{user.json(indent=2)}\n")
     print(f"_User:\n{_user.json(indent=2)}\n")
+
+
+class ModuleWithID(BaseModule):
+    id: int
+
+
+def creatingmoduleenrollments():
+    prisma.connect()
+    data = {
+        "fullName": "Matthew Loh Yet Marn",
+        "email": "dummy",
+        "password": "test1234",
+        "contactNo": "+60193884019",
+        "school": "SOC",
+        "session": "APR2023",
+        "currentCourses": ["Mathematics for Computer Science", "Object-Oriented Programming",
+                           "Computer Science Activity Led Learning 2", "Computer Architecture and Networks"],
+        "role": "STUDENT",
+    }
+    # try:
+    if data["role"] == "STUDENT":
+        school = prisma.school.find_first(
+            where={
+                "schoolCode": data["school"]
+            }
+        )
+        prisma.moduleenrollment.delete_many(
+            where={
+                "student": {
+                    "is": {
+                        "userProfile": {
+                            "is": {
+                                "email": "dummy"
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        prisma.student.delete_many(
+            where={
+                "userProfile": {
+                    "is": {
+                        "email": "dummy"
+                    }
+                }
+            }
+        )
+        prisma.userprofile.delete_many(
+            where={
+                "email": "dummy"
+            }
+        )
+        student = prisma.student.create(
+            data={
+                "userProfile": {
+                    "create": {
+                        "fullName": data["fullName"],
+                        "email": data["email"],
+                        "password": data["password"],
+                        "contactNo": data["contactNo"],
+                    }
+                },
+                "school": {
+                    "connect": {
+                        "id": school.id
+                    }
+                },
+                "session": data["session"],
+            }
+        )
+        modulestoconnect = []
+        for module in data["currentCourses"]:
+            module = prisma.module.find_first(
+                where={
+                    "moduleTitle": module
+                }
+            )
+            modulestoconnect.append(module.id)
+        print(modulestoconnect)
+        for i in range(len(modulestoconnect)):
+            student = prisma.student.find_first(
+                where={
+                    "userProfile": {
+                        "is": {
+                            "email": "dummy",
+                        }
+                    }
+                }
+            )
+            # print(f"Student:\n{student.json(indent=2)}\n")
+            update = prisma.student.update(
+                where={
+                    "id": student.id
+                },
+                data={
+                    "modules": {
+                        "create": {
+                            "enrollmentGrade": 0,
+                            "moduleId": modulestoconnect[i]
+                        }
+                    }
+                },
+                include={
+                    "userProfile": True,
+                    "modules": True,
+                }
+            )
+        print(f"Updated Student:\n{update.json(indent=2)}\n")
+    elif data["role"] == "LECTURER":
+        prisma.lecturer.create(
+            data={
+                "fullName": data["fullName"],
+                "email": data["email"],
+                "password": data["password"],
+                "contactNo": data["contactNo"],
+                "currTenure": data["tenure"],
+                "currInstitution": data["institution"],
+                "currSchool": data["school"],
+                "currProgram": data["programme"],
+                "currTeachingCourses": data["currentCourses"],
+            }
+        )
+        user = prisma.lecturer.find_many()
+        print(user)
+    # except Exception as e:
+    #     print(e)
+    prisma.disconnect()
+
 
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
@@ -547,4 +677,5 @@ if __name__ == "__main__":
     # prisQueryModuleEnrollment()
     # prisQueryUserProfile()
     # prisCreateMultipleModules()
-    usingpartialTypes()
+    # usingpartialTypes()
+    creatingmoduleenrollments()
