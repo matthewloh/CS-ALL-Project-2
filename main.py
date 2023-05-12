@@ -882,6 +882,61 @@ class Window(ttk.Window):
         colorkey = win32api.RGB(red, green, blue)
         return colorkey
 
+    def setUserContext(self, userId=None, role="student", prisma=None):
+        prisma = Prisma(auto_register=True)
+        prisma.connect()
+        if role == "student":
+            student = prisma.student.find_first(
+                where={
+                    "userProfile": {
+                        "id": userId,
+                    }
+                },
+                include={
+                    "userProfile": True,
+                    "modules": {
+                        "include": {
+                            "module": True,
+                        }
+                    }
+                }
+            )
+            for m in student.modules:
+                print(m.module.moduleCode)
+                print(m.module.moduleTitle, m.module.moduleDesc)
+                # print(f"Modules for {student.userProfile.fullName}:\n{m.json(indent=2)}")
+            print(f"Student:\n{student.json(indent=2)}")
+            # user = prisma.userprofile.find_first(
+            #     where={
+            #         "id": userId,
+            #     },
+            #     include={
+            #         "student": True,
+            #     }
+            # )
+            # print(f"User:\n{user.json(indent=2)}")
+            # modules = prisma.moduleenrollment.find_many(
+            #     where={
+            #         "student": {
+            #             "userProfile": {
+            #                 "id": userId,
+            #             }
+            #         }
+            #     }
+            # )
+            # for m in modules:
+            #     print(f"Modules for {user.fullName}:\n{m.json(indent=2)}")
+        elif role == "lecturer":
+            user = prisma.userprofile.find_first(
+                where={
+                    "id": userId,
+                },
+                include={
+                    "lecturer": True,
+                }
+            )
+        # prisma.disconnect()
+
 
 class AnimatedGif(Frame):
     def __init__(self, parent=None, controller=None,
@@ -1439,6 +1494,7 @@ class UserForms(Frame):
             (60, 80, 480, 80, self.signinformref, "signinemail", "isEmail"),
             (60, 240, 480, 80, self.signinformref, "signinpassent", "isPassword"),
         ]
+
         self.controller.settingsUnpacker(self.signInLabels, "label")
         self.controller.settingsUnpacker(self.signInButtons, "button")
         for i in self.userLoginEntries:
@@ -1448,32 +1504,38 @@ class UserForms(Frame):
         t = threading.Thread(target=self.signIn)
         t.daemon = True
         t.start()
-        t.join()
 
     def signIn(self):
-        prisma = Prisma()
-        prisma.connect()
-        emailtext = self.controller.widgetsDict["signinemail"].get()
-        entrytext = self.controller.widgetsDict["signinpassent"].get()
-        user = prisma.userprofile.find_first(
-            where={
-                "email": emailtext
-            }
-        )
-        validated = self.validatePassword(
-            password=entrytext, encrypted=user.password)
-        if validated:
-            toast = ToastNotification(
-                title="Success",
-                message=f"Successfully logged in as {user.fullName}",
-                duration=3000,
+        try:
+            prisma = Prisma()
+            prisma.connect()
+            emailtext = self.controller.widgetsDict["signinemail"].get()
+            entrytext = self.controller.widgetsDict["signinpassent"].get()
+            user = prisma.userprofile.find_first(
+                where={
+                    "email": emailtext
+                }
             )
-            toast.show_toast()
-            self.controller.show_frame(Dashboard)
-            self.controller.show_canvas(DashboardCanvas)
-            self.controller.widgetsDict["dashboard"].loadSpecificAssets(
-                "student")
-        prisma.disconnect()
+            if user.email.endswith("@student.newinti.edu.my"):
+                self.controller.setUserContext(userId=user.id, role="student", prisma=prisma)
+            elif user.email.endswith("@newinti.edu.my"):
+                self.controller.setUserContext(userId=user.id, role="lecturer", prisma=prisma)
+            validated = self.validatePassword(
+                password=entrytext, encrypted=user.password)
+            if validated:
+                toast = ToastNotification(
+                    title="Success",
+                    message=f"Successfully logged in as {user.fullName}",
+                    duration=3000,
+                )
+                toast.show_toast()
+                self.controller.show_frame(Dashboard)
+                self.controller.show_canvas(DashboardCanvas)
+                self.controller.widgetsDict["dashboard"].loadSpecificAssets(
+                    "student")
+            # prisma.disconnect()
+        except Exception as e:
+            print(e)
 
 
 class SlidePanel(Frame):
@@ -1914,7 +1976,7 @@ class DiscussionsView(Canvas):
             heightspan = int(80/20)
             editedtext = self.add_text(Image.open(
                 discResultsSettings["imagepath"]), discussiontitle, 40, (0, 0, 0), 0, name=f"{number}")
-            Button(self, image=editedtext, command=lambda num = number: print(f"{num} result clicked"), width=1, height=1, name=f"{number}result").grid(
+            Button(self, image=editedtext, command=lambda num=number: print(f"{num} result clicked"), width=1, height=1, name=f"{number}result").grid(
                 row=int(ypos/20), column=int(xpos/20), rowspan=heightspan, columnspan=widthspan, sticky="nsew"
             )
             self.controller.updateWidgetsDict(self)
@@ -2032,6 +2094,15 @@ class AppointmentsView(Canvas):
             # if the course is not empty, load the buttons
             print(course)
 
+    def prismaQueries(self):
+        prisma = Prisma()
+        prisma.connect()
+        # getting the courses using the context from controller
+        courses = prisma.module.find_many(
+
+        )
+        prisma.disconnect()
+
 
 def runGui():
     window = Window()
@@ -2039,11 +2110,11 @@ def runGui():
 
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     t = Thread(ThreadStart(runGui))
-    #     t.ApartmentState = ApartmentState.STA
-    #     t.Start()
-    #     t.Join()
-    # except Exception as e:
-    #     print("sorry")
+    # runGui()
+    try:
+        t = Thread(ThreadStart(runGui))
+        t.ApartmentState = ApartmentState.STA
+        t.Start()
+        t.Join()
+    except Exception as e:
+        print("sorry")
