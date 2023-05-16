@@ -18,4 +18,7 @@ NAVYBLUE = "#27364d"
 WHITE = "#FFFFFF"
 BLACK = "#000000"
 TRANSPARENTGREEN = "#0F0F0F"
-
+BUTTON = "button"
+LABEL = "label"
+AVENIRNEXT = r"Fonts\AvenirNext-Regular.ttf"
+SFPRO = r"Fonts\SF-Pro.ttf"

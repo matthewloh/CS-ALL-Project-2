@@ -57,7 +57,6 @@ load_dotenv()
 # More information on the ctypes library can be found here:
 # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowlongptrw
 # https://learn.microsoft.com/en-us/windows/win32/winmsg/window-styles
-
 GetWindowLongPtrW = ctypes.windll.user32.GetWindowLongPtrW
 SetWindowLongPtrW = ctypes.windll.user32.SetWindowLongPtrW
 
@@ -108,7 +107,12 @@ class Window(ttk.Window):
              lambda: [self.togglethewindowbar()]),
             (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button",
              self.postSelectFrame,
-             lambda: self.loadSignIn())
+             lambda: [
+                 # self.loadSignIn(), # Uncomment this out and then comment out the three lines below to enable the sign in page
+                 self.show_frame(Dashboard),
+                 self.show_canvas(DashboardCanvas),
+                 self.get_page(Dashboard).loadSpecificAssets("student"),
+             ])
         ]
 
         self.settingsUnpacker(self.labelSettingsParentFrame, "label")
@@ -136,8 +140,16 @@ class Window(ttk.Window):
                         rowspan=46, sticky=NSEW)
             canvas.grid_propagate(False)
             canvas.grid_remove()
-
+        self.loadSignInPage()
+        self.postSelectFrame.tkraise()
+        ref = self.widgetsDict["postselectframebg"]
+        ref.configure(image=self.loadedImgs[2])
+        self.widgetsDict["backbutton"].grid_remove()
+        # self.widgetsDict["skipbutton"].grid_remove() #Uncomment to not bypass login
         self.show_canvas(DashboardCanvas)
+
+    def returnWidgetsDict(self):
+        return self.widgetsDict
 
     def initializeWindow(self):
         windll.shcore.SetProcessDpiAwareness(1)
@@ -162,9 +174,12 @@ class Window(ttk.Window):
         self.postSelectFrame.grid(
             row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
         gridGenerator(self.postSelectFrame, 96, 54, WHITE)
+        self.postSelectFrame.tkraise()
 
     def signUpPage(self, student=False, teacher=False):
         ref = self.widgetsDict["postselectframebg"]
+        # self.widgetsDict["backbutton"].grid()
+        self.widgetsDict["skipbutton"].grid()
         if student:
             ref.configure(image=self.loadedImgs[0])
             self.studentform = UserForms(
@@ -219,6 +234,7 @@ class Window(ttk.Window):
                 command=lambda: [
                     self.postSelectFrame.grid_remove(),
                 ])
+            # self.widgetsDict["skipbutton"].grid_remove()
             self.widgetsDict["skipbutton"].configure(
                 command=lambda: [
                     self.loadSignIn(),
@@ -228,13 +244,122 @@ class Window(ttk.Window):
                 reloadForm(),
             ]
         )
+        # self.widgetsDict["skipbutton"].grid_remove()
         self.widgetsDict["skipbutton"].configure(
             command=lambda: [
-                self.show_frame(Dashboard),
-                self.show_canvas(DashboardCanvas),
-                self.get_page(Dashboard).loadSpecificAssets("student"),
+                # self.show_frame(Dashboard),
+                # self.show_canvas(DashboardCanvas),
+                # self.get_page(Dashboard).loadSpecificAssets("student"),
+                self.loadSignIn(),
+                # self.loadSignInPage(),
             ]
         )
+
+    def loadSignInPage(self):
+        self.frameCreator(
+            xpos=1140, ypos=240, framewidth=600, frameheight=600,
+            root=self.postSelectFrame, classname="signinform",
+        )
+        self.signinformref = self.widgetsDict["signinform"]
+        self.signInLabels = [
+            (r"Assets\Login Page with Captcha\LoginForm.png",
+             0, 0, f"loginformbg", self.signinformref),
+        ]
+        self.signInButtons = [
+            (r"Assets\Login Page with Captcha\SignInButton.png", 120, 360, "signinbutton", self.signinformref,
+             lambda: self.signInThreaded()),
+            (r"Assets\Login Page with Captcha\GoToRegisterBtn.png", 40, 480, "gotoregisterbutton", self.signinformref,
+             lambda: self.postSelectFrame.grid_remove()),
+        ]
+        self.userLoginEntries = [
+            (60, 80, 480, 80, self.signinformref, "signinemail", "isEmail"),
+            (60, 240, 480, 80, self.signinformref, "signinpassent", "isPassword"),
+        ]
+
+        self.settingsUnpacker(self.signInLabels, "label")
+        self.settingsUnpacker(self.signInButtons, "button")
+        for i in self.userLoginEntries:
+            self.ttkEntryCreator(xpos=i[0], ypos=i[1], width=i[2],
+                                 height=i[3], root=i[4], classname=i[5], validation=i[6])
+        self.widgetsDict["signinpassent"].bind(
+            "<Return>", lambda x: self.signInThreaded()
+        )
+
+    def signInThreaded(self):
+        t = threading.Thread(target=self.signIn)
+        t.daemon = True
+        t.start()
+
+    def validatePassword(self, password: str, encrypted: str) -> str:
+        return bcrypt.checkpw(password.encode("utf-8"), encrypted.encode("utf-8"))
+
+    def signIn(self):
+        try:
+            prisma = Prisma()
+            prisma.connect()
+            emailtext = self.widgetsDict["signinemail"].get()
+            entrytext = self.widgetsDict["signinpassent"].get()
+            user = prisma.userprofile.find_first(
+                where={
+                    "email": emailtext
+                },
+            )
+            validated = self.validatePassword(
+                password=entrytext, encrypted=user.password)
+            if not validated:
+                toast = ToastNotification(
+                    title="Error",
+                    message=f"Incorrect password",
+                    duration=3000,
+                )
+                toast.show_toast()
+                return
+
+            if user.email.endswith("@student.newinti.edu.my"):
+                student = self.setUserContext(
+                    userId=user.id, role="student", prisma=prisma)
+                modulesOfStudent = []
+                for n, m in list(enumerate(student.modules)):
+                    # print(n+1)
+                    # print(m.module.moduleCode)
+                    # print(m.module.moduleTitle)
+                    # print(m.module.moduleDesc)
+                    tup = (m.module.moduleCode,
+                           m.module.moduleTitle, m.module.moduleDesc)
+                    print(tup)
+                    modulesOfStudent.append(tup)
+                # module1(module.id, module.code, module.title, module.desc)
+                # [()]
+                data = {
+                    "id": student.userProfile.id,
+                    "fullName": student.userProfile.fullName,
+                    "email": student.userProfile.email,
+                    "modules": modulesOfStudent,
+                }
+                print(f"Student:\n{student.json(indent=2)}")
+                print(student.userProfile.fullName)
+                print(student.userProfile.email)
+            elif user.email.endswith("@newinti.edu.my"):
+                lecturer = self.setUserContext(
+                    userId=user.id, role="lecturer", prisma=prisma)
+                for m in lecturer.modules:
+                    print(m.module.moduleCode)
+                    print(m.module.moduleTitle, m.module.moduleDesc)
+                print(f"Lecturer:\n{lecturer.json(indent=2)}")
+            toast = ToastNotification(
+                title="Success",
+                message=f"Successfully logged in as {user.fullName}",
+                duration=3000,
+            )
+            toast.show_toast()
+            self.show_frame(Dashboard)
+            self.show_canvas(DashboardCanvas)
+            self.widgetsDict["dashboard"].loadSpecificAssets(
+                "student")
+            self.widgetsDict["dashboard"].postLogin(data)
+        # prisma.disconnect()
+        except Exception as e:
+            print(e)
 
     def createImageReference(self, imagepath: str, classname: str):
         # stores a key value pair of "classname" : "imagepath"
@@ -468,9 +593,6 @@ class Window(ttk.Window):
         button_kwargs = {
             "root": root,
             "image": image,
-            "command": lambda: buttonFunction()
-            if buttonFunction
-            else lambda: print(f"This is the {classname} button"),
             "relief": overrideRelief,
             "width": 1,
             "height": 1,
@@ -833,6 +955,7 @@ class Window(ttk.Window):
                 ctypes.windll.kernel32.GetConsoleWindow())
 
         def gotoGoogle():
+            self.widgetsDict[f"{classname}urlentry"].focus_set()
             frame.load_url("https://www.google.com/")
             defocus()
             ctypes.windll.user32.SetForegroundWindow(
@@ -842,12 +965,14 @@ class Window(ttk.Window):
             frame.evaluate_js(
                 "document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();")
             defocus()
+            self.widgetsDict[f"{classname}urlentry"].focus_set()
 
         def defocus():
             # getting the current window using the window handle, then simulating a refocusing
             # frame.evaluate_js("document.activeElement.blur();")
             ctypes.windll.user32.SetForegroundWindow(
                 ctypes.windll.kernel32.GetConsoleWindow())
+            self.widgetsDict[f"{classname}urlentry"].focus()
 
         self.buttonCreator(r"Assets\Chatbot\Backbutton.png", 0, 0, classname=f"{classname}backbutton",
                            buttonFunction=lambda: goBack(),
@@ -882,9 +1007,7 @@ class Window(ttk.Window):
         colorkey = win32api.RGB(red, green, blue)
         return colorkey
 
-    def setUserContext(self, userId=None, role="student", prisma=None):
-        prisma = Prisma(auto_register=True)
-        prisma.connect()
+    def setUserContext(self, userId=None, role="student", prisma: Prisma = None):
         if role == "student":
             student = prisma.student.find_first(
                 where={
@@ -901,45 +1024,71 @@ class Window(ttk.Window):
                     }
                 }
             )
-            for m in student.modules:
-                print(m.module.moduleCode)
-                print(m.module.moduleTitle, m.module.moduleDesc)
-                # print(f"Modules for {student.userProfile.fullName}:\n{m.json(indent=2)}")
-            print(f"Student:\n{student.json(indent=2)}")
-            # user = prisma.userprofile.find_first(
-            #     where={
-            #         "id": userId,
-            #     },
-            #     include={
-            #         "student": True,
-            #     }
-            # )
-            # print(f"User:\n{user.json(indent=2)}")
-            # modules = prisma.moduleenrollment.find_many(
-            #     where={
-            #         "student": {
-            #             "userProfile": {
-            #                 "id": userId,
-            #             }
-            #         }
-            #     }
-            # )
-            # for m in modules:
-            #     print(f"Modules for {user.fullName}:\n{m.json(indent=2)}")
+            return student
         elif role == "lecturer":
-            user = prisma.userprofile.find_first(
+            lecturer = prisma.lecturer.find_first(
                 where={
-                    "id": userId,
+                    "userProfile": {
+                        "id": userId,
+                    }
                 },
                 include={
-                    "lecturer": True,
+                    "userProfile": True,
+                    "modules": {
+                        "include": {
+                            "module": True,
+                        }
+                    }
                 }
             )
+            return lecturer
         # prisma.disconnect()
+
+    def textElement(self, imagepath, xpos, ypos, classname=None,
+                    buttonFunction=None, root=None, relief=FLAT,
+                    fg=BLACK, bg=WHITE, font=SFPRO,
+                    text=None, size=40,
+                    index=0, xoffset=0):
+        classname = classname.replace(" ", "").lower()
+        # ~~~ ADD TEXT TO IMAGE FUNCTIONS ~~~
+        h = fg.lstrip("#")
+        textcolor = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+        im = Image.open(imagepath)
+        font = ImageFont.truetype(font, size)
+        draw = ImageDraw.Draw(im)
+        # print(im.size) # Returns (width, height) tuple
+        xcoord, ycoord = im.size
+        # push the text to the right by xoffset pixels
+        xcoord = im.size[0]/20 + xoffset*20
+        y_offset = size * index  # Vertical offset based on font size and index
+        ycoord = ycoord/2 - (font.getbbox(text)[3]/2) + y_offset
+        draw.text((xcoord, ycoord), text, font=font, fill=textcolor)
+        self.imageDict[f"{classname}"] = ImageTk.PhotoImage(im)
+        image = self.imageDict[f"{classname}"]
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        widthspan = int(image.width()/20)
+        heightspan = int(image.height()/20)
+        columnarg = int(xpos/20)
+        rowarg = int(ypos/20)
+        if buttonFunction:
+            Button(root, image=image,
+                   command=lambda: buttonFunction() if buttonFunction else print(
+                       "No function assigned to button"),
+                   relief=relief,
+                   bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
+                row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
+            )
+        else:
+            Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
+                row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
+            )
+        self.updateWidgetsDict(root=root)
+        self.widgetsDict[classname].grid_propagate(False)
+        return self.widgetsDict[classname]
 
 
 class AnimatedGif(Frame):
-    def __init__(self, parent=None, controller=None,
+    def __init__(self, parent=None, controller: Window = None,
                  xpos=0, ypos=0, framewidth=0, frameheight=0,
                  classname=None, imagepath=None, imagexpos=0, imageypos=0,
                  bg=WHITE,
@@ -991,7 +1140,7 @@ class AnimatedGif(Frame):
 
 
 class UserForms(Frame):
-    def __init__(self, parent=None, controller=None, name=None):
+    def __init__(self, parent=None, controller: Window = None, name=None):
         super().__init__(parent, width=1, height=1, bg="#344557", name=name)
         self.controller = controller
         self.parent = parent
@@ -1459,8 +1608,8 @@ class UserForms(Frame):
             )
             toast.show_toast()
             print(e)
-        prisma.disconnect()
         self.controller.loadSignIn()
+        prisma.disconnect()
 
     def send_data(self, data: dict):
         t = threading.Thread(target=self.prismaFormSubmit, args=(data,))
@@ -1475,71 +1624,12 @@ class UserForms(Frame):
         t.start()
 
     def loadSignIn(self):
-        self.controller.frameCreator(
-            xpos=1140, ypos=240, framewidth=600, frameheight=600,
-            root=self.parent, classname="signinform",
-        )
-        self.signinformref = self.controller.widgetsDict["signinform"]
-        self.signInLabels = [
-            (r"Assets\Login Page with Captcha\LoginForm.png",
-             0, 0, f"loginformbg", self.signinformref),
-        ]
-        self.signInButtons = [
-            (r"Assets\Login Page with Captcha\SignInButton.png", 120, 360, "signinbutton", self.signinformref,
-             lambda: self.signInThreaded()),
-            (r"Assets\Login Page with Captcha\GoToRegisterBtn.png", 40, 480, "gotoregisterbutton", self.signinformref,
-             lambda: print("test")),
-        ]
-        self.userLoginEntries = [
-            (60, 80, 480, 80, self.signinformref, "signinemail", "isEmail"),
-            (60, 240, 480, 80, self.signinformref, "signinpassent", "isPassword"),
-        ]
-
-        self.controller.settingsUnpacker(self.signInLabels, "label")
-        self.controller.settingsUnpacker(self.signInButtons, "button")
-        for i in self.userLoginEntries:
-            self.controller.ttkEntryCreator(**self.tupleToDict(i))
-
-    def signInThreaded(self):
-        t = threading.Thread(target=self.signIn)
-        t.daemon = True
-        t.start()
-
-    def signIn(self):
-        try:
-            prisma = Prisma()
-            prisma.connect()
-            emailtext = self.controller.widgetsDict["signinemail"].get()
-            entrytext = self.controller.widgetsDict["signinpassent"].get()
-            user = prisma.userprofile.find_first(
-                where={
-                    "email": emailtext
-                }
-            )
-            if user.email.endswith("@student.newinti.edu.my"):
-                self.controller.setUserContext(userId=user.id, role="student", prisma=prisma)
-            elif user.email.endswith("@newinti.edu.my"):
-                self.controller.setUserContext(userId=user.id, role="lecturer", prisma=prisma)
-            validated = self.validatePassword(
-                password=entrytext, encrypted=user.password)
-            if validated:
-                toast = ToastNotification(
-                    title="Success",
-                    message=f"Successfully logged in as {user.fullName}",
-                    duration=3000,
-                )
-                toast.show_toast()
-                self.controller.show_frame(Dashboard)
-                self.controller.show_canvas(DashboardCanvas)
-                self.controller.widgetsDict["dashboard"].loadSpecificAssets(
-                    "student")
-            # prisma.disconnect()
-        except Exception as e:
-            print(e)
+        self.controller.loadSignInPage()
+        self.controller.widgetsDict["signinform"].tkraise()
 
 
 class SlidePanel(Frame):
-    def __init__(self, parent=None, controller=None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
+    def __init__(self, parent=None, controller: Window = None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
         super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN, name=name)
         self.controller = controller
         gridGenerator(self, width, height, bg)
@@ -1614,9 +1704,8 @@ class SlidePanel(Frame):
             self.at_start_pos = True
             self.grid_remove()
 
-
 class Dashboard(Frame):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Frame.__init__(self, parent, width=1, height=1,
                        bg=LIGHTYELLOW, name="dashboard", autostyle=False)
         self.controller = controller
@@ -1625,18 +1714,8 @@ class Dashboard(Frame):
         gridGenerator(self, 96, 54, LIGHTYELLOW)
         self.animatedpanel = SlidePanel(self, self.controller, startcolumn=0, startrow=4, endrow=3, endcolumn=15, rowspan=46,
                                         startcolumnspan=1, endcolumnspan=16, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name="animatedpanel")
-        self.staticImgLabels = [
-            (r"Assets\Dashboard\Top Bar.png", 0, 0, "TopBar", self.framereference),
-        ]
+        topbar = TopBar(parent=self, controller=self.controller)
         self.staticImgBtns = [
-            (r"Assets\Dashboard\HamburgerMenuTopBar.png", 0, 0, "HamburgerMenu",
-             self.framereference, lambda: self.animatedpanel.animate()),
-            (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar",
-             self.framereference, lambda: self.searchBarLogic()),
-            (r"Assets\Dashboard\RibbonTopBar.png", 1760, 20,
-             "RibbonTopBar", self.framereference, lambda: print("hello-4")),
-            (r"Assets\Dashboard\BellTopBar.png", 1820, 20, "BellTopBar",
-             self.framereference, lambda: print("hello-3")),
             (r"Assets\Dashboard\01DashboardChip.png", 20, 1020, "DashboardChip",
              self.framereference, lambda: self.controller.show_canvas(DashboardCanvas)),
             (r"Assets\Dashboard\02SearchChip.png", 160, 1020, "SearchChip",
@@ -1661,20 +1740,15 @@ class Dashboard(Frame):
         )
         self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas",
                                       bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
-        self.loadAllStaticAssets(self.staticImgBtns, self.staticImgLabels)
+        # self.staticImgLabels = []
+        self.loadAllStaticAssets(self.staticImgBtns)
         self.maincanvasref = self.controller.widgetsDict["maincanvas"]
         self.controller.canvasCreator(0, 0, 1920, 920, root=self.maincanvasref, classname="dashboardcanvas",
                                       bgcolor=NICEBLUE, isTransparent=True, transparentcolor=LIGHTYELLOW)
-        self.openSearchSettings = [
-            (r"Assets\Dashboard\TopbarSearchOpen.png",
-             0, 0, "SearchBarOpen", self.framereference),
-            (r"Assets\Dashboard\ExitSearch.png", 0, 0, "ExitSearchBtn",
-             self.framereference, lambda: self.closeSearchBarLogic()),
-        ]
         self.dashboardcanvasref = self.controller.widgetsDict["dashboardcanvas"]
 
-    def loadAllStaticAssets(self, button_settings, label_settings):
-        self.controller.settingsUnpacker(label_settings, "label")
+    def loadAllStaticAssets(self, button_settings, label_settings=None):
+        # self.controller.settingsUnpacker(label_settings, "label")
         self.controller.settingsUnpacker(button_settings, "button")
 
     def loadSpecificAssets(self, role):
@@ -1693,34 +1767,101 @@ class Dashboard(Frame):
                                          classname="TeacherDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
         # self.controller.widgetRef("dashboardcanvas").tk.call('raise', self.controller.widgetRef("dashboardcanvas")._w)
 
-    def tupleToDict(self, tup):
-        if len(tup) == 5:
-            return dict(zip(("imagepath", "xpos", "ypos", "classname", "root"), tup))
-        if len(tup) == 6:
-            return dict(zip(("imagepath", "xpos", "ypos", "classname", "root", "buttonFunction"), tup))
+    def postLogin(self, data: dict):
+        id = data["id"]
+        fullName = data["fullName"]
+        email = data["email"]
+        modules = data["modules"]
+        # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
+        cont = self.controller
+        initialypos = 20
+        for m in modules:
+            cont.textElement(
+                imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=760, ypos=initialypos,
+                classname=f"{m[0]}title", root=self.dashboardcanvasref, text=m[1], size=30, xoffset=1,
+                buttonFunction=lambda e=m[0]: print(f"clicked {e}")
+            )
+            initialypos += 300
+        cont.textElement(
+            imagepath=r"Assets\Dashboard\NameBg.png", xpos=160, ypos=120,
+            classname="usernamedash", root=self.dashboardcanvasref, text=fullName, size=32, xoffset=-1
+        )
+        cont.textElement(
+            imagepath=r"Assets\Dashboard\NameBg.png", xpos=160, ypos=160,
+            classname="useremaildash", root=self.dashboardcanvasref, text=email, size=24, xoffset=-1
+        )
+
+class TopBar(Frame):
+    def __init__(self, parent:Dashboard, controller: Window, name="topbarframe"):
+        super().__init__(parent, width=1, height=1, bg=WHITE, name=name)
+        self.controller = controller
+        self.parent = parent
+        self.name = name
+        self.controller.frameCreator(
+            xpos=0, ypos=0, framewidth=1920, frameheight=80,
+            root=self.parent, classname=self.name, bg=WHITE, 
+        )
+        self.framereference = self.controller.widgetsDict[f"{self.name}"]
+        self.staticImgLabels = [
+            (r"Assets\Dashboard\Top Bar.png", 0, 0, "TopBar", self.framereference),
+        ]
+        self.animatedpanel = self.controller.widgetsDict["animatedpanel"]
+        self.buttonImgs = [
+            (r"Assets\Dashboard\HamburgerMenuTopBar.png", 0, 0, "HamburgerMenu",
+             self.framereference, lambda: self.animatedpanel.animate()),
+            (r"Assets\Dashboard\HomeButton.png", 760, 0, "homebutton", 
+             self.framereference, lambda: print("gohome")),
+            (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar",
+             self.framereference, lambda: self.searchBarLogic()),
+            (r"Assets\Dashboard\RibbonTopBar.png", 1760, 20,
+             "RibbonTopBar", self.framereference, lambda: print("hello-4")),
+            (r"Assets\Dashboard\BellTopBar.png", 1820, 20, "BellTopBar",
+             self.framereference, lambda: print("hello-3")),
+        ]
+        self.load()
+        self.openSearchSettings = [
+            (r"Assets\Dashboard\TopbarSearchOpen.png",
+             0, 0, "SearchBarOpen", self.framereference),
+            (r"Assets\Dashboard\ExitSearch.png", 0, 0, "ExitSearchBtn",
+             self.framereference, lambda: self.closeSearchBarLogic()),
+        ]
+
+    def load(self):
+        self.controller.settingsUnpacker(
+            listoftuples=self.staticImgLabels, typeoftuple="label"
+        )
+        self.controller.settingsUnpacker(
+            listoftuples=self.buttonImgs, typeoftuple="button"
+        )
 
     def closeSearchBarLogic(self):
-        for widgetname, widget in self.children.items():
+        for widgetname, widget in self.parent.children.items():
+            if widgetname in ["searchbaropen", "exitsearchbtn", "searchbarresults", "searchbarentrycanvas"]:
+                widget.grid_remove()
+            if widgetname in ["searchbar"]:
+                widget.tk.call('raise', widget._w)
+        for widgetname, widget in self.framereference.children.items():
             if widgetname in ["searchbaropen", "exitsearchbtn", "searchbarresults", "searchbarentrycanvas"]:
                 widget.grid_remove()
             if widgetname in ["searchbar"]:
                 widget.tk.call('raise', widget._w)
 
+    #TODO: redo this from the ground up
     def searchBarLogic(self):
         searchbg = self.openSearchSettings[0]
         exitbtn = self.openSearchSettings[1]
 
-        self.controller.labelCreator(**self.tupleToDict(searchbg))
-        self.controller.buttonCreator(**self.tupleToDict(exitbtn))
+        self.controller.labelCreator(**self.controller.tupleToDict(searchbg))
+        self.controller.buttonCreator(**self.controller.tupleToDict(exitbtn))
         self.controller.entryCreator(
-            160, 0, 940, 80, self, "SearchBarResults", pady=10)
+            160, 0, 940, 80, self.parent, "SearchBarResults", pady=10)
         try:
-            for widgetname, widget in self.children.items():
+            for widgetname, widget in self.parent.children.items():
                 if widgetname == "searchbarentrycanvas":
                     widget.destroy()
         except RuntimeError:
-            pass
-        for widgetname, widget in self.children.items():
+            print("no searchbarentrycanvas")
+        for widgetname, widget in self.parent.children.items():
             if widgetname == "searchbarresults":
                 widget.after(100, lambda: widget.focus_set())
                 widget.bind(
@@ -1728,9 +1869,12 @@ class Dashboard(Frame):
                 widget.bind("<FocusIn>", lambda e: widget.delete(0, END))
                 widget.bind("<Tab>", lambda e: self.closeSearchBarLogic())
 
+
     def searchByQuery(self, query):
-        self.controller.canvasCreator(160, 60, 940, 240, self, classname="SearchBarEntryCanvas",
+        self.controller.canvasCreator(160, 60, 940, 240, self.parent, classname="SearchBarEntryCanvas",
                                       bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
+        ref = self.controller.widgetsDict["searchbarentrycanvas"]
+        ref.tk.call('raise', ref._w)
         for widgetname, widget in self.children.items():
             if widgetname == "searchbarentrycanvas":
                 # dummy results
@@ -1747,9 +1891,8 @@ class Dashboard(Frame):
                     r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit", font=("Avenir Next", 20), wraplength=600
                 )
 
-
 class DashboardCanvas(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1, bg=WHITE,
                         name="dashboardcanvas", autostyle=False)
         self.controller = controller
@@ -1758,7 +1901,7 @@ class DashboardCanvas(Canvas):
 
 
 class SearchPage(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
                         bg=WHITE, name="searchpage", autostyle=False)
         self.controller = controller
@@ -1771,7 +1914,7 @@ class SearchPage(Canvas):
 
 
 class Chatbot(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
                         bg=WHITE, name="chatbot", autostyle=False)
         self.controller = controller
@@ -1786,7 +1929,7 @@ class Chatbot(Canvas):
 
 
 class LearningHub(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
                         bg=WHITE, name="learninghub", autostyle=False)
         self.controller = controller
@@ -1804,7 +1947,7 @@ class LearningHub(Canvas):
 
 
 class CourseView(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
                         bg="#F6F5D7", name="courseview", autostyle=False)
         self.controller = controller
@@ -1840,7 +1983,7 @@ class CourseView(Canvas):
 
 class AnimatedStarBtn(Frame):
     def __init__(self,
-                 parent=None, controller=None,
+                 parent=None, controller: Window = None,
                  xpos=0, ypos=0, framewidth=0, frameheight=0,
                  classname=None, imagexpos=0, imageypos=0, bg=WHITE):
         super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname)
@@ -1927,7 +2070,7 @@ class AnimatedStarBtn(Frame):
 
 
 class DiscussionsView(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1, bg=WHITE,
                         name="discussionsview", autostyle=False)
         self.controller = controller
@@ -1942,18 +2085,6 @@ class DiscussionsView(Canvas):
         self.loadDiscussionTopics()
     # https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors
 
-    def add_text(self, im, text, size, colour, index, name):
-        font = ImageFont.truetype(r"Fonts\AvenirNext-Regular.ttf", size)
-        draw = ImageDraw.Draw(im)
-        xcoord, ycoord = im.size
-        xcoord = 20  # Align text to the left
-        y_offset = size * index  # Vertical offset based on font size and index
-        ycoord = ycoord/2 - (font.getbbox(text)[3]/2) + y_offset
-        draw.text((xcoord, ycoord), text, font=font, fill=colour)
-        im = ImageTk.PhotoImage(im)
-        self.controller.imageDict[f"{name}"] = im
-        return im
-
     def loadDiscussionTopics(self):
         # ~~~~ BACKEND FUNCTIONALITY ~~~~
         # TODO: add this database functionality
@@ -1964,7 +2095,6 @@ class DiscussionsView(Canvas):
                                 "Sample discussion topic 3"]
         initialcoordinates = (100, 320)
         for number, discussiontitle in list(enumerate(discussiontitlesList)):
-            # # ~~~~ FRONTEND FUNCTIONALITY ~~~~
             discResultsSettings = {
                 "imagepath": r"Assets\DiscussionsView\discussionstitlecomponentbg.png",
                 "xpos": initialcoordinates[0],
@@ -1972,22 +2102,18 @@ class DiscussionsView(Canvas):
             }
             xpos = discResultsSettings["xpos"]
             ypos = discResultsSettings["ypos"]
-            widthspan = int(840/20)
-            heightspan = int(80/20)
-            editedtext = self.add_text(Image.open(
-                discResultsSettings["imagepath"]), discussiontitle, 40, (0, 0, 0), 0, name=f"{number}")
-            Button(self, image=editedtext, command=lambda num=number: print(f"{num} result clicked"), width=1, height=1, name=f"{number}result").grid(
-                row=int(ypos/20), column=int(xpos/20), rowspan=heightspan, columnspan=widthspan, sticky="nsew"
+            cont = self.controller
+            cont.textElement(
+                discResultsSettings["imagepath"], xpos, ypos,
+                classname=f"discresult{number}",
+                buttonFunction=lambda num=number: print(
+                    f"{num} result clicked"),
+                root=self, text=discussiontitle, fg=BLACK, size=40
             )
-            self.controller.updateWidgetsDict(self)
-            # self.controller.buttonCreator(**discResultsSettings)
-            # imgp = discResultsSettings["imagepath"]
-            # self.controller.imageDict[f"discresult{number}"] = newimg
-            # self.controller.widgetsDict[f"discresult{number}"].configure(
-            #     image=im
-            # )
             AnimatedStarBtn(
-                parent=self, xpos=initialcoordinates[0] + 740, ypos=initialcoordinates[1] + 20,
+                parent=self,
+                xpos=initialcoordinates[0] + 740,
+                ypos=initialcoordinates[1] + 20,
                 framewidth=40, frameheight=40, classname=f"discresult{number}star",
                 imagexpos=0, imageypos=0
             )
@@ -1996,7 +2122,7 @@ class DiscussionsView(Canvas):
 
 
 class FavoritesView(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
                         bg=WHITE, name="favoritesview", autostyle=False)
         self.controller = controller
@@ -2005,7 +2131,7 @@ class FavoritesView(Canvas):
 
 
 class AppointmentsView(Canvas):
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1, bg=WHITE,
                         name="appointmentsview", autostyle=False)
         self.controller = controller
@@ -2110,11 +2236,11 @@ def runGui():
 
 
 if __name__ == "__main__":
-    # runGui()
-    try:
-        t = Thread(ThreadStart(runGui))
-        t.ApartmentState = ApartmentState.STA
-        t.Start()
-        t.Join()
-    except Exception as e:
-        print("sorry")
+    runGui()
+    # try:
+    #     t = Thread(ThreadStart(runGui))
+    #     t.ApartmentState = ApartmentState.STA
+    #     t.Start()
+    #     t.Join()
+    # except Exception as e:
+    #     print("sorry")
