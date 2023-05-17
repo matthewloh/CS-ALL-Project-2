@@ -101,7 +101,7 @@ def prismaCreateInstitution():
 
 def prismaCreateProgramme():
     prisma.connect()
-    test = (prisma.institution.find_many(include={"school": True}))
+    test = prisma.institution.find_many(include={"school": True})
     for i in test:
         print(f"Institutions:\n{i.json(indent=2)}\n")
 
@@ -179,24 +179,45 @@ def prismaCreateLecturer():
         },
         include={"userProfile": True, "modules": True, "school": True}
     )
-    # lecturer = prisma.lecturer.create(
-    #     data={
-    #         "fullName": "Dr. Vaithegy Doraisamy",
-    #         "email": "vaithegy.doraisamy@newinti.edu.my",
-    #         "password": "hashofapassword",
-    #         "contactNo": "+60149447359",
-    #         "school": {
-    #             "connect": {
-    #                 "id": school.id
-    #             }
-    #         }
-    #     },
-    #     include={
-    #         "school": True,
-    #         "modules": True
-    #     }
-    # )
     print(f"Lecturer created:\n{lecturer.json(indent=2)}\n")
+    lecturer2 = prisma.lecturer.create(
+        data={
+            "school": {
+                "connect": {
+                    "id": school.id
+                }
+            },
+            "userProfile": {
+                "create": {
+                    "fullName": "Wei Jian Teng",
+                    "email": "weijian.teng@newinti.edu.my",
+                    "password": "hehe1234",
+                    "contactNo": "+60123456789"
+                }
+            }
+        },
+        include={"userProfile": True, "modules": True, "school": True}
+    )
+    print(f"Lecturer created:\n{lecturer2.json(indent=2)}\n")
+    lecturer3 = prisma.lecturer.create(
+        data={
+            "school": {
+                "connect": {
+                    "id": school.id
+                }
+            },
+            "userProfile": {
+                "create": {
+                    "fullName": "Shyamala Nadarajan",
+                    "email": "shyamala.nadarajan@s.newinti.edu.my",
+                    "password": "hehe1234",
+                    "contactNo": "+60164154155"
+                }
+            }
+        },
+        include={"userProfile": True, "modules": True, "school": True}
+    )
+    print(f"Lecturer created:\n{lecturer3.json(indent=2)}\n")
     prismaCreateModules()
 
 
@@ -207,6 +228,18 @@ def prismaCreateModules():
     lecturer = prisma.lecturer.find_first(
         where={
             "userProfile": {"fullName": "Dr. Vaithegy Doraisamy"}
+        },
+        include={"userProfile": True, "modules": True, "school": True}
+    )
+    lecturer2 = prisma.lecturer.find_first(
+        where={
+            "userProfile": {"fullName": "Wei Jian Teng"}
+        },
+        include={"userProfile": True, "modules": True, "school": True}
+    )
+    lecturer3 = prisma.lecturer.find_first(
+        where={
+            "userProfile": {"fullName": "Shyamala Nadarajan"}
         },
         include={"userProfile": True, "modules": True, "school": True}
     )
@@ -247,6 +280,42 @@ def prismaCreateModules():
         }
     )
     print(f"Module 2 created:\n{secondcourse.json(indent=2)}\n")
+    thirdcourse = prisma.module.create(
+        data={
+            "moduleCode": "INT4068CEM",
+            "moduleTitle": "Mathematics for Computer Science",
+            "moduleDesc": """This module aims to provide students with a comprehensive understanding of the fundamental concepts of mathematics for computer science.""",
+            "programme": {
+                "connect": {
+                    "id": programme.id
+                }
+            },
+            "lecturer": {
+                "connect": {
+                    "id": lecturer2.id
+                }
+            }
+        },
+    )
+    fourthcourse = prisma.module.create(
+        data={
+            "moduleCode": "INT4003CEM",
+            "moduleTitle": "Object-Oriented Programming",
+            "moduleDesc": """This module aims to provide students with a comprehensive understanding of the fundamental concepts of object-oriented programming.""",
+            "programme": {
+                "connect": {
+                    "id": programme.id
+                }
+            },
+            "lecturer": {
+                "connect": {
+                    "id": lecturer3.id
+                }
+            }
+        }
+    )
+    print(f"Module 3 created:\n{thirdcourse.json(indent=2)}\n")
+    print(f"Module 4 created:\n{fourthcourse.json(indent=2)}\n")
     # check = prisma.lecturer.find_first(
     #     where={"fullName": "Dr. Vaithegy Doraisamy"},
     #     include={"modules": True, "school": True}
@@ -764,7 +833,110 @@ def creatingmoduleenrollments():
     #     print(e)
     prisma.disconnect()
 
-
+def checkModuleEnrollMents():
+    prisma.connect()
+    moduleEnrollments = prisma.moduleenrollment.find_many(
+        where={
+            "student": {
+                "is": {
+                    "userProfile": {
+                        "is": {
+                            "email": "p21013568@student.newinti.edu.my"
+                        }
+                    }
+                }
+            },
+            
+        },
+        include={
+            "student": {
+                "include": {
+                    "userProfile": True
+                }
+            },
+            "module": {
+                "include": {
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                }
+            }
+        }
+    )
+    # print(len(moduleEnrollments))
+    for i in range(len(moduleEnrollments)):
+        mod = moduleEnrollments[i]
+        module = mod.module
+        #WHAT WE NEED TO KNOW TO RENDER THE ELEMENTS
+        # 1. 
+        print("Module Code:", module.moduleCode)
+        print("Module Title:", module.moduleTitle)
+        print("Module Description:", module.moduleDesc)
+        # print(mod.module.moduleTitle)
+        # print(mod.student.userProfile.fullName)
+        # try:
+        #     print(module.lecturer.userProfile.json(indent=2))
+        # except AttributeError:
+        #     print("No lecturer")
+        # print(mod.json(indent=2))
+        # print(moduleEnrollments[i].json(indent=2))
+        # print(moduleEnrollments[i].module.moduleTitle)
+        # print(moduleEnrollments[i].student.userProfile.fullName)
+    # for m in moduleEnrollments:
+    #     print(m.module.moduleTitle)
+    #     try:
+    #         print(m.module.lecturer.userProfile.fullName)
+    #     except AttributeError:
+    #         print("No lecturer")
+    #     try:
+    #         print(m.student.userProfile.fullName)
+    #     except AttributeError:
+    #         print("No student")
+        # print(m.json(indent=2))
+import datetime
+def createAppointment():
+    prisma.connect()
+    prisma.appointment.delete_many()
+    lecturer = prisma.lecturer.find_first(
+        where={
+            "userProfile": {
+                "is": {
+                    "email": "vaithegy.doraisamy@newinti.edu.my"
+                }
+            }
+        }
+    )
+    student = prisma.student.find_first(
+        where={
+            "userProfile": {
+                "is": {
+                    "email": "p21013568@student.newinti.edu.my"
+                }
+            }
+        }
+    )
+    appointment = prisma.appointment.create(
+        data={
+            "lecturerId": lecturer.id,
+            "studentId": student.id,
+            "location": "Zoom",
+            # human readable to datetime today it's 18/05/2023
+            # a meeting from 18/05/2023 10:00AM to 18/05/2023 11:00AM
+            "startTime": datetime.datetime(year=2023, month=5, day=18, hour=10, minute=0, second=0),
+            "endTime": datetime.datetime(year=2023, month=5, day=18, hour=11, minute=0, second=0),
+            "date": datetime.datetime(year=2023, month=5, day=18, hour=0, minute=0, second=0),
+        }
+    )
+    print(appointment.startTime, appointment.endTime, appointment.date)
+    # 2023-05-18 10:00:00+00:00 2023-05-18 11:00:00+00:00 2023-05-18 00:00:00+00:00
+    # converting to days, month, year
+    print(appointment.startTime.day, appointment.startTime.month, appointment.startTime.year)
+    # converting to Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
+    print(appointment.startTime.strftime(r"%d/%m/%Y"))
+    print(appointment.endTime.strftime("%A"))
+    # print(appointment.json(indent=2))
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # connection = create_connection()
@@ -779,4 +951,6 @@ if __name__ == "__main__":
     # prisQueryUserProfile()
     # prisCreateMultipleModules()
     # usingpartialTypes()
-    creatingmoduleenrollments()
+    # creatingmoduleenrollments()
+    # checkModuleEnrollMents()
+    createAppointment()

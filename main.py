@@ -247,11 +247,7 @@ class Window(ttk.Window):
         # self.widgetsDict["skipbutton"].grid_remove()
         self.widgetsDict["skipbutton"].configure(
             command=lambda: [
-                # self.show_frame(Dashboard),
-                # self.show_canvas(DashboardCanvas),
-                # self.get_page(Dashboard).loadSpecificAssets("student"),
                 self.loadSignIn(),
-                # self.loadSignInPage(),
             ]
         )
 
@@ -316,29 +312,32 @@ class Window(ttk.Window):
                 return
 
             if user.email.endswith("@student.newinti.edu.my"):
-                student = self.setUserContext(
+                student, moduleenrollments = self.setUserContext(
                     userId=user.id, role="student", prisma=prisma)
                 modulesOfStudent = []
-                for n, m in list(enumerate(student.modules)):
-                    # print(n+1)
-                    # print(m.module.moduleCode)
-                    # print(m.module.moduleTitle)
-                    # print(m.module.moduleDesc)
-                    tup = (m.module.moduleCode,
-                           m.module.moduleTitle, m.module.moduleDesc)
-                    print(tup)
-                    modulesOfStudent.append(tup)
-                # module1(module.id, module.code, module.title, module.desc)
-                # [()]
+                lecturerinfo = []
+                for i in range(len(moduleenrollments)):
+                    mod = moduleenrollments[i]
+                    module = mod.module
+                    modtup = (module.moduleCode,
+                              module.moduleTitle, module.moduleDesc)
+                    modulesOfStudent.append(modtup)
+                    try:
+                        lecinfo = module.lecturer.userProfile
+                        lecinfo = (lecinfo.fullName, lecinfo.email,
+                                   lecinfo.contactNo)
+                    except AttributeError:
+                        print(
+                            f"No lecturer for {module.moduleCode, module.moduleTitle}")
+                        lecinfo = ("No lecturer", "No lecturer", "No lecturer")
+                    lecturerinfo.append(lecinfo)
                 data = {
                     "id": student.userProfile.id,
                     "fullName": student.userProfile.fullName,
                     "email": student.userProfile.email,
                     "modules": modulesOfStudent,
+                    "lecturerinfo": lecturerinfo,
                 }
-                print(f"Student:\n{student.json(indent=2)}")
-                print(student.userProfile.fullName)
-                print(student.userProfile.email)
             elif user.email.endswith("@newinti.edu.my"):
                 lecturer = self.setUserContext(
                     userId=user.id, role="lecturer", prisma=prisma)
@@ -354,9 +353,12 @@ class Window(ttk.Window):
             toast.show_toast()
             self.show_frame(Dashboard)
             self.show_canvas(DashboardCanvas)
-            self.widgetsDict["dashboard"].loadSpecificAssets(
+            dashboard = self.widgetsDict["dashboard"]
+            dashboard.loadSpecificAssets(
                 "student")
-            self.widgetsDict["dashboard"].postLogin(data)
+            dashboard.postLogin(data)
+            courseview = self.widgetsDict["courseview"]
+            courseview.postLogin(data)
         # prisma.disconnect()
         except Exception as e:
             print(e)
@@ -442,7 +444,6 @@ class Window(ttk.Window):
 
     def openDevWindow(self):
         self.new_method()
-
         def parseObjectsFromFrame():
             for widgetname, widget in self.widgetsDict.items():
                 # skip widgets that are children of labels in hostfr
@@ -880,6 +881,7 @@ class Window(ttk.Window):
             else:
                 return False
             # pass
+        
         frameref = self.widgetsDict[f"{classname}hostfr"]
         themename = f"{str(root).split('.')[-1]}.TEntry"
         entrystyle = ttk.Style().configure(
@@ -891,6 +893,7 @@ class Window(ttk.Window):
                           name=classname, font=font, background=bgcolor)
         entry.grid(row=0, column=0, rowspan=heightspan,
                    columnspan=widthspan, sticky=NSEW)
+        
         if validation == "isPassword":
             entry.config(show=passwordchar)
             add_regex_validation(
@@ -1024,7 +1027,23 @@ class Window(ttk.Window):
                     }
                 }
             )
-            return student
+            moduleenrollments = prisma.moduleenrollment.find_many(
+                where={
+                    "studentId": student.id
+                },
+                include={
+                    "module": {
+                        "include": {
+                            "lecturer": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+            return student, moduleenrollments
         elif role == "lecturer":
             lecturer = prisma.lecturer.find_first(
                 where={
@@ -1362,7 +1381,7 @@ class UserForms(Frame):
                                       pady=5)
         self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=  # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            classname=f"{self.name}completeregbutton", buttonFunction=# lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
             lambda: self.send_data(
                 data={
                     "fullName": entries["fullname"].get(),
@@ -1704,6 +1723,7 @@ class SlidePanel(Frame):
             self.at_start_pos = True
             self.grid_remove()
 
+
 class Dashboard(Frame):
     def __init__(self, parent, controller: Window):
         Frame.__init__(self, parent, width=1, height=1,
@@ -1772,9 +1792,12 @@ class Dashboard(Frame):
         fullName = data["fullName"]
         email = data["email"]
         modules = data["modules"]
+        lecturerinfo = data["lecturerinfo"]
         # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
         cont = self.controller
         initialypos = 20
+        for l in lecturerinfo:
+            print(l)
         for m in modules:
             cont.textElement(
                 imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=760, ypos=initialypos,
@@ -1791,15 +1814,16 @@ class Dashboard(Frame):
             classname="useremaildash", root=self.dashboardcanvasref, text=email, size=24, xoffset=-1
         )
 
+
 class TopBar(Frame):
-    def __init__(self, parent:Dashboard, controller: Window, name="topbarframe"):
+    def __init__(self, parent: Dashboard, controller: Window, name="topbarframe"):
         super().__init__(parent, width=1, height=1, bg=WHITE, name=name)
         self.controller = controller
         self.parent = parent
         self.name = name
         self.controller.frameCreator(
             xpos=0, ypos=0, framewidth=1920, frameheight=80,
-            root=self.parent, classname=self.name, bg=WHITE, 
+            root=self.parent, classname=self.name, bg=WHITE,
         )
         self.framereference = self.controller.widgetsDict[f"{self.name}"]
         self.staticImgLabels = [
@@ -1809,7 +1833,7 @@ class TopBar(Frame):
         self.buttonImgs = [
             (r"Assets\Dashboard\HamburgerMenuTopBar.png", 0, 0, "HamburgerMenu",
              self.framereference, lambda: self.animatedpanel.animate()),
-            (r"Assets\Dashboard\HomeButton.png", 760, 0, "homebutton", 
+            (r"Assets\Dashboard\HomeButton.png", 760, 0, "homebutton",
              self.framereference, lambda: print("gohome")),
             (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar",
              self.framereference, lambda: self.searchBarLogic()),
@@ -1846,7 +1870,7 @@ class TopBar(Frame):
             if widgetname in ["searchbar"]:
                 widget.tk.call('raise', widget._w)
 
-    #TODO: redo this from the ground up
+    # TODO: redo this from the ground up
     def searchBarLogic(self):
         searchbg = self.openSearchSettings[0]
         exitbtn = self.openSearchSettings[1]
@@ -1869,7 +1893,6 @@ class TopBar(Frame):
                 widget.bind("<FocusIn>", lambda e: widget.delete(0, END))
                 widget.bind("<Tab>", lambda e: self.closeSearchBarLogic())
 
-
     def searchByQuery(self, query):
         self.controller.canvasCreator(160, 60, 940, 240, self.parent, classname="SearchBarEntryCanvas",
                                       bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
@@ -1890,6 +1913,7 @@ class TopBar(Frame):
                 self.controller.buttonCreator(
                     r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit", font=("Avenir Next", 20), wraplength=600
                 )
+
 
 class DashboardCanvas(Canvas):
     def __init__(self, parent, controller: Window):
@@ -1952,33 +1976,94 @@ class CourseView(Canvas):
                         bg="#F6F5D7", name="courseview", autostyle=False)
         self.controller = controller
         self.parent = parent
+
         gridGenerator(self, 96, 46, WHITE)
+        self.controller.frameCreator(root=self,
+                                     xpos=0, ypos=0,
+                                     framewidth=1920, frameheight=920, classname="singlecourseviewframe")
+        self.mainframe = self.controller.widgetsDict["singlecourseviewframe"]
         self.staticImgLabels = [
-            (r"Assets\My Courses\CoursesBG.png", 0, 0, "CoursesBG", self),
-        ]
-        self.controller.canvasCreator(80, 100, 1760, 720, root=self, classname="coursescanvas", bgcolor="#F6F5D7",
-                                      isTransparent=True, transparentcolor="#efefef")
-        canvas = self.controller.widgetsDict["coursescanvas"]
-        self.buttonImgLabels = [
-            (r"Assets\My Courses\CompArch.png", 0, 0,
-             "cancourse", canvas, lambda: self.grid_remove()),
-            (r"Assets\My Courses\MathForCS.png", 0, 300,
-             "csmathcourse", canvas, lambda: self.grid_remove()),
-            (r"Assets\My Courses\ObjectOP.png", 920, 0,
-             "oopcourse", canvas, lambda: self.grid_remove()),
+            (r"Assets\My Courses\CoursesBG.png", 0, 0, "courseviewbg", self),
+            (r"Assets\My Courses\loadedcoursebg.png",
+             0, 0, "loadedcoursebg", self.mainframe),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        self.controller.settingsUnpacker(self.buttonImgLabels, "button")
-        self.controller.widgetsDict["coursescanvas"].tk.call(
-            "raise", self.controller.widgetsDict["coursescanvas"]._w)
+        self.controller.canvasCreator(0, 100, 1920, 820, root=self,
+                                      classname="coursescanvas", bgcolor="#F6F5D7",
+                                      isTransparent=True, transparentcolor="#efefef"
+                                      )
+        self.canvas = self.controller.widgetsDict["coursescanvas"]
+        self.loadcoursebuttons()
 
-        # if widgetname.endswith("course"):
-        # buttonstoconfig.append(widget)
-        # for widget in buttonstoconfig:
-        # widget.bind("<Enter>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=RAISED))
-        # widget.bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
-        # self.controller.widgetsDict[f"{widget}"].bind("<Enter>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=RAISED))
-        # self.controller.widgetsDict[f"{widget}"].bind("<Leave>", lambda event: self.controller.widgetsDict[f"{widget}"].config(relief=FLAT))
+    def loadCourses(self, coursecode: str):
+        self.canvas.grid_remove()
+        self.mainframe.grid()
+        self.mainframe.tkraise()
+        self.controller.buttonCreator(
+            imagepath=r"Assets\My Courses\exitbutton.png", xpos=1820, ypos=20,
+            root=self.mainframe, classname="exitbutton", buttonFunction=lambda:
+            [self.exitMainFrame()]
+        )
+        coursecode = coursecode.lower()
+        for widgetname, widget in self.mainframe.children.items():
+            if isinstance(widget, Label) and not widgetname.startswith("!la"):
+                print(widgetname)
+                if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("loadedcoursebg"):
+                    widget.grid_remove()
+                if widgetname.startswith(f"{coursecode}"):
+                    widget.grid()
+
+    def postLogin(self, data: dict):
+        modules = data["modules"]
+        lecturerinfo = data["lecturerinfo"]
+        for i in range(3):
+            modulecode = modules[i][0]
+            moduletitle = modules[i][1]
+            moduledesc = modules[i][2]
+            lecturername = lecturerinfo[i][0]
+            lectureremail = lecturerinfo[i][1]
+            lecturerphone = lecturerinfo[i][2]
+            self.detailsCreator(modulecode, moduletitle, moduledesc,
+                                lecturername, lectureremail, lecturerphone)
+
+        self.loadcoursebuttons()
+
+    def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
+        self.controller.textElement(
+            imagepath=r"Assets\My Courses\coursetitlebg.png", xpos=20, ypos=20,
+            classname=f"{modulecode}_title", root=self.mainframe, text=moduletitle, size=60, xoffset=-4,
+        )
+        # lecturerfields
+        # name
+        self.controller.textElement(
+            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=240,
+            classname=f"{modulecode}_lecname", root=self.mainframe, text=lecturername, size=32, xoffset=-1
+        )
+        # email
+        self.controller.textElement(
+            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=300,
+            classname=f"{modulecode}_lecemail", root=self.mainframe, text=lectureremail, size=28, xoffset=-1,
+        )
+        # phone
+        self.controller.textElement(
+            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=360,
+            classname=f"{modulecode}_lecphone", root=self.mainframe, text=lecturerphone, size=28, xoffset=-1,
+        )
+
+    def exitMainFrame(self):
+        self.mainframe.grid_remove()
+        self.canvas.grid()
+
+    def loadcoursebuttons(self):
+        self.buttonImgLabels = [
+            (r"Assets\My Courses\CompArch.png", 40, 0,
+             "INT4004CEM", self.canvas, lambda: self.loadCourses("INT4004CEM")),
+            (r"Assets\My Courses\MathForCS.png", 40, 300,
+             "INT4068CEM", self.canvas, lambda: self.loadCourses("INT4068CEM")),
+            (r"Assets\My Courses\ObjectOP.png", 1040, 0,
+             "INT4003CEM", self.canvas, lambda: self.loadCourses("INT4003CEM")),
+        ]
+        self.controller.settingsUnpacker(self.buttonImgLabels, "button")
 
 
 class AnimatedStarBtn(Frame):

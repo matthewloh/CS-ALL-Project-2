@@ -6,3 +6,4 @@ ttkbootstrap
 python-dotenv
 bcrypt
 jwt
+pendulum
