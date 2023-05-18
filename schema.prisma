@@ -44,18 +44,18 @@ model Lecturer {
 }
 
 model Appointment {
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  isAccepted  Boolean  @default(false)
-  isCompleted Boolean  @default(false)
+  createdAt   DateTime  @default(now()) 
+  updatedAt   DateTime  @updatedAt
+  isAccepted  Boolean   @default(false)
+  isCompleted Boolean   @default(false)
   location    String?
   startTime   DateTime?
   endTime     DateTime?
   date        DateTime?
   studentId   String
   lecturerId  String
-  student     Student  @relation(fields: [studentId], references: [id])
-  lecturer    Lecturer @relation(fields: [lecturerId], references: [id])
+  student     Student   @relation(fields: [studentId], references: [id])
+  lecturer    Lecturer  @relation(fields: [lecturerId], references: [id])
 
   @@id([studentId, lecturerId])
   @@index([studentId])

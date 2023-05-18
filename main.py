@@ -8,6 +8,8 @@ from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
+from ttkbootstrap.widgets import DateEntry
+from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
 from pathlib import Path
 from itertools import cycle
@@ -19,6 +21,7 @@ from multiprocessing import Process
 from elementcreator import gridGenerator
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 import bcrypt
+from datetime import datetime, timedelta
 # TODO: please stop formatting my imports you're breaking my code
 # this contains my pywin32 imports, PIL imports, pythonnet
 from nonstandardimports import *
@@ -78,6 +81,7 @@ class Window(ttk.Window):
         self.imageDict = {}
         self.imagePathDict = {}
         self.initializeWindow()
+        
         self.labelSettingsParentFrame = [
             (r"Assets\LandingPage\BackgroundImage.png",
              0, 0, "Background Image", self.parentFrame),
@@ -444,6 +448,7 @@ class Window(ttk.Window):
 
     def openDevWindow(self):
         self.new_method()
+
         def parseObjectsFromFrame():
             for widgetname, widget in self.widgetsDict.items():
                 # skip widgets that are children of labels in hostfr
@@ -881,7 +886,7 @@ class Window(ttk.Window):
             else:
                 return False
             # pass
-        
+
         frameref = self.widgetsDict[f"{classname}hostfr"]
         themename = f"{str(root).split('.')[-1]}.TEntry"
         entrystyle = ttk.Style().configure(
@@ -893,7 +898,7 @@ class Window(ttk.Window):
                           name=classname, font=font, background=bgcolor)
         entry.grid(row=0, column=0, rowspan=heightspan,
                    columnspan=widthspan, sticky=NSEW)
-        
+
         if validation == "isPassword":
             entry.config(show=passwordchar)
             add_regex_validation(
@@ -1381,7 +1386,7 @@ class UserForms(Frame):
                                       pady=5)
         self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=# lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            classname=f"{self.name}completeregbutton", buttonFunction=  # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
             lambda: self.send_data(
                 data={
                     "fullName": entries["fullname"].get(),
@@ -1723,7 +1728,6 @@ class SlidePanel(Frame):
             self.at_start_pos = True
             self.grid_remove()
 
-
 class Dashboard(Frame):
     def __init__(self, parent, controller: Window):
         Frame.__init__(self, parent, width=1, height=1,
@@ -1796,8 +1800,6 @@ class Dashboard(Frame):
         # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
         cont = self.controller
         initialypos = 20
-        for l in lecturerinfo:
-            print(l)
         for m in modules:
             cont.textElement(
                 imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=760, ypos=initialypos,
@@ -1979,8 +1981,9 @@ class CourseView(Canvas):
 
         gridGenerator(self, 96, 46, WHITE)
         self.controller.frameCreator(root=self,
-                                     xpos=0, ypos=0,
-                                     framewidth=1920, frameheight=920, classname="singlecourseviewframe")
+            xpos=0, ypos=0,
+            framewidth=1920, frameheight=920, classname="singlecourseviewframe"
+        )
         self.mainframe = self.controller.widgetsDict["singlecourseviewframe"]
         self.staticImgLabels = [
             (r"Assets\My Courses\CoursesBG.png", 0, 0, "courseviewbg", self),
@@ -2007,7 +2010,6 @@ class CourseView(Canvas):
         coursecode = coursecode.lower()
         for widgetname, widget in self.mainframe.children.items():
             if isinstance(widget, Label) and not widgetname.startswith("!la"):
-                print(widgetname)
                 if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("loadedcoursebg"):
                     widget.grid_remove()
                 if widgetname.startswith(f"{coursecode}"):
@@ -2042,7 +2044,7 @@ class CourseView(Canvas):
         # email
         self.controller.textElement(
             imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=300,
-            classname=f"{modulecode}_lecemail", root=self.mainframe, text=lectureremail, size=28, xoffset=-1,
+            classname=f"{modulecode}_lecemail", root=self.mainframe, text=lectureremail, size=26, xoffset=-1,
         )
         # phone
         self.controller.textElement(
@@ -2161,13 +2163,38 @@ class DiscussionsView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="postcreation", 
+        )
+        self.creationframe = self.controller.widgetsDict["postcreation"]
         self.staticImgLabels = [
             # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
             (r"Assets\DiscussionsView\DiscussionsViewBG.png",
              0, 0, "DiscussionsBG", self),
+            (r"Assets\DiscussionsView\postcreationbg.png", 0, 0, "postcreationbg",self.creationframe),
+        ]
+        self.staticBtns = [
+            (r"Assets\DiscussionsView\creatediscussion.png", 80, 120, "creatediscussionbtn", self,
+             lambda: print("yes"))
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.controller.settingsUnpacker(self.staticBtns, "button")
         self.loadDiscussionTopics()
+        self.creationframe.tkraise()
+        self.controller.ttkEntryCreator(
+            xpos=880, ypos=160, width=960, height=40, root=self.creationframe, classname="posttitleent"
+        )
+        textxpos = int(900/20)
+        textypos = int(340/20)
+        textcolumnspan = int(920/20)
+        textrowspan = int(360/20)
+        self.contenttext = Text(
+            master=self.creationframe, width=1, height=1, font=("Helvetica", 20), wrap="word", name="postcontenttext"
+        )
+        self.contenttext.grid(
+            column=textxpos, row=textypos, columnspan=textcolumnspan, rowspan=textrowspan, sticky=NSEW
+        )
     # https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors
 
     def loadDiscussionTopics(self):
@@ -2223,96 +2250,147 @@ class AppointmentsView(Canvas):
         self.parent = parent
         self.name = "appointmentsview"
         gridGenerator(self, 96, 46, WHITE)
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0,
+            framewidth=1920, frameheight=920, classname="appointmentsdash"
+        )
+        self.mainframe = self.controller.widgetsDict["appointmentsdash"]
         self.staticImgLabels = [
-            (r"Assets\AppointmentsView\BGForAppointments1920x780+0+200.png",
+            (r"Assets\AppointmentsView\appointmentsdashboard.png",
              0, 0, "AppointmentsBG", self),
             (r"Assets\AppointmentsView\TitleLabel.png",
              0, 0, "AppointmentsHeader", self),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        self.controller.frameCreator(
-            xpos=120, ypos=580,
-            framewidth=1160, frameheight=180,
-            root=self, classname="appointmentsmenuframe", bg="#F6F5D7",
+        xpos = int(1420/20)
+        ypos = int(140/20)
+        columnspan = int(460/20)
+        rowspan = int(40/20)
+        dateentrystyle = ttk.Style().configure(
+            "yes.TEntry", font=("Helvetica", 20), foreground=BLACK, 
+            background=ORANGE)
+        self.dateentry = DateEntry(
+            self, width=1, style="yes.TEntry", 
         )
-        buttontoloadmenubutton = ttk.Button(
-            self.controller.widgetsDict["appointmentsmenuframe"], text="Appointments", command=lambda: self.loadmenubuttons())
-        buttontoloadmenubutton.place(x=0, y=0, width=200, height=60)
-        self.controller.frameCreator(
-            120, 580, 1160, 180, self, classname="hostfr", bg=WHITE, relief=FLAT)
-        self.controller.widgetsDict["appointmentsmenuframe"].tk.call(
-            "raise", self.controller.widgetsDict["appointmentsmenuframe"]._w)
-        self.coursebuttonvar = StringVar()
-        self.lecturerbuttonvar = StringVar()
-        self.purposebuttonvar = StringVar()
-        ttk.Style().configure("TMenubutton", font=("Helvetica", 16, "bold"),
-                              background=NICEBLUE, foreground=BLACK, relief=FLAT)
-        self.coursebuttonvar = StringVar()
-        self.coursemenubutton, self.coursemenubtnmenu, _ = self.create_menubutton(
-            parent=self.controller.widgetsDict["appointmentsmenuframe"],
-            text="Courses",
-            values=["Computer Architecture", "Mathematics for Computer Science",
-                    "Object Oriented Programming"],
-            variable=self.coursebuttonvar,
-            xpos=40, ypos=80
+        self.dateentry.grid(row=ypos, column=xpos,
+                    columnspan=columnspan, rowspan=rowspan, sticky=NSEW)
+        self.scrolledframe = ScrolledFrame(
+            self, width=1, height=1, name="appointmentscrolledframe", autohide=True
         )
-        self.lecturerbuttonvar = StringVar()
-        self.lecturermenubutton, self.lecturermenubtnmenu, _ = self.create_menubutton(
-            parent=self.controller.widgetsDict["appointmentsmenuframe"],
-            text="Lecturers",
-            values=["Dr. John Doe", "Dr. Jane Doe", "Dr. John Smith"],
-            variable=self.lecturerbuttonvar,
-            xpos=420, ypos=80
+        self.scrolledframe.grid(
+            row=int(180/20), column=int(1420/20), columnspan=int(460/20), rowspan=int(700/20), sticky=NSEW
         )
-        self.purposebuttonvar = StringVar()
-        self.purposemenubutton, self.purposemenubtnmenu, _ = self.create_menubutton(
-            parent=self.controller.widgetsDict["appointmentsmenuframe"],
-            text="Purpose",
-            values=["Consultation", "Discussion", "Other"],
-            variable=self.purposebuttonvar,
-            xpos=800, ypos=80
-        )
-        self.controller.widgetsDict["coursemenubutton"] = self.coursemenubutton
-        self.controller.widgetsDict["lecturermenubutton"] = self.lecturermenubutton
-        self.controller.widgetsDict["purposemenubutton"] = self.purposemenubutton
+        self.scrolledframe.grid_propagate(False)
+        gridGenerator(self.scrolledframe, int(460/20), int(960/20), DARKBLUE)
+        # there has to be a better way to do this, to generate the hours in 24 hours format
+        # like :
+        # from datetime import datetime
+        now = datetime.now()
+        current_time = now.strftime("%H:%M:%S")
+        print("Current Time =", current_time)
+        print(now.strftime('%A %d %B %Y %H:%M:%S %z'))
+        hours = ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00",
+                    "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
+                    "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
+                    "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
+        ]
 
-    def create_menubutton(self, parent, text, values, variable, xpos=0, ypos=0, command=None):
-        menubutton_var = StringVar()
-        style = ttk.Style()
-        style.configure("TMenubutton", font=("Helvetica", 16, "bold"),
-                        background="#e9d0c3", foreground=BLACK, relief=FLAT)
-        menubutton = ttk.Menubutton(
-            parent, width=320, text=text, name=text.lower() + "menubutton")
-        menubutton.place(x=xpos, y=ypos,
-                         width=320, height=60)
-        menubutton_menu = Menu(menubutton, tearoff=0)
-        for value in values:
-            menubutton_menu.add_radiobutton(label=value, variable=menubutton_var, value=value,
-                                            command=lambda: self.loadmenubuttons(menubutton, menubutton_var))
-        if command:
-            menubutton.config(command=command)
-        menubutton.config(menu=menubutton_menu)
-        variable.set(menubutton_var.get())
-        return menubutton, menubutton_menu, menubutton_var
+        initialypos = 0
+        for i in range(24):
+            self.controller.textElement(
+                r"Assets\AppointmentsView\timehours.png", xpos=0, 
+                ypos=initialypos, root=self.scrolledframe, size=30, classname=f"hour{i}",
+                text=hours[i]
+            )
+            self.controller.textElement(
+                r"Assets\AppointmentsView\eventdetails.png", xpos=100,
+                ypos=initialypos, root=self.scrolledframe, size=30, classname=f"event{i}",
+                text=f"Placeholder event {i}", buttonFunction=lambda i=i: print(f"event {i} clicked")
+            )
+            initialypos += 40
+    #     self.controller.frameCreator(
+    #         xpos=120, ypos=580,
+    #         framewidth=1160, frameheight=180,
+    #         root=self, classname="appointmentsmenuframe", bg="#F6F5D7",
+    #     )
+    #     buttontoloadmenubutton = ttk.Button(
+    #         self.controller.widgetsDict["appointmentsmenuframe"], text="Appointments", command=lambda: self.loadmenubuttons())
+    #     buttontoloadmenubutton.place(x=0, y=0, width=200, height=60)
+    #     self.controller.frameCreator(
+    #         120, 580, 1160, 180, self, classname="hostfr", bg=WHITE, relief=FLAT)
+    #     self.controller.widgetsDict["appointmentsmenuframe"].tk.call(
+    #         "raise", self.controller.widgetsDict["appointmentsmenuframe"]._w)
+    #     self.coursebuttonvar = StringVar()
+    #     self.lecturerbuttonvar = StringVar()
+    #     self.purposebuttonvar = StringVar()
+    #     ttk.Style().configure("TMenubutton", font=("Helvetica", 16, "bold"),
+    #                           background=NICEBLUE, foreground=BLACK, relief=FLAT)
+    #     self.coursebuttonvar = StringVar()
+    #     self.coursemenubutton, self.coursemenubtnmenu, _ = self.create_menubutton(
+    #         parent=self.controller.widgetsDict["appointmentsmenuframe"],
+    #         text="Courses",
+    #         values=["Computer Architecture", "Mathematics for Computer Science",
+    #                 "Object Oriented Programming"],
+    #         variable=self.coursebuttonvar,
+    #         xpos=40, ypos=80
+    #     )
+    #     self.lecturerbuttonvar = StringVar()
+    #     self.lecturermenubutton, self.lecturermenubtnmenu, _ = self.create_menubutton(
+    #         parent=self.controller.widgetsDict["appointmentsmenuframe"],
+    #         text="Lecturers",
+    #         values=["Dr. John Doe", "Dr. Jane Doe", "Dr. John Smith"],
+    #         variable=self.lecturerbuttonvar,
+    #         xpos=420, ypos=80
+    #     )
+    #     self.purposebuttonvar = StringVar()
+    #     self.purposemenubutton, self.purposemenubtnmenu, _ = self.create_menubutton(
+    #         parent=self.controller.widgetsDict["appointmentsmenuframe"],
+    #         text="Purpose",
+    #         values=["Consultation", "Discussion", "Other"],
+    #         variable=self.purposebuttonvar,
+    #         xpos=800, ypos=80
+    #     )
+    #     self.controller.widgetsDict["coursemenubutton"] = self.coursemenubutton
+    #     self.controller.widgetsDict["lecturermenubutton"] = self.lecturermenubutton
+    #     self.controller.widgetsDict["purposemenubutton"] = self.purposemenubutton
 
-    def loadmenubuttons(self, menubutton, menubutton_var):
-        # retrieve the course name from the coursemenubutton
-        menubutton.config(text=menubutton_var.get())
-        course = self.controller.widgetsDict["coursemenubutton"].cget("text")
-        if course.startswith("Computer"):
-            messagebox.showerror("Error", "Please select a course")
-        else:
-            # if the course is not empty, load the buttons
-            print(course)
+    # def create_menubutton(self, parent, text, values, variable, xpos=0, ypos=0, command=None):
+    #     menubutton_var = StringVar()
+    #     style = ttk.Style()
+    #     style.configure("TMenubutton", font=("Helvetica", 16, "bold"),
+    #                     background="#e9d0c3", foreground=BLACK, relief=FLAT)
+    #     menubutton = ttk.Menubutton(
+    #         parent, width=320, text=text, name=text.lower() + "menubutton")
+    #     menubutton.place(x=xpos, y=ypos,
+    #                      width=320, height=60)
+    #     menubutton_menu = Menu(menubutton, tearoff=0)
+    #     for value in values:
+    #         menubutton_menu.add_radiobutton(label=value, variable=menubutton_var, value=value,
+    #                                         command=lambda: self.loadmenubuttons(menubutton, menubutton_var))
+    #     if command:
+    #         menubutton.config(command=command)
+    #     menubutton.config(menu=menubutton_menu)
+    #     variable.set(menubutton_var.get())
+    #     return menubutton, menubutton_menu, menubutton_var
 
-    def prismaQueries(self):
-        prisma = Prisma()
-        prisma.connect()
-        # getting the courses using the context from controller
-        courses = prisma.module.find_many(
+    # def loadmenubuttons(self, menubutton, menubutton_var):
+    #     # retrieve the course name from the coursemenubutton
+    #     menubutton.config(text=menubutton_var.get())
+    #     course = self.controller.widgetsDict["coursemenubutton"].cget("text")
+    #     if course.startswith("Computer"):
+    #         messagebox.showerror("Error", "Please select a course")
+    #     else:
+    #         # if the course is not empty, load the buttons
+    #         print(course)
 
-        )
-        prisma.disconnect()
+    # def prismaQueries(self):
+    #     prisma = Prisma()
+    #     prisma.connect()
+    #     # getting the courses using the context from controller
+    #     courses = prisma.module.find_many(
+
+    #     )
+    #     prisma.disconnect()
 
 
 def runGui():

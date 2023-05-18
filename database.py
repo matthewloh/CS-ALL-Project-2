@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 # from mysql.connector import Error
 # from mysql.connector import Error
 # import mysql.connector
+# load_dotenv()
 # connection = mysql.connector.connect(
 #     host=os.getenv("DB_HOST"),
 #     database=os.getenv("DB_DATABASE"),
@@ -16,53 +17,46 @@ from dotenv import load_dotenv
 #     password=os.getenv("DB_PASSWORD"),
 #     ssl_ca=os.getenv("SSL_CERT"),
 # )
-
 # try:
 #     if connection.is_connected():
-#         c = connection.cursor()
-#     with connection:
-#         # c.execute("select @@version ")
-#         # version = c.fetchone()
-#         # if version:
-#             # print('Running version: ', version)
-#         # else:
-#             # print('Not connected.')
-
-#         c.execute("""
-#                 SELECT * FROM User
-#                 """)
-#         results = c.fetchall()
-#         print(results)
-#     # connection.close()
+#         cursor = connection.cursor()
+#     cursor.execute("select @@version ")
+#     version = cursor.fetchone()
+#     if version:
+#         print('Running version: ', version)
+#     else:
+#         print('Not connected.')
 # except Error as e:
 #     print("Error while connecting to MySQL", e)
 # finally:
 #     connection.close()
+# import os
+# from dotenv import load_dotenv
+# from mysql.connector import Error
+# import mysql.connector
 
-# def create_connection():
-#     connection = None
-#     try:
-#         connection = mysql.connector.connect(
-#     host=os.getenv("DB_HOST"),
-#     database=os.getenv("DB_DATABASE"),
-#     user=os.getenv("DB_USERNAME"),
-#     password=os.getenv("DB_PASSWORD"),
-#     ssl_ca=os.getenv("SSL_CERT")
+
+# connection = mysql.connector.connect(
+# host=os.getenv("HOST"),
+# database=os.getenv("DATABASE"),
+# user=os.getenv("USERNAME"),
+# password=os.getenv("PASSWORD"),
+# ssl_ca=os.getenv("SSL_CERT")
 # )
-#         print("Connection to MySQL DB successful")
-#     except Error as e:
-#         print(f"The error '{e}' occurred")
 
-#     return connection
-
-# def execute_query(connection, query):
-#     cursor = connection.cursor(buffered=True)
-#     try:
-#         cursor.execute(query)
-#         connection.commit()
-#         print("Query executed successfully")
-#     except Error as e:
-#         print(f"The error '{e}' occurred")
+# try:
+#     if connection.is_connected():
+#         cursor = connection.cursor()
+#     cursor.execute("select @@version ")
+#     version = cursor.fetchone()
+#     if version:
+#         print('Running version: ', version)
+#     else:
+#         print('Not connected.')
+# except Error as e:
+#     print("Error while connecting to MySQL", e)
+# finally:
+#     connection.close()
 
 # ~~~~ PRISMA ~~~~
 from prisma import Prisma
@@ -927,20 +921,103 @@ def createAppointment():
             "startTime": datetime.datetime(year=2023, month=5, day=18, hour=10, minute=0, second=0),
             "endTime": datetime.datetime(year=2023, month=5, day=18, hour=11, minute=0, second=0),
             "date": datetime.datetime(year=2023, month=5, day=18, hour=0, minute=0, second=0),
+        },
+        include={
+            "lecturer": {
+                "include": {
+                    "userProfile": True
+                }
+            },
+            "student": {
+                "include": {
+                    "userProfile": True
+                }
+            }
         }
     )
+    appointment2 = prisma.appointment.create(
+        data={
+            "lecturerId": prisma.lecturer.find_first(
+                where={
+                    "userProfile": {
+                        "is": {
+                            "email": "weijian.teng@newinti.edu.my"
+                        }
+                    }
+                }
+            ).id,
+            "studentId": prisma.student.find_first(
+                where={
+                    "userProfile": {
+                        "is": {
+                            "email": "p21013568@student.newinti.edu.my"
+                        }
+                    }
+                }
+            ).id,
+        },
+        include={
+            "lecturer": {
+                "include": {
+                    "userProfile": True
+                }
+            },
+            "student": {
+                "include": {
+                    "userProfile": True
+                }
+            }
+        }
+    )
+    print(f"Appointment:\n{appointment.json(indent=2)}\n")
+    print(f"Appointment:\n{appointment2.json(indent=2)}\n")
     print(appointment.startTime, appointment.endTime, appointment.date)
     # 2023-05-18 10:00:00+00:00 2023-05-18 11:00:00+00:00 2023-05-18 00:00:00+00:00
     # converting to days, month, year
     print(appointment.startTime.day, appointment.startTime.month, appointment.startTime.year)
     # converting to Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
-    print(appointment.startTime.strftime(r"%d/%m/%Y"))
-    print(appointment.endTime.strftime("%A"))
+    print(appointment.startTime.strftime(r"%A %d %B %Y %H:%M:%S %z"))
+    print(appointment.endTime.strftime("%A %d %B %Y %H:%M:%S %z"))
     # print(appointment.json(indent=2))
+
+def createModulePost():
+    prisma.connect()
+    user = prisma.userprofile.find_first(
+        where={
+            "email": "p21013568@student.newinti.edu.my"
+        }
+    )
+    module = prisma.module.find_first(
+        where={
+            "moduleCode": "INT4004CEM"
+        }
+    )
+    prisma.modulepost.delete_many()
+    # print(f"User:\n{user.json(indent=2)}\n")
+    # print(f"Module:\n{module.json(indent=2)}\n")
+    modulepost = prisma.modulepost.create(
+        data={
+            "authorId": user.id,
+            "moduleId": module.id,
+            "title": "This is a test post",
+            "content": "This is a test post content",
+
+        },
+        # include={
+        #     "author": {
+        #         "include": {
+        #             "student": {
+        #                 "include": {
+        #                     "userProfile": True
+        #                 }
+        #             }
+        #         }
+        #     }
+        # }
+    )
+    print(f"Module Post:\n{modulepost.json(indent=2)}\n")
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
-    # connection = create_connection()
-    # execute_query(connection, "SHOW TABLES")
     # ~~~~ PRISMA ~~~~
     # prismaCreateInstitution()
     # prismaCreateProgramme()
@@ -953,4 +1030,5 @@ if __name__ == "__main__":
     # usingpartialTypes()
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
-    createAppointment()
+    # createAppointment()
+    createModulePost()
