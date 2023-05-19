@@ -21,7 +21,7 @@ from multiprocessing import Process
 from elementcreator import gridGenerator
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 # TODO: please stop formatting my imports you're breaking my code
 # this contains my pywin32 imports, PIL imports, pythonnet
 from nonstandardimports import *
@@ -81,7 +81,7 @@ class Window(ttk.Window):
         self.imageDict = {}
         self.imagePathDict = {}
         self.initializeWindow()
-        
+
         self.labelSettingsParentFrame = [
             (r"Assets\LandingPage\BackgroundImage.png",
              0, 0, "Background Image", self.parentFrame),
@@ -363,6 +363,8 @@ class Window(ttk.Window):
             dashboard.postLogin(data)
             courseview = self.widgetsDict["courseview"]
             courseview.postLogin(data)
+            discussionsview = self.widgetsDict["discussionsview"]
+            discussionsview.postLogin(data, prisma)
         # prisma.disconnect()
         except Exception as e:
             print(e)
@@ -1728,6 +1730,7 @@ class SlidePanel(Frame):
             self.at_start_pos = True
             self.grid_remove()
 
+
 class Dashboard(Frame):
     def __init__(self, parent, controller: Window):
         Frame.__init__(self, parent, width=1, height=1,
@@ -1981,9 +1984,9 @@ class CourseView(Canvas):
 
         gridGenerator(self, 96, 46, WHITE)
         self.controller.frameCreator(root=self,
-            xpos=0, ypos=0,
-            framewidth=1920, frameheight=920, classname="singlecourseviewframe"
-        )
+                                     xpos=0, ypos=0,
+                                     framewidth=1920, frameheight=920, classname="singlecourseviewframe"
+                                     )
         self.mainframe = self.controller.widgetsDict["singlecourseviewframe"]
         self.staticImgLabels = [
             (r"Assets\My Courses\CoursesBG.png", 0, 0, "courseviewbg", self),
@@ -2165,72 +2168,186 @@ class DiscussionsView(Canvas):
         gridGenerator(self, 96, 46, WHITE)
         self.controller.frameCreator(
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
-            classname="postcreation", 
+            classname="postcreation",
         )
         self.creationframe = self.controller.widgetsDict["postcreation"]
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="postview",
+        )
+        self.postviewframe = self.controller.widgetsDict["postview"]
         self.staticImgLabels = [
             # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
             (r"Assets\DiscussionsView\DiscussionsViewBG.png",
              0, 0, "DiscussionsBG", self),
-            (r"Assets\DiscussionsView\postcreationbg.png", 0, 0, "postcreationbg",self.creationframe),
+            (r"Assets\DiscussionsView\postcreationbg.png",
+             0, 0, "postcreationbg", self.creationframe),
+            (r"Assets\DiscussionsView\postviewbg.png",
+             0, 0, "postviewbg", self.postviewframe),
         ]
         self.staticBtns = [
             (r"Assets\DiscussionsView\creatediscussion.png", 80, 120, "creatediscussionbtn", self,
-             lambda: print("yes"))
+             lambda: self.loadPostCreation()),
+            (r"Assets\DiscussionsView\cancelbuttondisc.png", 40, 760, "cancelbtncreation", self.creationframe,
+             lambda: self.unloadPostCreation()),
+            (r"Assets\DiscussionsView\createpostbuttondisc.png", 480, 760, "postbtncreation", self.creationframe,
+             lambda: self.threadStart()),
+            (r"Assets\My Courses\exitbutton.png", 1840, 0, "cancelbtnview", self.postviewframe,
+             lambda: self.postviewframe.grid_remove()),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
-        self.loadDiscussionTopics()
-        self.creationframe.tkraise()
+        # self.creationframe.tkraise()
         self.controller.ttkEntryCreator(
-            xpos=880, ypos=160, width=960, height=40, root=self.creationframe, classname="posttitleent"
+            xpos=900, ypos=160, width=920, height=40, root=self.creationframe, classname="posttitleent"
         )
-        textxpos = int(900/20)
-        textypos = int(340/20)
-        textcolumnspan = int(920/20)
-        textrowspan = int(360/20)
+        textxpos, textypos, textcolumnspan, textrowspan = int(
+            900/20), int(340/20), int(920/20), int(360/20)
         self.contenttext = Text(
-            master=self.creationframe, width=1, height=1, font=("Helvetica", 20), wrap="word", name="postcontenttext"
+            master=self.creationframe, width=1, height=1, font=("Helvetica", 18), wrap="word", name="postcontenttext"
         )
         self.contenttext.grid(
             column=textxpos, row=textypos, columnspan=textcolumnspan, rowspan=textrowspan, sticky=NSEW
         )
+        self.creationframe.grid_remove()
+        self.postviewframe.grid_remove()
     # https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors
 
-    def loadDiscussionTopics(self):
+    def loadPostCreation(self):
+        self.creationframe.grid()
+        self.creationframe.tkraise()
+        self.controller.widgetsDict["posttitleent"].delete(0, END)
+        self.contenttext.delete("1.0", END)
+        self.controller.widgetsDict["posttitleent"].focus_set()
+        self.controller.widgetsDict["posttitleent"].bind(
+            "<Return>", lambda event: self.contenttext.focus_set()
+        )
+
+    def postLogin(self, data: dict = None, prisma: Prisma = None):
+        self.prisma = prisma
+        self.userId = data["id"]
+        posts = self.prisma.modulepost.find_many(
+            include={
+                "author": True,
+                "replies": {
+                    "include": {
+                        "user": True
+                    }
+                }
+            }
+        )
+        for post in posts:
+            # print(f"Post found:\n{post.json(indent=2)}, {post.id}")
+            print(post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
+            print(datetime.now().strftime(r'%A %d %B %Y %H:%M:%S %z'))
+            try:
+                for reply in post.replies:
+                    print(reply.json(indent=2))
+            except:
+                print("no replies")
+        postIdandTitleList = [
+            (
+                post.id, post.title, post.content, post.author.fullName,
+                post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'),
+                post.updatedAt.strftime(r'%A %d %B %Y %H:%M:%S %z')
+            ) for post in posts
+        ]
+        print("the postidandtitlelist is: ", postIdandTitleList)
+
+        self.loadDiscussionTopics(postIdandTitleList)
+        print("In discussionview, userid is: ", self.userId)
+        posttitles = [post.title for post in posts]
+        print("the discussionview posts are: ", posttitles)
+
+    def threadStart(self):
+        t = threading.Thread(target=self.createPost)
+        self.gif = AnimatedGif(
+            parent=self.creationframe, controller=self.controller,
+            xpos=280, ypos=400, bg="#344557",
+            framewidth=320, frameheight=320, classname="creatingpostspinner",
+            imagepath=r"Assets\200x200spinner.gif", imagexpos=60, imageypos=60)
+        t.daemon = True
+        t.start()
+
+    def createPost(self):
         # ~~~~ BACKEND FUNCTIONALITY ~~~~
-        # TODO: add this database functionality
-        # posting a request to the database and getting the credentials
-        # searching for discussions where user is present in
-        discussiontitlesList = ["Sample discussion topic 1",
-                                "Sample discussion topic 2",
-                                "Sample discussion topic 3"]
+        prisma = Prisma()
+        prisma.connect()
+        title = self.controller.widgetsDict["posttitleent"].get()
+        content = self.contenttext.get("1.0", END)
+        module = prisma.modulepost.create(
+            data={
+                "authorId": self.userId,
+                "moduleId": "clhrvr700000cvt9gwh6d7fk6",
+                "title": title,
+                "content": content,
+            }
+        )
+        self.gif.grid_forget()
+        print(f"Module Post:\n{module.json(indent=2)}")
+        postIdandTitleList = [
+            (
+                post.id, post.title, post.content, post.author.fullName,
+                post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'),
+                post.updatedAt.strftime(r'%A %d %B %Y %H:%M:%S %z')
+            ) for post in prisma.modulepost.find_many(
+                include={
+                    "author": True,
+                    "replies": {
+                        "include": {
+                            "user": True
+                        }
+                    }
+                }
+            )
+        ]
+        self.loadDiscussionTopics(postIdandTitleList)
+        self.unloadPostCreation()
+
+    def unloadPostCreation(self):
+        self.creationframe.grid_remove()
+
+    def loadDiscussionTopics(self, postidtitles: list = []):
+        # ~~~~ BACKEND FUNCTIONALITY ~~~~
         initialcoordinates = (100, 320)
-        for number, discussiontitle in list(enumerate(discussiontitlesList)):
+        for tupleofidname in postidtitles:
             discResultsSettings = {
                 "imagepath": r"Assets\DiscussionsView\discussionstitlecomponentbg.png",
                 "xpos": initialcoordinates[0],
                 "ypos": initialcoordinates[1],
             }
+            number = tupleofidname[0]
+            discussiontitle = tupleofidname[1]
             xpos = discResultsSettings["xpos"]
             ypos = discResultsSettings["ypos"]
             cont = self.controller
             cont.textElement(
                 discResultsSettings["imagepath"], xpos, ypos,
                 classname=f"discresult{number}",
-                buttonFunction=lambda num=number: print(
-                    f"{num} result clicked"),
-                root=self, text=discussiontitle, fg=BLACK, size=40
+                buttonFunction=lambda num=number: self.loadPostView(num),
+                root=self, text=discussiontitle, fg=BLACK, size=28, xoffset=-1
             )
             AnimatedStarBtn(
                 parent=self,
-                xpos=initialcoordinates[0] + 740,
+                xpos=initialcoordinates[0] + 760,
                 ypos=initialcoordinates[1] + 20,
                 framewidth=40, frameheight=40, classname=f"discresult{number}star",
                 imagexpos=0, imageypos=0
             )
             initialcoordinates = (
                 initialcoordinates[0], initialcoordinates[1] + 100)
+
+    def detailsCreator(self):
+        pass
+
+    def loadPostView(self, postId: int = 0):
+        print("loading post view", postId)
+        self.postviewframe.grid()
+        self.postviewframe.tkraise()
+
+    def loadDiscussionPost(self, postId):
+        self.loadPostView()
+        pass
 
 
 class FavoritesView(Canvas):
@@ -2267,13 +2384,13 @@ class AppointmentsView(Canvas):
         columnspan = int(460/20)
         rowspan = int(40/20)
         dateentrystyle = ttk.Style().configure(
-            "yes.TEntry", font=("Helvetica", 20), foreground=BLACK, 
+            "yes.TEntry", font=("Helvetica", 20), foreground=BLACK,
             background=ORANGE)
         self.dateentry = DateEntry(
-            self, width=1, style="yes.TEntry", 
+            self, width=1, style="yes.TEntry",
         )
         self.dateentry.grid(row=ypos, column=xpos,
-                    columnspan=columnspan, rowspan=rowspan, sticky=NSEW)
+                            columnspan=columnspan, rowspan=rowspan, sticky=NSEW)
         self.scrolledframe = ScrolledFrame(
             self, width=1, height=1, name="appointmentscrolledframe", autohide=True
         )
@@ -2290,15 +2407,15 @@ class AppointmentsView(Canvas):
         print("Current Time =", current_time)
         print(now.strftime('%A %d %B %Y %H:%M:%S %z'))
         hours = ["00:00", "01:00", "02:00", "03:00", "04:00", "05:00",
-                    "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
-                    "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
-                    "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
-        ]
+                 "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
+                 "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
+                 "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
+                 ]
 
         initialypos = 0
         for i in range(24):
             self.controller.textElement(
-                r"Assets\AppointmentsView\timehours.png", xpos=0, 
+                r"Assets\AppointmentsView\timehours.png", xpos=0,
                 ypos=initialypos, root=self.scrolledframe, size=30, classname=f"hour{i}",
                 text=hours[i]
             )

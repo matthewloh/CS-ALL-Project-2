@@ -44,7 +44,7 @@ model Lecturer {
 }
 
 model Appointment {
-  createdAt   DateTime  @default(now()) 
+  createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   isAccepted  Boolean   @default(false)
   isCompleted Boolean   @default(false)
@@ -158,15 +158,15 @@ model ModulePost {
 }
 
 model Reply {
-  id                String       @id @default(cuid())
-  content           String?      @db.Text
+  content           String?     @db.Text
   modulePostId      Int
-  moduleDiscussions ModulePost   @relation(fields: [modulePostId], references: [id])
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  user              UserProfile? @relation(fields: [userId], references: [id])
-  userId            String?
+  moduleDiscussions ModulePost  @relation(fields: [modulePostId], references: [id])
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  userId            String
+  user              UserProfile @relation(fields: [userId], references: [id])
 
+  @@id([modulePostId, userId])
   @@index([modulePostId])
   @@index([userId])
 }

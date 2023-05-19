@@ -999,9 +999,8 @@ def createModulePost():
         data={
             "authorId": user.id,
             "moduleId": module.id,
-            "title": "This is a test post",
-            "content": "This is a test post content",
-
+            "title": "Computer Architecture and Network Question...",
+            "content": "What does a parallel binary adder do?",
         },
         # include={
         #     "author": {
@@ -1016,6 +1015,24 @@ def createModulePost():
         # }
     )
     print(f"Module Post:\n{modulepost.json(indent=2)}\n")
+    modulepost2 = prisma.modulepost.create(
+        data={
+            "authorId": user.id,
+            "moduleId": module.id,
+            "title": "On Homework for Yesterday...",
+            "content": "Does anybody know the answer to question 3?",
+        },
+    )
+    print(f"Module Post:\n{modulepost2.json(indent=2)}\n")
+    modulepost3 = prisma.modulepost.create(
+        data={
+            "authorId": user.id,
+            "moduleId": module.id,
+            "title": "Quiz Answers, I need help...",
+            "content": "Can anybody explain to me how to do question 2?",
+        }
+    )
+    print(f"Module Post:\n{modulepost3.json(indent=2)}\n")
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
