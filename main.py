@@ -25,6 +25,8 @@ from datetime import datetime, timedelta, timezone
 # TODO: please stop formatting my imports you're breaking my code
 # this contains my pywin32 imports, PIL imports, pythonnet
 from nonstandardimports import *
+import pendulum
+from pendulum import timezone
 load_dotenv()
 
 
@@ -112,10 +114,10 @@ class Window(ttk.Window):
             (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button",
              self.postSelectFrame,
              lambda: [
-                 # self.loadSignIn(), # Uncomment this out and then comment out the three lines below to enable the sign in page
-                 self.show_frame(Dashboard),
-                 self.show_canvas(DashboardCanvas),
-                 self.get_page(Dashboard).loadSpecificAssets("student"),
+                 self.loadSignIn(), # Uncomment this out and then comment out the three lines below to enable the sign in page
+                #  self.show_frame(Dashboard),
+                #  self.show_canvas(DashboardCanvas),
+                #  self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -149,7 +151,7 @@ class Window(ttk.Window):
         ref = self.widgetsDict["postselectframebg"]
         ref.configure(image=self.loadedImgs[2])
         self.widgetsDict["backbutton"].grid_remove()
-        # self.widgetsDict["skipbutton"].grid_remove() #Uncomment to not bypass login
+        self.widgetsDict["skipbutton"].grid_remove() #Comment to bypass login
         self.show_canvas(DashboardCanvas)
 
     def returnWidgetsDict(self):
@@ -217,6 +219,7 @@ class Window(ttk.Window):
             pass
 
         def reloadForm():
+            
             try:
                 if self.studentform:
                     self.studentform.grid()
@@ -238,17 +241,17 @@ class Window(ttk.Window):
                 command=lambda: [
                     self.postSelectFrame.grid_remove(),
                 ])
-            # self.widgetsDict["skipbutton"].grid_remove()
-            self.widgetsDict["skipbutton"].configure(
-                command=lambda: [
-                    self.loadSignIn(),
-                ])
+            self.widgetsDict["skipbutton"].grid()
+            # self.widgetsDict["skipbutton"].configure(
+            #     command=lambda: [
+            #         self.loadSignIn(),
+            #     ])
         self.widgetsDict["backbutton"].configure(
             command=lambda: [
                 reloadForm(),
             ]
         )
-        # self.widgetsDict["skipbutton"].grid_remove()
+        self.widgetsDict["skipbutton"].grid_remove()
         self.widgetsDict["skipbutton"].configure(
             command=lambda: [
                 self.loadSignIn(),
@@ -577,7 +580,8 @@ class Window(ttk.Window):
         wraplength=None,
         pady=None,
         hasImage=True,
-        bg=WHITE
+        bg=WHITE,
+        isPlaced = False,
     ):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
@@ -598,6 +602,8 @@ class Window(ttk.Window):
         # the W value of the image divided by 20 to get the column position
         columnarg = int(xpos/20)
         rowarg = int(ypos/20)
+        placedwidth = int(image.width())
+        placedheight = int(image.height())
         button_kwargs = {
             "root": root,
             "image": image,
@@ -610,7 +616,7 @@ class Window(ttk.Window):
             "text": text,
         }
 
-        Button(
+        button = Button(
             root, image=image,
             command=lambda: buttonFunction() if buttonFunction else print(
                 f"This is the {classname} button"),
@@ -621,14 +627,22 @@ class Window(ttk.Window):
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=fg,
             justify=LEFT,
             autostyle=False,
-        ).grid(
+        )
+        if isPlaced:
+            button.place(
+                x=xpos,
+                y=ypos,
+                width=placedwidth,
+                height=placedheight,
+            )
+        else:
+            button.grid(
             row=rowarg,
             column=columnarg,
             rowspan=heightspan,
             columnspan=widthspan,
-            sticky=NSEW,
-            pady=pady)
-
+            sticky=NSEW
+        )
         self.updateWidgetsDict(root=root)
         self.widgetsDict[classname].grid_propagate(False)
 
@@ -644,6 +658,7 @@ class Window(ttk.Window):
         text=None,
         font=("Avenir Next Medium", 16),
         wraplength=None,
+        isPlaced=False,
     ):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
@@ -663,13 +678,23 @@ class Window(ttk.Window):
         # the W value of the image divided by 20 to get the column position
         columnarg = int(xpos/20)
         rowarg = int(ypos/20)
-
-        Label(
+        placedwidth = int(image.width())
+        placedheight = int(image.height())
+        label = Label(
             root, image=image, relief=FLAT, width=1, height=1,
             cursor="", state=NORMAL, name=classname,
             text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
             autostyle=False,
-        ).grid(
+        )
+        if isPlaced:
+            label.place(
+                x=xpos,
+                y=ypos,
+                width=placedwidth,
+                height=placedheight,
+            )
+        else:
+            label.grid(
             row=rowarg,
             column=columnarg,
             rowspan=heightspan,
@@ -1073,7 +1098,7 @@ class Window(ttk.Window):
     def textElement(self, imagepath, xpos, ypos, classname=None,
                     buttonFunction=None, root=None, relief=FLAT,
                     fg=BLACK, bg=WHITE, font=SFPRO,
-                    text=None, size=40,
+                    text=None, size=40, isPlaced=False,
                     index=0, xoffset=0):
         classname = classname.replace(" ", "").lower()
         # ~~~ ADD TEXT TO IMAGE FUNCTIONS ~~~
@@ -1096,18 +1121,35 @@ class Window(ttk.Window):
         heightspan = int(image.height()/20)
         columnarg = int(xpos/20)
         rowarg = int(ypos/20)
+        placedwidth = int(widthspan*20)
+        placedheight = int(heightspan*20)
+        
         if buttonFunction:
-            Button(root, image=image,
-                   command=lambda: buttonFunction() if buttonFunction else print(
-                       "No function assigned to button"),
-                   relief=relief,
-                   bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
-                row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
-            )
+            if isPlaced:
+                Button(root, image=image,
+                       command=lambda: buttonFunction() if buttonFunction else print(
+                           "No function assigned to button"),
+                       relief=relief,
+                       bg=bg, width=1, height=1, name=classname, autostyle=False).place(
+                    x=xpos, y=ypos, width=placedwidth, height=placedheight
+                )
+            else:
+                Button(root, image=image,
+                    command=lambda: buttonFunction() if buttonFunction else print(
+                        "No function assigned to button"),
+                    relief=relief,
+                    bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
+                    row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
+                )
         else:
-            Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
-                row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
-            )
+            if isPlaced:
+                Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False).place(
+                    x=xpos, y=ypos, width=placedwidth, height=placedheight
+                )
+            else:
+                Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
+                    row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
+                )
         self.updateWidgetsDict(root=root)
         self.widgetsDict[classname].grid_propagate(False)
         return self.widgetsDict[classname]
@@ -2158,7 +2200,6 @@ class AnimatedStarBtn(Frame):
             else:
                 self.animation_status.set("start")
 
-
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1, bg=WHITE,
@@ -2166,16 +2207,28 @@ class DiscussionsView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        self.controller.frameCreator(
-            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
-            classname="postcreation",
-        )
+        self.createFrames()
         self.creationframe = self.controller.widgetsDict["postcreation"]
-        self.controller.frameCreator(
-            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
-            classname="postview",
-        )
         self.postviewframe = self.controller.widgetsDict["postview"]
+
+        self.createElements()
+
+        # self.creationframe.tkraise()
+        self.controller.ttkEntryCreator(
+            xpos=900, ypos=160, width=920, height=40, root=self.creationframe, classname="posttitleent"
+        )
+        textxpos, textypos, textcolumnspan, textrowspan = int(
+            900/20), int(340/20), int(920/20), int(360/20)
+        self.contenttext = Text(
+            master=self.creationframe, width=1, height=1, font=("Helvetica", 18), wrap="word", name="postcontenttext"
+        )
+        self.contenttext.grid(
+            column=textxpos, row=textypos, columnspan=textcolumnspan, rowspan=textrowspan, sticky=NSEW
+        )
+        self.creationframe.grid_remove()
+        self.postviewframe.grid_remove()
+
+    def createElements(self):
         self.staticImgLabels = [
             # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
             (r"Assets\DiscussionsView\DiscussionsViewBG.png",
@@ -2193,24 +2246,19 @@ class DiscussionsView(Canvas):
             (r"Assets\DiscussionsView\createpostbuttondisc.png", 480, 760, "postbtncreation", self.creationframe,
              lambda: self.threadStart()),
             (r"Assets\My Courses\exitbutton.png", 1840, 0, "cancelbtnview", self.postviewframe,
-             lambda: self.postviewframe.grid_remove()),
+             lambda: self.unloadPostView()),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
-        # self.creationframe.tkraise()
-        self.controller.ttkEntryCreator(
-            xpos=900, ypos=160, width=920, height=40, root=self.creationframe, classname="posttitleent"
+    def createFrames(self):
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="postcreation",
         )
-        textxpos, textypos, textcolumnspan, textrowspan = int(
-            900/20), int(340/20), int(920/20), int(360/20)
-        self.contenttext = Text(
-            master=self.creationframe, width=1, height=1, font=("Helvetica", 18), wrap="word", name="postcontenttext"
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="postview",
         )
-        self.contenttext.grid(
-            column=textxpos, row=textypos, columnspan=textcolumnspan, rowspan=textrowspan, sticky=NSEW
-        )
-        self.creationframe.grid_remove()
-        self.postviewframe.grid_remove()
     # https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html#text-anchors
 
     def loadPostCreation(self):
@@ -2236,28 +2284,42 @@ class DiscussionsView(Canvas):
                 }
             }
         )
+        #from pendulum
+        kualalumpur = timezone("Asia/Kuala_Lumpur")
         for post in posts:
             # print(f"Post found:\n{post.json(indent=2)}, {post.id}")
-            print(post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
-            print(datetime.now().strftime(r'%A %d %B %Y %H:%M:%S %z'))
+            createdat = post.createdAt
+            formattedtime = kualalumpur.convert(createdat).strftime(r'%A %d %B %Y %H:%M:%S %z')
+            # print("Local time in Malaysia", formattedtime)
+            # print("UTC Time, from Prisma", post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
+            # print("Current time:",datetime.now().strftime(r'%A %d %B %Y %H:%M:%S %z'))
             try:
                 for reply in post.replies:
                     print(reply.json(indent=2))
             except:
                 print("no replies")
-        postIdandTitleList = [
+        # prisma's datetime fields are saved automatically in UTC
+        # converting to local timezone ->
+        # code only
+        # for post in posts:
+        #     post.createdAt = post.createdAt.astimezone(
+        #         timezone("Asia/Kolkata"))
+        #     post.updatedAt = post.updatedAt.astimezone(
+        #         timezone("Asia/Kolkata"))
+        
+        postContentList = [
             (
                 post.id, post.title, post.content, post.author.fullName,
                 post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'),
                 post.updatedAt.strftime(r'%A %d %B %Y %H:%M:%S %z')
             ) for post in posts
         ]
-        print("the postidandtitlelist is: ", postIdandTitleList)
+        # print("the postidandtitlelist is: ", postContentList)
 
-        self.loadDiscussionTopics(postIdandTitleList)
-        print("In discussionview, userid is: ", self.userId)
+        self.loadDiscussionTopics(postContentList)
+        # print("In discussionview, userid is: ", self.userId)
         posttitles = [post.title for post in posts]
-        print("the discussionview posts are: ", posttitles)
+        # print("the discussionview posts are: ", posttitles)
 
     def threadStart(self):
         t = threading.Thread(target=self.createPost)
@@ -2340,10 +2402,30 @@ class DiscussionsView(Canvas):
     def detailsCreator(self):
         pass
 
+    def unloadPostView(self):
+        self.postviewframe.grid_remove()
+
     def loadPostView(self, postId: int = 0):
         print("loading post view", postId)
         self.postviewframe.grid()
         self.postviewframe.tkraise()
+        self.scrolledframe = ScrolledFrame(
+            self.postviewframe, width=1, height=1, name="postviewcontent", autohide=True, padding=0,
+        )
+        self.scrolledframe.grid_propagate(False)
+        gridGenerator(self.scrolledframe, int(1100/20), int(740/20), DARKBLUE)
+
+        self.controller.labelCreator(
+            imagepath=r"Assets\DiscussionsView\scrolledframebg.png", xpos=0, ypos=0,
+            classname="scrolledframebg", root=self.scrolledframe, isPlaced=True
+        )
+        self.controller.buttonCreator(
+            imagepath=r"Assets\DiscussionsView\exampleofapost.png", xpos=0, ypos=0,
+            classname="exampleofapost", root=self.scrolledframe, isPlaced=True
+        )
+        self.scrolledframe.grid(
+            row=int(180/20), column=int(100/20), columnspan=int(1100/20), rowspan=int(660/20), sticky=NSEW
+        )
 
     def loadDiscussionPost(self, postId):
         self.loadPostView()
@@ -2392,7 +2474,7 @@ class AppointmentsView(Canvas):
         self.dateentry.grid(row=ypos, column=xpos,
                             columnspan=columnspan, rowspan=rowspan, sticky=NSEW)
         self.scrolledframe = ScrolledFrame(
-            self, width=1, height=1, name="appointmentscrolledframe", autohide=True
+            self, width=1, height=1, name="appointmentscrolledframe", autohide=True, padding=0
         )
         self.scrolledframe.grid(
             row=int(180/20), column=int(1420/20), columnspan=int(460/20), rowspan=int(700/20), sticky=NSEW
@@ -2417,12 +2499,12 @@ class AppointmentsView(Canvas):
             self.controller.textElement(
                 r"Assets\AppointmentsView\timehours.png", xpos=0,
                 ypos=initialypos, root=self.scrolledframe, size=30, classname=f"hour{i}",
-                text=hours[i]
+                text=hours[i], isPlaced=True
             )
             self.controller.textElement(
                 r"Assets\AppointmentsView\eventdetails.png", xpos=100,
                 ypos=initialypos, root=self.scrolledframe, size=30, classname=f"event{i}",
-                text=f"Placeholder event {i}", buttonFunction=lambda i=i: print(f"event {i} clicked")
+                text=f"Placeholder event {i}", buttonFunction=lambda i=i: print(f"event {i} clicked"), isPlaced=True
             )
             initialypos += 40
     #     self.controller.frameCreator(

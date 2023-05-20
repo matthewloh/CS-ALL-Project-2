@@ -1,8 +1,14 @@
 import pendulum
+from pendulum import timezone
 from datetime import datetime, timedelta
 some_date = pendulum.datetime(
     year=2023, month=5, day=18, hour=00, minute=30, tz='Asia/Kuala_Lumpur'
 )
+
+kualalumpur = timezone('Asia/Kuala_Lumpur')
+dt = datetime(2021, 5, 18, 00, 30)
+dt = kualalumpur.convert(dt)
+print(dt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
 some_date1 = datetime.now()
 pendulum.set_locale("en")
 #using datetime to print time in malaysia, with some_date 

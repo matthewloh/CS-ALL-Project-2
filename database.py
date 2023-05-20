@@ -1033,6 +1033,35 @@ def createModulePost():
         }
     )
     print(f"Module Post:\n{modulepost3.json(indent=2)}\n")
+def queryPosts():
+    prisma.connect()
+    module = prisma.module.find_first(
+        where={
+            "moduleCode": "INT4004CEM"
+        }
+    )
+    posts = prisma.modulepost.find_many(
+        where={
+            "moduleId": module.id
+        },
+        include={
+            "author": {
+                "include": {
+                    "student": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    }
+                }
+            }
+        }
+    )
+    for post in posts:
+        print(post.createdAt.tzinfo.utcoffset(post.createdAt))
+        # print(f"Post:\n{post.json(indent=2)}\n")
+        # print(f"Author:\n{post.author.json(indent=2)}\n")
+        # print(f"Student:\n{post.author.student.json(indent=2)}\n")
+        # print(f"User Profile:\n{post.author.json(indent=2)}\n")
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1048,4 +1077,5 @@ if __name__ == "__main__":
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
     # createAppointment()
-    createModulePost()
+    # createModulePost()
+    queryPosts()
