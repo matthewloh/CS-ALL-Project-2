@@ -2483,20 +2483,25 @@ class DiscussionsView(Canvas):
         repliesList = tupleofcontent[7]
         #reversing repliesList so that the latest reply is at the bottom
         # repliesList.reverse()
-        print(f"the discussion title is {discussiontitle}")
-        print(f"Loading post view for post with id {postId}")
-        print(f"This was posted by {author} on {createdat} with email {email}")
-        print(f"Last updated on {updatedat}")
-        print(f"Content: {content}")
-        print(f"Replies: {repliesList}")
+        # print(f"the discussion title is {discussiontitle}")
+        # print(f"Loading post view for post with id {postId}")
+        # print(f"This was posted by {author} on {createdat} with email {email}")
+        # print(f"Last updated on {updatedat}")
+        # print(f"Content: {content}")
+        # print(f"Replies: {repliesList}")
         self.postviewframe.grid()
         self.postviewframe.tkraise()
+        self.controller.frameCreator(
+            root=self.postviewframe, framewidth=1100, frameheight=660,
+            classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
+        )
+        self.scrolledframehost = self.controller.widgetsDict["scrolledframehostframe"]
         self.scrolledframe = ScrolledFrame(
-            self.postviewframe, width=1, height=1, name="postviewcontent", autohide=True, padding=0,
+            self.scrolledframehost, width=1, height=1, name="postviewcontent", autohide=True, padding=0,
         )
         self.scrolledframe.grid_propagate(False)
         self.scrolledframe.place(
-            x=100, y=180, width=1100, height=660
+            x=0, y=0, width=1100, height=660
         )
         # TITLE OF THE POST
         self.controller.textElement(
@@ -2511,9 +2516,18 @@ class DiscussionsView(Canvas):
             classname="scrolledframebg", root=self.scrolledframe, isPlaced=True
         )
         totalheight = len(repliesList) * 280 + 280
+        # when the reply is less than or equal to 4, 8
+        # 5 replies, offset should be 0 
+        # for every 5 replies, subtract the len(repliesList) with floor operator * -1 
+        print(len(repliesList))
+        differencefrom5 = abs(len(repliesList) - 5) % 5
+        print("The difference from 5",differencefrom5)
+        decrement = (len(repliesList) // 5 * -1) + differencefrom5
+        offset = (len(repliesList) + decrement) * -1
+        # but the offset above is ruined at 5 replies
         # resize the bg and generate the grids
         if totalheight > 660:
-            gridGenerator(self.scrolledframe, int(int(1100/20)), int(totalheight/20-len(repliesList)), "#acbcff")
+            gridGenerator(self.scrolledframe, int(int(1100/20)), int(totalheight/20+offset), "#acbcff")
             image = self.controller.imagePathDict["scrolledframebg"]
             image = Image.open(image)
             image = image.resize((1100, totalheight+80), Image.Resampling.LANCZOS)
@@ -2618,7 +2632,7 @@ class DiscussionsView(Canvas):
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\cancelreply.png", xpos=1300, ypos=780,
             classname="cancelreply", root=self.postviewframe, isPlaced=True,
-            buttonFunction=lambda: self.clearReplyText()
+            buttonFunction=lambda: self.replytextwidget.delete('1.0', END)
         )
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\addreply.png", xpos=1620, ypos=780,
