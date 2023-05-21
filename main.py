@@ -2417,15 +2417,12 @@ class DiscussionsView(Canvas):
             rowspanofFrame = int(500/20)
         else:
             rowspanofFrame = int(heightofframe/20)
-        print(len(postContentList))
-        print("the rowspan of frame is: ", rowspanofFrame)
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
         )
         gridGenerator(self.postscrolledframe, int(
             840/20), rowspanofFrame, WHITE)
         self.postscrolledframe.grid_propagate(False)
-        # self.postscrolledframe.grid(row=int(320/20), column=int(100/20), rowspan=rowspanofFrame, columnspan=int(840/20))
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
         self.loadDiscussionTopics(postContentList)
         self.unloadPostCreation()
@@ -2471,8 +2468,6 @@ class DiscussionsView(Canvas):
             initialcoordinates = (
                 initialcoordinates[0], initialcoordinates[1] + 100)
 
-    def detailsCreator(self):
-        pass
 
     def unloadPostView(self):
         self.postviewframe.grid_remove()
@@ -2487,9 +2482,9 @@ class DiscussionsView(Canvas):
         updatedat = tupleofcontent[6]
         repliesList = tupleofcontent[7]
         #reversing repliesList so that the latest reply is at the bottom
-        repliesList.reverse()
+        # repliesList.reverse()
         print(f"the discussion title is {discussiontitle}")
-        print("loading post view", postId)
+        print(f"Loading post view for post with id {postId}")
         print(f"This was posted by {author} on {createdat} with email {email}")
         print(f"Last updated on {updatedat}")
         print(f"Content: {content}")
@@ -2500,9 +2495,8 @@ class DiscussionsView(Canvas):
             self.postviewframe, width=1, height=1, name="postviewcontent", autohide=True, padding=0,
         )
         self.scrolledframe.grid_propagate(False)
-        gridGenerator(self.scrolledframe, int(1100/20), int(760/20), DARKBLUE)
-        self.scrolledframe.grid(
-            row=int(180/20), column=int(100/20), columnspan=int(1100/20), rowspan=int(660/20), sticky=NSEW
+        self.scrolledframe.place(
+            x=100, y=180, width=1100, height=660
         )
         # TITLE OF THE POST
         self.controller.textElement(
@@ -2519,14 +2513,19 @@ class DiscussionsView(Canvas):
         totalheight = len(repliesList) * 280 + 280
         # resize the bg and generate the grids
         if totalheight > 660:
+            gridGenerator(self.scrolledframe, int(int(1100/20)), int(totalheight/20-len(repliesList)), "#acbcff")
             image = self.controller.imagePathDict["scrolledframebg"]
             image = Image.open(image)
-            image = image.resize((1100, totalheight), Image.Resampling.LANCZOS)
+            image = image.resize((1100, totalheight+80), Image.Resampling.LANCZOS)
             self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(image)
             newimage = self.controller.imageDict["scrolledframebg"]
-            self.controller.widgetsDict["scrolledframebg"].configure(image=newimage)
-            self.controller.widgetsDict["scrolledframebg"].place(x=0, y=0, width=1100, height=totalheight)
-            gridGenerator(self.scrolledframe, int(1100/20), int(totalheight/20), DARKBLUE)
+            self.controller.widgetsDict["scrolledframebg"].configure(image=newimage, bg=ORANGE)
+            self.controller.widgetsDict["scrolledframebg"].place(
+                x=0, y=0, width=1100, height=totalheight
+            )
+        else:
+            gridGenerator(self.scrolledframe, int(1100/20), int(660/20), "#acbcff")
+
         print(totalheight)
         # POST BG
         self.controller.buttonCreator(
@@ -2608,6 +2607,7 @@ class DiscussionsView(Canvas):
             replycounter += 1
             replycoordinates = (replycoordinates[0], replycoordinates[1] + 280)
         # END
+        # CREATE REPLY REGION
         self.replytextwidget = Text(
             self.postviewframe, width=1, height=1, bg=WHITE, fg=BLACK, font=("Arial", 16), wrap=WORD,
             name="replytextwidget", padx=20, pady=20, relief=FLAT, bd=0, highlightthickness=0,
@@ -2618,16 +2618,20 @@ class DiscussionsView(Canvas):
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\cancelreply.png", xpos=1300, ypos=780,
             classname="cancelreply", root=self.postviewframe, isPlaced=True,
-            buttonFunction=lambda: print("cancel reply button clicked")
+            buttonFunction=lambda: self.clearReplyText()
         )
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\addreply.png", xpos=1620, ypos=780,
             classname="addreply", root=self.postviewframe, isPlaced=True,
-            buttonFunction=lambda: self.addReply(postId)
+            buttonFunction=lambda: self.replyThreaded(postId)
         )
 
     def clearReplyText(self):
         self.replytextwidget.delete('1.0', END)
+    def replyThreaded(self, postId):
+        t = threading.Thread(target=self.addReply, args=(postId,))
+        t.daemon = True
+        t.start()
 
     def addReply(self, postId):
         replytext = self.replytextwidget.get("1.0", END)
@@ -2641,6 +2645,54 @@ class DiscussionsView(Canvas):
                 "authorId": self.userId,  # taken from postlogin
             }
         )
+        posts = self.prisma.modulepost.find_many(
+            include={
+                "author": True,
+                "replies": {
+                    "include": {
+                        "author": True
+                    }
+                }
+            }
+        )
+        kualalumpur = timezone("Asia/Kuala_Lumpur")
+        postContentList = [
+            (
+                post.id, post.title, post.content, post.author.fullName, post.author.email,
+                kualalumpur.convert(post.createdAt).strftime(
+                    r'%A %d %B %Y %H:%M:%S'),
+                kualalumpur.convert(post.updatedAt).strftime(
+                    r'%A %d %B %Y %H:%M:%S'),
+                [
+                    [
+                        reply.content, reply.author.fullName, reply.author.email,
+                        kualalumpur.convert(reply.createdAt).strftime(
+                            r'%A %d %B %Y %H:%M:%S'),
+                        kualalumpur.convert(reply.updatedAt).strftime(
+                            r'%A %d %B %Y %H:%M:%S')
+                     ] for reply in post.replies
+                ]
+            ) for post in posts
+        ]
+        heightofframe = len(postContentList) * 100
+        # minimum height of frame is 500 for 5 posts
+        if heightofframe < 500:
+            rowspanofFrame = int(500/20)
+        else:
+            rowspanofFrame = int(heightofframe/20)
+        self.postscrolledframe = ScrolledFrame(
+            self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
+        )
+        gridGenerator(self.postscrolledframe, int(
+            840/20), rowspanofFrame, WHITE)
+        self.postscrolledframe.grid_propagate(False)
+        self.postscrolledframe.place(x=100, y=320, width=840, height=500)
+        self.loadDiscussionTopics(postContentList)
+        for tuple in postContentList:
+            if tuple[0] == postId:
+                self.loadPostView(tuple)
+                break
+        # self.postviewframe.grid_remove()
         print(f"Reply:\n: {reply.json(indent=2)}")
 
     def loadDiscussionPost(self, postId):

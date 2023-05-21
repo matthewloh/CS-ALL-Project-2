@@ -6,7 +6,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.toast import ToastNotification
 
 
-def gridGenerator(root, width, height, color, overriderelief: bool = False, relief: str = FLAT, name=None):
+def gridGenerator(root:Frame, width, height, color, overriderelief: bool = False, relief: str = FLAT, name=None):
     for x in range(width):
         root.columnconfigure(x, weight=1, uniform="row")
         if height > width:
