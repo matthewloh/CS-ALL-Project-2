@@ -109,7 +109,7 @@ class Window(ttk.Window):
             (r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, "Back Button",
              self.postSelectFrame,
              lambda: self.postSelectFrame.grid_remove()),
-            (r"Assets\LandingPage\GoFullScreen.png", 1620, 960, "GoFullScreenBtn", self.parentFrame,
+            (r"Assets\LandingPage\GoFullScreen.png", 1620, 960, "GoFullScreenBtn", self.postSelectFrame,
              lambda: [self.togglethewindowbar()]),
             (r"Assets\Login Page with Captcha\Skip Button.png", 1680, 980, "Skip Button",
              self.postSelectFrame,
