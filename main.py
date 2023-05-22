@@ -1431,7 +1431,7 @@ class UserForms(Frame):
                                       pady=5)
         self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=  # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            classname=f"{self.name}completeregbutton", buttonFunction=# lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
             lambda: self.send_data(
                 data={
                     "fullName": entries["fullname"].get(),
@@ -2285,76 +2285,61 @@ class DiscussionsView(Canvas):
         self.prisma = prisma
         self.userId = data["id"]
         posts = self.prisma.modulepost.find_many(
+            order={
+                "createdAt": "desc"
+            },
+            take=2,
             include={
-                "author": True,
                 "replies": {
                     "include": {
                         "author": True
                     }
-                }
-            }
+                },
+                "author": True,
+                "favoritedBy": True,
+            },
         )
-        # prisma's datetime fields are saved automatically in UTC
-        # converting to local timezone:
         kualalumpur = timezone("Asia/Kuala_Lumpur")
         for post in posts:
-            # print(f"Post found:\n{post.json(indent=2)}, {post.id}")
-            createdat = post.createdAt
-            # string representation using Monday, 01 January 2021 00:00:00 would be %A, %d %B %Y %H:%M:%S
-            formattedtime = kualalumpur.convert(
-                createdat).strftime(r'%A %d %B %Y %H:%M:%S %z')
-            # print("Local time in Malaysia", formattedtime)
-            # print("UTC Time, from Prisma", post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
-            # print("Current time:",datetime.now().strftime(r'%A %d %B %Y %H:%M:%S %z'))
-            try:
-                if len(post.replies) == 0:
-                    pass  # no posts
-                for reply in post.replies:
-                    print(reply.author)
-                    print(reply.json(indent=2))
-            except:
-                print("no replies")
+            print(
+                f"Time of post: {kualalumpur.convert(post.createdAt).strftime(r'%A %B %e %Y %I:%M %p')}")
+            print(f"Post:\n{post.json(indent=2)}")
+        # for post in posts:
+        #     # print(f"Post found:\n{post.json(indent=2)}, {post.id}")
+        #     createdat = post.createdAt
+        #     # string representation using Monday, 01 January 2021 00:00:00 would be %A, %d %B %Y %H:%M:%S
+        #     formattedtime = kualalumpur.convert(
+        #         createdat).strftime(r'%A %d %B %Y %H:%M:%S %z')
+        #     # print("Local time in Malaysia", formattedtime)
+        #     # print("UTC Time, from Prisma", post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
+        #     # print("Current time:",datetime.now().strftime(r'%A %d %B %Y %H:%M:%S %z'))
+        #     try:
+        #         if len(post.replies) == 0:
+        #             pass  # no posts
+        #         for reply in post.replies:
+        #             print(reply.author)
+        #             print(reply.json(indent=2))
+        #     except:
+        #         print("no replies")
 
-        # from pendulum
-        postContentList = [
-            (
-                post.id, post.title, post.content, post.author.fullName, post.author.email,
-                kualalumpur.convert(post.createdAt).strftime(
-                    r'%A %d %B %Y %H:%M:%S'),
-                kualalumpur.convert(post.updatedAt).strftime(
-                    r'%A %d %B %Y %H:%M:%S'),
-                [
-                    [
-                        reply.content, reply.author.fullName, reply.author.email,
-                        kualalumpur.convert(reply.createdAt).strftime(
-                            r'%A %d %B %Y %H:%M:%S'),
-                        kualalumpur.convert(reply.updatedAt).strftime(
-                            r'%A %d %B %Y %H:%M:%S')
-                     ] for reply in post.replies
-                ]
-            ) for post in posts
-        ]
-
-        print("the postidandtitlelist is: ", postContentList)
+        postContentList = self.loadLatestPosts(prisma=self.prisma)
+        # print("the postidandtitlelist is: ", postContentList)
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
             rowspanofFrame = int(500/20)
         else:
             rowspanofFrame = int(heightofframe/20)
-        print(len(postContentList))
-        print("the rowspan of frame is: ", rowspanofFrame)
+
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
         )
         gridGenerator(self.postscrolledframe, int(
             840/20), rowspanofFrame, WHITE)
         self.postscrolledframe.grid_propagate(False)
-        # self.postscrolledframe.grid(row=int(320/20), column=int(100/20), rowspan=rowspanofFrame, columnspan=int(840/20))
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
         self.loadDiscussionTopics(postContentList)
-        # print("In discussionview, userid is: ", self.userId)
-        # print("the discussionview posts are: ", posttitles)
+        print("In discussionview, userid is: ", self.userId)
 
     def threadStart(self):
         t = threading.Thread(target=self.createPost)
@@ -2382,35 +2367,7 @@ class DiscussionsView(Canvas):
         )
         self.gif.grid_forget()
         print(f"Module Post:\n{module.json(indent=2)}")
-        kualalumpur = timezone("Asia/Kuala_Lumpur")
-        postContentList = [
-            (
-                post.id, post.title, post.content, post.author.fullName, post.author.email,
-                kualalumpur.convert(post.createdAt).strftime(
-                    r'%A %d %B %Y %H:%M:%S'),
-                kualalumpur.convert(post.updatedAt).strftime(
-                    r'%A %d %B %Y %H:%M:%S'),
-                [
-                    [
-                        reply.content, reply.author.fullName, reply.author.email,
-                        kualalumpur.convert(reply.createdAt).strftime(
-                            r'%A %d %B %Y %H:%M:%S'),
-                        kualalumpur.convert(reply.updatedAt).strftime(
-                            r'%A %d %B %Y %H:%M:%S')
-                     ] for reply in post.replies
-                ]
-            ) for post in prisma.modulepost.find_many(
-                include={
-                    "author": True,
-                    "replies": {
-                        "include": {
-                            "author": True
-                        }
-                    }
-                }
-            )
-        ]
-
+        postContentList = self.loadLatestPosts(prisma=prisma)
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
@@ -2454,8 +2411,7 @@ class DiscussionsView(Canvas):
                 imagepath=imagepath, xpos=xpos, ypos=ypos,
                 classname=f"post{postId}title",
                 buttonFunction=lambda num=tupleofcontent: self.loadPostView(
-                    num
-                ),
+                    num),
                 root=self.postscrolledframe, text=discussiontitle, fg=BLACK, size=28, xoffset=-1, isPlaced=True,
             )
             AnimatedStarBtn(
@@ -2468,11 +2424,12 @@ class DiscussionsView(Canvas):
             initialcoordinates = (
                 initialcoordinates[0], initialcoordinates[1] + 100)
 
-
     def unloadPostView(self):
         self.postviewframe.grid_remove()
 
     def loadPostView(self, tupleofcontent: tuple = ()):
+        self.postviewframe.grid()
+        self.postviewframe.tkraise()
         postId = tupleofcontent[0]
         discussiontitle = tupleofcontent[1]
         content = tupleofcontent[2]
@@ -2481,16 +2438,6 @@ class DiscussionsView(Canvas):
         createdat = tupleofcontent[5]
         updatedat = tupleofcontent[6]
         repliesList = tupleofcontent[7]
-        #reversing repliesList so that the latest reply is at the bottom
-        # repliesList.reverse()
-        # print(f"the discussion title is {discussiontitle}")
-        # print(f"Loading post view for post with id {postId}")
-        # print(f"This was posted by {author} on {createdat} with email {email}")
-        # print(f"Last updated on {updatedat}")
-        # print(f"Content: {content}")
-        # print(f"Replies: {repliesList}")
-        self.postviewframe.grid()
-        self.postviewframe.tkraise()
         self.controller.frameCreator(
             root=self.postviewframe, framewidth=1100, frameheight=660,
             classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
@@ -2515,32 +2462,26 @@ class DiscussionsView(Canvas):
             imagepath=r"Assets\DiscussionsView\scrolledframebg.png", xpos=0, ypos=0,
             classname="scrolledframebg", root=self.scrolledframe, isPlaced=True
         )
-        totalheight = len(repliesList) * 280 + 280
-        # when the reply is less than or equal to 4, 8
-        # 5 replies, offset should be 0 
-        # for every 5 replies, subtract the len(repliesList) with floor operator * -1 
-        print(len(repliesList))
-        differencefrom5 = abs(len(repliesList) - 5) % 5
-        print("The difference from 5",differencefrom5)
-        decrement = (len(repliesList) // 5 * -1) + differencefrom5
-        offset = (len(repliesList) + decrement) * -1
-        # but the offset above is ruined at 5 replies
-        # resize the bg and generate the grids
+        totalheight = (1 + len(repliesList)) * 280
+        numberofverticalsquares = int(totalheight/21)
         if totalheight > 660:
-            gridGenerator(self.scrolledframe, int(int(1100/20)), int(totalheight/20+offset), "#acbcff")
+            gridGenerator(self.scrolledframe, int(int(1100/20)),
+                          numberofverticalsquares, "#acbcff")
             image = self.controller.imagePathDict["scrolledframebg"]
             image = Image.open(image)
-            image = image.resize((1100, totalheight+80), Image.Resampling.LANCZOS)
-            self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(image)
+            image = image.resize((1100, totalheight),
+                                 Image.Resampling.LANCZOS)
+            self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(
+                image)
             newimage = self.controller.imageDict["scrolledframebg"]
-            self.controller.widgetsDict["scrolledframebg"].configure(image=newimage, bg=ORANGE)
+            self.controller.widgetsDict["scrolledframebg"].configure(
+                image=newimage, bg=ORANGE)
             self.controller.widgetsDict["scrolledframebg"].place(
                 x=0, y=0, width=1100, height=totalheight
             )
         else:
-            gridGenerator(self.scrolledframe, int(1100/20), int(660/20), "#acbcff")
-
-        print(totalheight)
+            gridGenerator(self.scrolledframe, int(
+                1100/20), int(660/20), "#acbcff")
         # POST BG
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\exampleofapost.png", xpos=0, ypos=0,
@@ -2551,13 +2492,13 @@ class DiscussionsView(Canvas):
         self.controller.textElement(
             imagepath=r"Assets\DiscussionsView\fullnamepostedon.png", xpos=20, ypos=20,
             classname="fullnamepostedon", root=self.scrolledframe, isPlaced=True,
-            text=f"{author} posted on {createdat}", fg=BLACK, size=24, xoffset=-2
+            text=f"{author} posted on {createdat}", fg=BLACK, size=24, xoffset=-1
         )
         # EMAIL OF AUTHOR
         self.controller.textElement(
             imagepath=r"Assets\DiscussionsView\emailofauthor.png", xpos=20, ypos=60,
             classname="emailofauthor", root=self.scrolledframe, isPlaced=True,
-            text=f"{email}", fg=BLACK, size=15, xoffset=-2
+            text=f"{email}", fg=BLACK, size=15, xoffset=0
         )
         # COMPONENTS OF A POST:
         # 1. POST TITLE -> a single text element label
@@ -2579,17 +2520,25 @@ class DiscussionsView(Canvas):
         self.contenttext.config(state=DISABLED)
         # REPLIES under a post
         replycoordinates = (40, 280)
-        authorCoordinates = (replycoordinates[0] + 20, replycoordinates[1] + 20)
+        authorCoordinates = (
+            replycoordinates[0] + 20, replycoordinates[1] + 20)
         textCoordinates = (replycoordinates[0] + 20, replycoordinates[1] + 120)
         replycounter = 0
+        participants = []
+        # adding the author of the post to the participants set
+        participants.append(author + " (AUTHOR)")
         for replies in repliesList:
             replyContent = replies[0]
             replyAuthor = replies[1]
+            if replyAuthor not in participants and replyAuthor != author:
+                participants.append(replyAuthor)
             repAuthorEmail = replies[2]
             repCreatedAt = replies[3]
             repUpdatedAt = replies[4]
-            authorCoordinates = (replycoordinates[0] + 20, replycoordinates[1] + 20)
-            textCoordinates = (replycoordinates[0] + 20, replycoordinates[1] + 120)
+            authorCoordinates = (
+                replycoordinates[0] + 20, replycoordinates[1] + 20)
+            textCoordinates = (
+                replycoordinates[0] + 20, replycoordinates[1] + 120)
             # reply bg
             self.controller.buttonCreator(
                 imagepath=r"Assets\DiscussionsView\exampleofareply.png", xpos=replycoordinates[0], ypos=replycoordinates[1],
@@ -2600,13 +2549,13 @@ class DiscussionsView(Canvas):
             self.controller.textElement(
                 imagepath=r"Assets\DiscussionsView\fullnamepostedon.png", xpos=authorCoordinates[0], ypos=authorCoordinates[1],
                 classname=f"replydetailsfullnamedateemail{replycounter}", root=self.scrolledframe, isPlaced=True,
-                text=f"{replyAuthor} replied on {repCreatedAt}", fg=BLACK, size=24, xoffset=-2
+                text=f"{replyAuthor} replied on {repCreatedAt}", fg=BLACK, size=24, xoffset=-1
             )
             # reply email
             self.controller.textElement(
                 imagepath=r"Assets\DiscussionsView\emailofauthor.png", xpos=authorCoordinates[0], ypos=authorCoordinates[1]+40,
                 classname=f"replyemail{replycounter}", root=self.scrolledframe, isPlaced=True,
-                text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=-2
+                text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=0
             )
             # reply content
             text = Text(
@@ -2620,7 +2569,25 @@ class DiscussionsView(Canvas):
             text.config(state=DISABLED)
             replycounter += 1
             replycoordinates = (replycoordinates[0], replycoordinates[1] + 280)
-        # END
+
+        partiCoords = (1300, 140)
+        partiCounter = 1
+        try:
+            for i in range(1, len(participants)+10):
+                print(f"{i}inpost")
+                self.controller.widgetsDict[f"{i}inpost"].grid_remove()
+        except:
+            pass
+        for p in participants:
+            self.controller.textElement(
+                imagepath=r"Assets\DiscussionsView\viewparticipants.png", xpos=partiCoords[0], ypos=partiCoords[1],
+                classname=f"{partiCounter}inpost", root=self.postviewframe,
+                text=f"{partiCounter}. {p.upper()}", fg=BLACK, size=24, xoffset=-1,
+                buttonFunction=lambda: print(f"{p} was clicked")
+            )
+            partiCoords = (partiCoords[0], partiCoords[1] + 40)
+            partiCounter += 1
+
         # CREATE REPLY REGION
         self.replytextwidget = Text(
             self.postviewframe, width=1, height=1, bg=WHITE, fg=BLACK, font=("Arial", 16), wrap=WORD,
@@ -2642,6 +2609,7 @@ class DiscussionsView(Canvas):
 
     def clearReplyText(self):
         self.replytextwidget.delete('1.0', END)
+
     def replyThreaded(self, postId):
         t = threading.Thread(target=self.addReply, args=(postId,))
         t.daemon = True
@@ -2649,7 +2617,6 @@ class DiscussionsView(Canvas):
 
     def addReply(self, postId):
         replytext = self.replytextwidget.get("1.0", END)
-        print(f"adding reply to {postId} with content {replytext}")
         prisma = Prisma()
         prisma.connect()
         reply = prisma.reply.create(
@@ -2659,35 +2626,7 @@ class DiscussionsView(Canvas):
                 "authorId": self.userId,  # taken from postlogin
             }
         )
-        posts = self.prisma.modulepost.find_many(
-            include={
-                "author": True,
-                "replies": {
-                    "include": {
-                        "author": True
-                    }
-                }
-            }
-        )
-        kualalumpur = timezone("Asia/Kuala_Lumpur")
-        postContentList = [
-            (
-                post.id, post.title, post.content, post.author.fullName, post.author.email,
-                kualalumpur.convert(post.createdAt).strftime(
-                    r'%A %d %B %Y %H:%M:%S'),
-                kualalumpur.convert(post.updatedAt).strftime(
-                    r'%A %d %B %Y %H:%M:%S'),
-                [
-                    [
-                        reply.content, reply.author.fullName, reply.author.email,
-                        kualalumpur.convert(reply.createdAt).strftime(
-                            r'%A %d %B %Y %H:%M:%S'),
-                        kualalumpur.convert(reply.updatedAt).strftime(
-                            r'%A %d %B %Y %H:%M:%S')
-                     ] for reply in post.replies
-                ]
-            ) for post in posts
-        ]
+        postContentList = self.loadLatestPosts(prisma)
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
@@ -2708,6 +2647,42 @@ class DiscussionsView(Canvas):
                 break
         # self.postviewframe.grid_remove()
         print(f"Reply:\n: {reply.json(indent=2)}")
+
+    def loadLatestPosts(self, prisma: Prisma = None):
+        posts = prisma.modulepost.find_many(
+            include={
+                "author": True,
+                "replies": {
+                    "include": {
+                        "author": True
+                    }
+                }
+            }
+        )
+        # from pendulum
+        # prisma's datetime fields are saved automatically in UTC
+        # converting to local timezone:
+        kualalumpur = timezone("Asia/Kuala_Lumpur")
+        postContentList = [
+            (
+                post.id, post.title, post.content, post.author.fullName, post.author.email,
+                kualalumpur.convert(post.createdAt).strftime(
+                    r'%A, %B %e %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
+                kualalumpur.convert(post.updatedAt).strftime(
+                    r'%A, %B %e %Y at %I:%M %p'),
+                [
+                    [
+                        reply.content, reply.author.fullName, reply.author.email,
+                        kualalumpur.convert(reply.createdAt).strftime(
+                            r'%A, %B %e %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
+                        kualalumpur.convert(reply.updatedAt).strftime(
+                            r'%A, %B %e %Y at %I:%M %p')
+                    ] for reply in post.replies
+                ]
+            ) for post in posts
+        ]
+
+        return postContentList
 
     def loadDiscussionPost(self, postId):
         self.loadPostView()
