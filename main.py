@@ -2054,11 +2054,21 @@ class CourseView(Canvas):
             [self.exitMainFrame()]
         )
         coursecode = coursecode.lower()
+        print(coursecode)
         for widgetname, widget in self.mainframe.children.items():
             if isinstance(widget, Label) and not widgetname.startswith("!la"):
                 if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("loadedcoursebg"):
+                    # print("Getting removed", widgetname)
                     widget.grid_remove()
                 if widgetname.startswith(f"{coursecode}"):
+                    # print("Getting loaded", widgetname)
+                    widget.grid()
+            if isinstance(widget, Button):
+                if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("exitbutton"):
+                    # print("Getting removed", widgetname)
+                    widget.grid_remove()
+                if widgetname.startswith(f"{coursecode}"):
+                    # print("Getting loaded", widgetname)
                     widget.grid()
 
     def postLogin(self, data: dict):
@@ -2073,10 +2083,11 @@ class CourseView(Canvas):
             lecturerphone = lecturerinfo[i][2]
             self.detailsCreator(modulecode, moduletitle, moduledesc,
                                 lecturername, lectureremail, lecturerphone)
-
         self.loadcoursebuttons()
 
     def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
+        tupleofinfo = (modulecode, moduletitle, moduledesc,
+                       lecturername, lectureremail, lecturerphone)
         self.controller.textElement(
             imagepath=r"Assets\My Courses\coursetitlebg.png", xpos=20, ypos=20,
             classname=f"{modulecode}_title", root=self.mainframe, text=moduletitle, size=60, xoffset=-4,
@@ -2097,6 +2108,32 @@ class CourseView(Canvas):
             imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=360,
             classname=f"{modulecode}_lecphone", root=self.mainframe, text=lecturerphone, size=28, xoffset=-1,
         )
+        self.controller.buttonCreator(
+            imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
+            classname=f"{modulecode}_discussions", root=self.mainframe,
+            buttonFunction=lambda: self.loadDiscussionsView(modulecode)
+        )
+
+    def loadDiscussionsView(self, modulecode):
+        toast = ToastNotification(
+            title=f"Loading Discussions for {modulecode}",
+            message="Please wait while we load the discussions for this module",
+            bootstyle="info"
+        )
+        toast.show_toast()
+        discview = self.controller.widgetsDict["discussionsview"]
+        discview.callLoadLatestPosts(modulecode)
+        toast.hide_toast()
+        toast2 = ToastNotification(
+            title=f"Discussions for {modulecode} loaded",
+            message="The discussions for this module have been loaded",
+            bootstyle="success",
+            duration=500,
+        )
+        discview.modulecodevar.set(modulecode)
+        discview.menubutton.configure(text=modulecode)
+        toast2.show_toast()
+        self.controller.show_canvas(DiscussionsView)
 
     def exitMainFrame(self):
         self.mainframe.grid_remove()
@@ -2235,6 +2272,7 @@ class DiscussionsView(Canvas):
         self.postcontenttext.grid(
             column=textxpos, row=textypos, columnspan=textcolumnspan, rowspan=textrowspan, sticky=NSEW
         )
+
         self.creationframe.grid_remove()
         self.postviewframe.grid_remove()
 
@@ -2250,14 +2288,14 @@ class DiscussionsView(Canvas):
         self.staticBtns = [
             (r"Assets\DiscussionsView\creatediscussion.png", 80, 120, "creatediscussionbtn", self,
              lambda: self.loadPostCreation()),
+            (r"Assets\DiscussionsView\refreshbutton.png", 860, 220, "refreshbtn", self,
+             lambda: self.callLoadLatestPosts(self.modulecodevar.get())),
             (r"Assets\DiscussionsView\cancelbuttondisc.png", 40, 760, "cancelbtncreation", self.creationframe,
              lambda: self.unloadPostCreation()),
             (r"Assets\DiscussionsView\createpostbuttondisc.png", 480, 760, "postbtncreation", self.creationframe,
              lambda: self.threadStart()),
             (r"Assets\My Courses\exitbutton.png", 1840, 0, "cancelbtnview", self.postviewframe,
              lambda: self.unloadPostView()),
-            (r"Assets\DiscussionsView\refreshbutton.png", 860, 220, "refreshbtn", self,
-             lambda: self.callLoadLatestPosts()),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
@@ -2277,15 +2315,16 @@ class DiscussionsView(Canvas):
         self.creationframe.grid()
         self.creationframe.tkraise()
         self.controller.widgetsDict["posttitleent"].delete(0, END)
-        self.contenttext.delete("1.0", END)
+        self.postcontenttext.delete("1.0", END)
         self.controller.widgetsDict["posttitleent"].focus_set()
         self.controller.widgetsDict["posttitleent"].bind(
-            "<Return>", lambda event: self.contenttext.focus_set()
+            "<Return>", lambda event: self.postcontenttext.focus_set()
         )
 
     def postLogin(self, data: dict = None, prisma: Prisma = None):
         self.prisma = prisma
         self.userId = data["id"]
+
         # posts = self.prisma.modulepost.find_many(
         #     order={
         #         "createdAt": "desc"
@@ -2325,6 +2364,35 @@ class DiscussionsView(Canvas):
         #         print("no replies")
         postContentList = self.loadLatestPosts(prisma=self.prisma)
         # print("the postidandtitlelist is: ", postContentList)
+        self.controller.frameCreator(
+            xpos=560, ypos=120, framewidth=400, frameheight=80, root=self,
+            classname="modulecodeframe", bg=WHITE
+        )
+        self.frameref = self.controller.widgetsDict["modulecodeframe"]
+        self.menubutton = ttk.Menubutton(
+            self.frameref, text="INT4004CEM", name="modulecodemenubtn", style="info.TMenubutton"
+        )
+        self.menubutton.grid(column=0, row=0,
+                             columnspan=int(400/20), rowspan=int(80/20), sticky=NSEW)
+        self.menubuttonmenu = Menu(
+            self.menubutton, tearoff=0, font=("Helvetica", 12))
+        self.modulecodevar = StringVar()
+        modules = prisma.module.find_many()
+        listofvalues = []
+        for module in modules:
+            if module.moduleCode == "INT4007CEM/INT4009CEM":
+                continue
+            listofvalues.append(module.moduleCode)
+        for value in listofvalues:
+            self.menubuttonmenu.add_radiobutton(
+                label=value, variable=self.modulecodevar, value=value,
+                command=lambda: [
+                    self.menubutton.config(text=self.modulecodevar.get()),
+                    self.callLoadLatestPosts(self.modulecodevar.get()),
+                    print(self.modulecodevar.get())]
+            )
+        self.modulecodevar.set("INT4004CEM")
+        self.menubutton["menu"] = self.menubuttonmenu
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
@@ -2358,17 +2426,23 @@ class DiscussionsView(Canvas):
         prisma.connect()
         title = self.controller.widgetsDict["posttitleent"].get()
         content = self.postcontenttext.get("1.0", END)
+        findmodule = prisma.module.find_first(
+            where={
+                "moduleCode": self.modulecodevar.get()
+            }
+        )
         module = prisma.modulepost.create(
             data={
                 "authorId": self.userId,
-                "moduleId": "clhrvr700000cvt9gwh6d7fk6",
+                "moduleId": findmodule.id,
                 "title": title,
                 "content": content,
             }
         )
         self.gif.grid_forget()
         print(f"Module Post:\n{module.json(indent=2)}")
-        postContentList = self.loadLatestPosts(prisma=prisma)
+        postContentList = self.loadLatestPosts(
+            prisma=prisma, moduleCode=self.modulecodevar.get())
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
@@ -2456,6 +2530,19 @@ class DiscussionsView(Canvas):
             imagepath=r"Assets\DiscussionsView\titleofthepost.png", xpos=60, ypos=40,
             classname="titleofthepost", root=self.postviewframe, isPlaced=True,
             text=f"{discussiontitle}", fg=BLACK, size=34, xoffset=-2
+        )
+        # MODULE CODE
+        self.controller.textElement(
+            imagepath=r"Assets\DiscussionsView\modulecode.png", xpos=100, ypos=120,
+            classname="modulecode", root=self.postviewframe, isPlaced=True,
+            text=f"SOC / BCSCU / {self.modulecodevar.get()}", fg=BLACK, size=36, xoffset=-1
+        )
+        # REFRESH BUTTON
+        self.controller.buttonCreator(
+            imagepath=r"Assets\DiscussionsView\refreshbutton.png", xpos=1160, ypos=20,
+            classname="repliesrefreshbtn", root=self.postviewframe, isPlaced=True,
+            buttonFunction=lambda: self.callLoadLatestReplies(
+                postId, moduleCode=self.modulecodevar.get())
         )
         # PURPLE BG
         # Normal size is 1100 x 660
@@ -2605,21 +2692,21 @@ class DiscussionsView(Canvas):
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\addreply.png", xpos=1620, ypos=780,
             classname="addreply", root=self.postviewframe, isPlaced=True,
-            buttonFunction=lambda: self.replyThreaded(postId)
+            buttonFunction=lambda: self.replyThreaded(
+                postId, self.modulecodevar.get())
         )
 
     def clearReplyText(self):
         self.replytextwidget.delete('1.0', END)
 
-    def replyThreaded(self, postId):
-        t = threading.Thread(target=self.addReply, args=(postId,))
+    def replyThreaded(self, postId, moduleCode: str = "INT4004CEM"):
+        t = threading.Thread(target=self.addReply, args=(postId, moduleCode))
         t.daemon = True
         t.start()
 
-    def addReply(self, postId):
+    def addReply(self, postId, moduleCode: str = "INT4004CEM"):
         replytext = self.replytextwidget.get("1.0", END)
-        prisma = Prisma()
-        prisma.connect()
+        prisma = self.prisma
         reply = prisma.reply.create(
             data={
                 "content": replytext,
@@ -2627,48 +2714,38 @@ class DiscussionsView(Canvas):
                 "authorId": self.userId,  # taken from postlogin
             }
         )
-        postContentList = self.loadLatestPosts(prisma)
-        heightofframe = len(postContentList) * 100
-        # minimum height of frame is 500 for 5 posts
-        if heightofframe < 500:
-            rowspanofFrame = int(500/20)
-        else:
-            rowspanofFrame = int(heightofframe/20)
-        self.postscrolledframe = ScrolledFrame(
-            self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
-        )
-        gridGenerator(self.postscrolledframe, int(
-            840/20), rowspanofFrame, WHITE)
-        self.postscrolledframe.grid_propagate(False)
-        self.postscrolledframe.place(x=100, y=320, width=840, height=500)
-        self.loadDiscussionTopics(postContentList)
-        for tuple in postContentList:
-            if tuple[0] == postId:
-                self.loadPostView(tuple)
-                break
+        self.refreshReplies(postId, prisma, moduleCode)
         # self.postviewframe.grid_remove()
         print(f"Reply:\n: {reply.json(indent=2)}")
 
-    def callLoadLatestPosts(self):
-        # prisma = Prisma()
-        # prisma.connect()
+    def callLoadLatestPosts(self, moduleCode: str = "INT4004CEM"):
         prisma = self.prisma
-        t = threading.Thread(target=self.loadLatestPosts, args=(prisma,))
+        t = threading.Thread(target=self.refreshPosts,
+                             args=(prisma, moduleCode))
         t.daemon = True
         t.start()
-    def loadLatestPosts(self, prisma: Prisma = None):
-        toast = ToastNotification(
-            title="Just a moment...",
-            message="Loading latest posts...",
-            bootstyle=INFO,
-        )
-        toast.show_toast()
+
+    def callLoadLatestReplies(self, postId, moduleCode: str = "INT4004CEM"):
+        prisma = self.prisma
+        t = threading.Thread(target=self.refreshReplies,
+                             args=(postId, prisma, moduleCode))
+        t.daemon = True
+        t.start()
+
+    def loadLatestPosts(self, prisma: Prisma = None, moduleCode: str = "INT4004CEM"):
         posts = prisma.modulepost.find_many(
             include={
                 "author": True,
                 "replies": {
                     "include": {
                         "author": True
+                    }
+                }
+            },
+            where={
+                "module": {
+                    "is": {
+                        "moduleCode": moduleCode
                     }
                 }
             }
@@ -2695,6 +2772,29 @@ class DiscussionsView(Canvas):
                 ]
             ) for post in posts
         ]
+        return postContentList
+
+    def refreshPosts(self, prisma: Prisma = None, moduleCode: str = "INT4004CEM"):
+        toast = ToastNotification(
+            title="Just a moment...",
+            message="Loading latest posts...",
+            bootstyle=INFO,
+        )
+        toast.show_toast()
+        postContentList = self.loadLatestPosts(prisma, moduleCode)
+        heightofframe = len(postContentList) * 100
+        if heightofframe < 500:
+            rowspanofFrame = int(500/20)
+        else:
+            rowspanofFrame = int(heightofframe/20)
+        self.postscrolledframe = ScrolledFrame(
+            self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
+        )
+        gridGenerator(self.postscrolledframe, int(
+            840/20), rowspanofFrame, WHITE)
+        self.postscrolledframe.grid_propagate(False)
+        self.postscrolledframe.place(x=100, y=320, width=840, height=500)
+        self.loadDiscussionTopics(postContentList)
         toast.hide_toast()
         newtoast = ToastNotification(
             title="Done!",
@@ -2705,9 +2805,28 @@ class DiscussionsView(Canvas):
         newtoast.show_toast()
         return postContentList
 
-    def loadDiscussionPost(self, postId):
-        self.loadPostView()
-        pass
+    def refreshReplies(self, postId, prisma, moduleCode: str = "INT4004CEM"):
+        toast = ToastNotification(
+            title="Just a moment...",
+            message=f"Fetching latest replies for Post {postId}",
+            bootstyle=INFO,
+        )
+        toast.show_toast()
+        postContentList = self.refreshPosts(prisma, moduleCode)
+        # probably can be refactored into a binary search
+        for tuple in postContentList:
+            if tuple[0] == postId:
+                self.loadPostView(tuple)
+                break
+        toast.hide_toast()
+        newtoast = ToastNotification(
+            title="Done!",
+            message="Latest replies loaded.",
+            bootstyle=SUCCESS,
+            duration=500,
+        )
+        newtoast.show_toast()
+
 
 class FavoritesView(Canvas):
     def __init__(self, parent, controller: Window):
