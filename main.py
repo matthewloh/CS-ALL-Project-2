@@ -2256,6 +2256,8 @@ class DiscussionsView(Canvas):
              lambda: self.threadStart()),
             (r"Assets\My Courses\exitbutton.png", 1840, 0, "cancelbtnview", self.postviewframe,
              lambda: self.unloadPostView()),
+            (r"Assets\DiscussionsView\refreshbutton.png", 860, 220, "refreshbtn", self,
+             lambda: self.callLoadLatestPosts()),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
@@ -2284,26 +2286,26 @@ class DiscussionsView(Canvas):
     def postLogin(self, data: dict = None, prisma: Prisma = None):
         self.prisma = prisma
         self.userId = data["id"]
-        posts = self.prisma.modulepost.find_many(
-            order={
-                "createdAt": "desc"
-            },
-            take=2,
-            include={
-                "replies": {
-                    "include": {
-                        "author": True
-                    }
-                },
-                "author": True,
-                "favoritedBy": True,
-            },
-        )
-        kualalumpur = timezone("Asia/Kuala_Lumpur")
-        for post in posts:
-            print(
-                f"Time of post: {kualalumpur.convert(post.createdAt).strftime(r'%A %B %e %Y %I:%M %p')}")
-            print(f"Post:\n{post.json(indent=2)}")
+        # posts = self.prisma.modulepost.find_many(
+        #     order={
+        #         "createdAt": "desc"
+        #     },
+        #     take=2,
+        #     include={
+        #         "replies": {
+        #             "include": {
+        #                 "author": True
+        #             }
+        #         },
+        #         "author": True,
+        #         "favoritedBy": True,
+        #     },
+        # )
+        # kualalumpur = timezone("Asia/Kuala_Lumpur")
+        # for post in posts:
+        #     print(
+        #         f"Time of post: {kualalumpur.convert(post.createdAt).strftime(r'%A %B %e %Y %I:%M %p')}")
+        #     print(f"Post:\n{post.json(indent=2)}")
         # for post in posts:
         #     # print(f"Post found:\n{post.json(indent=2)}, {post.id}")
         #     createdat = post.createdAt
@@ -2321,7 +2323,6 @@ class DiscussionsView(Canvas):
         #             print(reply.json(indent=2))
         #     except:
         #         print("no replies")
-
         postContentList = self.loadLatestPosts(prisma=self.prisma)
         # print("the postidandtitlelist is: ", postContentList)
         heightofframe = len(postContentList) * 100
@@ -2648,7 +2649,20 @@ class DiscussionsView(Canvas):
         # self.postviewframe.grid_remove()
         print(f"Reply:\n: {reply.json(indent=2)}")
 
+    def callLoadLatestPosts(self):
+        # prisma = Prisma()
+        # prisma.connect()
+        prisma = self.prisma
+        t = threading.Thread(target=self.loadLatestPosts, args=(prisma,))
+        t.daemon = True
+        t.start()
     def loadLatestPosts(self, prisma: Prisma = None):
+        toast = ToastNotification(
+            title="Just a moment...",
+            message="Loading latest posts...",
+            bootstyle=INFO,
+        )
+        toast.show_toast()
         posts = prisma.modulepost.find_many(
             include={
                 "author": True,
@@ -2681,13 +2695,19 @@ class DiscussionsView(Canvas):
                 ]
             ) for post in posts
         ]
-
+        toast.hide_toast()
+        newtoast = ToastNotification(
+            title="Done!",
+            message="Latest posts loaded.",
+            bootstyle=SUCCESS,
+            duration=500,
+        )
+        newtoast.show_toast()
         return postContentList
 
     def loadDiscussionPost(self, postId):
         self.loadPostView()
         pass
-
 
 class FavoritesView(Canvas):
     def __init__(self, parent, controller: Window):
