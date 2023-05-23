@@ -2778,7 +2778,7 @@ class DiscussionsView(Canvas):
     def refreshPosts(self, prisma: Prisma = None, moduleCode: str = "INT4004CEM"):
         toast = ToastNotification(
             title="Just a moment...",
-            message="Loading latest posts...",
+            message=f"Loading latest posts for {moduleCode}...",
             bootstyle=INFO,
         )
         toast.show_toast()
@@ -2799,7 +2799,7 @@ class DiscussionsView(Canvas):
         toast.hide_toast()
         newtoast = ToastNotification(
             title="Done!",
-            message="Latest posts loaded.",
+            message=f"Latest posts loaded for {moduleCode}.",
             bootstyle=SUCCESS,
             duration=500,
         )
@@ -2822,7 +2822,7 @@ class DiscussionsView(Canvas):
         toast.hide_toast()
         newtoast = ToastNotification(
             title="Done!",
-            message="Latest replies loaded.",
+            message=f"Latest replies loaded for {postId}.",
             bootstyle=SUCCESS,
             duration=500,
         )
@@ -2847,7 +2847,7 @@ class AppointmentsView(Canvas):
         gridGenerator(self, 96, 46, WHITE)
         self.createFrames()
         self.creationframe = self.controller.widgetsDict["appointmentscreation"]
-        self.viewFrame = self.controller.widgetsDict["appointmentsview"]
+        self.viewFrame = self.controller.widgetsDict["appointmentsmanage"]
         self.createElements()
         xpos = int(1420/20)
         ypos = int(140/20)
@@ -2901,12 +2901,18 @@ class AppointmentsView(Canvas):
              0, 0, "AppointmentsBG", self),
             (r"Assets\AppointmentsView\TitleLabel.png",
              0, 0, "AppointmentsHeader", self),
+            (r"Assets\AppointmentsView\appointmentcreationbg.png",
+             0, 0, "appcreationbg", self.creationframe),
         ]
         self.staticBtns = [
             (r"Assets\AppointmentsView\Create Appointment.png", 40, 600, "createappointmentbtn", self,
-            lambda: self.loadAppointmentCreation()),
+            lambda: self.loadAppCreation()),
             (r"Assets\AppointmentsView\manageappointments.png", 600, 600, "manageappointmentsbtn", self,
-            lambda: self.loadAppointmentView()),
+            lambda: self.loadAppView()),
+            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appcreateexitbtn", self.creationframe,
+             lambda: self.unloadAppCreation()),
+            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appviewexitbtn", self.viewFrame,
+             lambda: self.unloadAppView()),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
@@ -2917,7 +2923,7 @@ class AppointmentsView(Canvas):
         )
         self.controller.frameCreator(
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
-            classname="appointmentsview",
+            classname="appointmentsmanage",
         )
     def postLogin(self, data: dict=None, prisma: Prisma=None):
         self.prisma = prisma
@@ -2964,6 +2970,19 @@ class AppointmentsView(Canvas):
             ) for app in appointments
         ] 
         return appContentList
+    def loadAppCreation(self):
+        self.creationframe.grid()
+        self.creationframe.tkraise()
+
+    def unloadAppCreation(self):
+        self.creationframe.grid_remove()
+
+    def loadAppView(self):
+        self.viewFrame.grid()
+        self.viewFrame.tkraise()
+
+    def unloadAppView(self):
+        self.viewFrame.grid_remove()
         # for app in appointments:
         #     print(app)
     #     self.controller.frameCreator(
@@ -3054,14 +3073,17 @@ class AppointmentsView(Canvas):
 def runGui():
     window = Window()
     window.mainloop()
-
+    
+def runGuiThreaded():
+    t = Thread(ThreadStart(runGui))
+    t.ApartmentState = ApartmentState.STA
+    t.Start()
+    t.Daemon = True
+    t.Join()
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     t = Thread(ThreadStart(runGui))
-    #     t.ApartmentState = ApartmentState.STA
-    #     t.Start()
-    #     t.Join()
-    # except Exception as e:
-    #     print("sorry")
+    # runGui()
+    try:
+        runGuiThreaded()
+    except Exception as e:
+        print("sorry")
