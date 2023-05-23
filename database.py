@@ -1,6 +1,6 @@
 import json
 import logging
-import datetime
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 # ~~~~ MYSQL ~~~~
@@ -889,7 +889,6 @@ def checkModuleEnrollMents():
     #     except AttributeError:
     #         print("No student")
         # print(m.json(indent=2))
-import datetime
 def createAppointment():
     prisma.connect()
     prisma.appointment.delete_many()
@@ -918,9 +917,9 @@ def createAppointment():
             "location": "Zoom",
             # human readable to datetime today it's 18/05/2023
             # a meeting from 18/05/2023 10:00AM to 18/05/2023 11:00AM
-            "startTime": datetime.datetime(year=2023, month=5, day=18, hour=10, minute=0, second=0),
-            "endTime": datetime.datetime(year=2023, month=5, day=18, hour=11, minute=0, second=0),
-            "date": datetime.datetime(year=2023, month=5, day=18, hour=0, minute=0, second=0),
+            "startTime": datetime.now(),
+            "endTime": datetime.now(),
+            "date": datetime.today(),
         },
         include={
             "lecturer": {
@@ -955,6 +954,10 @@ def createAppointment():
                     }
                 }
             ).id,
+            "startTime": datetime.now(timezone.utc).astimezone(),
+            "endTime": datetime.now() + timedelta(hours=1),
+            "date": datetime.now(),
+            "location": "Teams"
         },
         include={
             "lecturer": {
@@ -1076,6 +1079,6 @@ if __name__ == "__main__":
     # usingpartialTypes()
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
-    # createAppointment()
+    createAppointment()
     # createModulePost()
-    queryPosts()
+    # queryPosts()

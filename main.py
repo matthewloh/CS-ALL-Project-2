@@ -369,6 +369,8 @@ class Window(ttk.Window):
             courseview.postLogin(data)
             discussionsview = self.widgetsDict["discussionsview"]
             discussionsview.postLogin(data, prisma)
+            appointmentsview= self.widgetsDict["appointmentsview"]
+            appointmentsview.postLogin(data, prisma)
         # prisma.disconnect()
         except Exception as e:
             print(e)
@@ -1127,7 +1129,7 @@ class Window(ttk.Window):
 
         if buttonFunction:
             if isPlaced:
-                Button(root, image=image,
+                Button(root, image=image, cursor="hand2",
                        command=lambda: buttonFunction() if buttonFunction else print(
                            "No function assigned to button"),
                        relief=relief,
@@ -1135,7 +1137,7 @@ class Window(ttk.Window):
                     x=xpos, y=ypos, width=placedwidth, height=placedheight
                 )
             else:
-                Button(root, image=image,
+                Button(root, image=image, cursor="hand2",
                        command=lambda: buttonFunction() if buttonFunction else print(
                            "No function assigned to button"),
                        relief=relief,
@@ -2324,7 +2326,6 @@ class DiscussionsView(Canvas):
     def postLogin(self, data: dict = None, prisma: Prisma = None):
         self.prisma = prisma
         self.userId = data["id"]
-
         # posts = self.prisma.modulepost.find_many(
         #     order={
         #         "createdAt": "desc"
@@ -2843,29 +2844,17 @@ class AppointmentsView(Canvas):
                         name="appointmentsview", autostyle=False)
         self.controller = controller
         self.parent = parent
-        self.name = "appointmentsview"
         gridGenerator(self, 96, 46, WHITE)
-        self.controller.frameCreator(
-            root=self, xpos=0, ypos=0,
-            framewidth=1920, frameheight=920, classname="appointmentsdash"
-        )
-        self.mainframe = self.controller.widgetsDict["appointmentsdash"]
-        self.staticImgLabels = [
-            (r"Assets\AppointmentsView\appointmentsdashboard.png",
-             0, 0, "AppointmentsBG", self),
-            (r"Assets\AppointmentsView\TitleLabel.png",
-             0, 0, "AppointmentsHeader", self),
-        ]
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.createFrames()
+        self.creationframe = self.controller.widgetsDict["appointmentscreation"]
+        self.viewFrame = self.controller.widgetsDict["appointmentsview"]
+        self.createElements()
         xpos = int(1420/20)
         ypos = int(140/20)
         columnspan = int(460/20)
         rowspan = int(40/20)
-        dateentrystyle = ttk.Style().configure(
-            "yes.TEntry", font=("Helvetica", 20), foreground=BLACK,
-            background=ORANGE)
         self.dateentry = DateEntry(
-            self, width=1, style="yes.TEntry",
+            self, width=1,
         )
         self.dateentry.grid(row=ypos, column=xpos,
                             columnspan=columnspan, rowspan=rowspan, sticky=NSEW)
@@ -2903,6 +2892,80 @@ class AppointmentsView(Canvas):
                 text=f"Placeholder event {i}", buttonFunction=lambda i=i: print(f"event {i} clicked"), isPlaced=True
             )
             initialypos += 40
+        self.creationframe.grid_remove()
+        self.viewFrame.grid_remove()
+
+    def createElements(self):
+        self.staticImgLabels = [
+            (r"Assets\AppointmentsView\appointmentsdashboard.png",
+             0, 0, "AppointmentsBG", self),
+            (r"Assets\AppointmentsView\TitleLabel.png",
+             0, 0, "AppointmentsHeader", self),
+        ]
+        self.staticBtns = [
+            (r"Assets\AppointmentsView\Create Appointment.png", 40, 600, "createappointmentbtn", self,
+            lambda: self.loadAppointmentCreation()),
+            (r"Assets\AppointmentsView\manageappointments.png", 600, 600, "manageappointmentsbtn", self,
+            lambda: self.loadAppointmentView()),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.controller.settingsUnpacker(self.staticBtns, "button")
+    def createFrames(self):
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="appointmentscreation",
+        )
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="appointmentsview",
+        )
+    def postLogin(self, data: dict=None, prisma: Prisma=None):
+        self.prisma = prisma
+        self.userId = data["id"]
+        self.data = data
+        appContentList = self.loadLatestAppointments(prisma=self.prisma, userId=self.userId)
+        print(appContentList)
+    def loadLatestAppointments(self, prisma: Prisma=None, userId: str=None):
+        appointments = prisma.appointment.find_many(
+            include={
+                "lecturer": {
+                    "include": {
+                        "userProfile": True
+                    }
+                },
+                "student": {
+                    "include": {
+                        "userProfile": True
+                    }
+                } 
+            },
+            where={
+                "student": {
+                    "is": {
+                        "userId": userId
+                    }
+                }
+            }
+        )
+        kualalumpur = timezone("Asia/Kuala_Lumpur")
+        appContentList = [
+            (
+                app.id, 
+                (app.startTime.date(), app.startTime.day, app.startTime.month, app.startTime.year, app.startTime.hour, app.startTime.minute),
+                (app.endTime, app.endTime.month, app.endTime.year, app.endTime.hour, app.endTime.minute),
+                app.date, app.location,  
+                app.student.userProfile.fullName,
+                app.lecturer.userProfile.fullName,                
+                app.isAccepted, app.isCompleted, 
+                kualalumpur.convert(app.createdAt).strftime(
+                    r"%A, %B %e %Y at %I:%M %p"),
+                kualalumpur.convert(app.updatedAt).strftime(
+                    r"%A, %B %e %Y at %I:%M %p"),
+            ) for app in appointments
+        ] 
+        return appContentList
+        # for app in appointments:
+        #     print(app)
     #     self.controller.frameCreator(
     #         xpos=120, ypos=580,
     #         framewidth=1160, frameheight=180,
