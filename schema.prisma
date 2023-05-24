@@ -34,7 +34,7 @@ model Lecturer {
   tenure       Tenure        @default(FULLTIME)
   userId       String
   schoolId     String
-  userProfile  UserProfile   @relation(fields: [userId], references: [id])
+  userProfile  UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
   modules      Module[]
   school       School        @relation(fields: [schoolId], references: [id])
   appointments Appointment[]
@@ -55,8 +55,8 @@ model Appointment {
   date        DateTime?
   studentId   String
   lecturerId  String
-  student     Student   @relation(fields: [studentId], references: [id])
-  lecturer    Lecturer  @relation(fields: [lecturerId], references: [id])
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lecturer    Lecturer  @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([lecturerId])
@@ -86,7 +86,7 @@ model Student {
   id           String             @id @default(cuid())
   session      Sessions           @default(APR2023)
   userId       String
-  userProfile  UserProfile        @relation(fields: [userId], references: [id])
+  userProfile  UserProfile        @relation(fields: [userId], references: [id], onDelete: Cascade)
   schoolId     String?
   school       School?            @relation(fields: [schoolId], references: [id])
   modules      ModuleEnrollment[]

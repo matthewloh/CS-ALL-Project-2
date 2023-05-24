@@ -1065,6 +1065,55 @@ def queryPosts():
         # print(f"Author:\n{post.author.json(indent=2)}\n")
         # print(f"Student:\n{post.author.student.json(indent=2)}\n")
         # print(f"User Profile:\n{post.author.json(indent=2)}\n")
+
+def queryModules():
+    prisma.connect()
+    lecturer = prisma.lecturer.find_first(
+        where={
+            "userProfile": {
+                "is": {
+                    "email": "vaithegy.doraisamy@newinti.edu.my"
+                }
+            }
+        },
+        include={
+            "userProfile": True,
+            "appointments": {
+                "include": {
+                    "student": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    }
+                }
+            },
+            "modules": {
+                "include": {
+                    "moduleEnrollments": {
+                        "include": {
+                            "student": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            }
+                        }
+                    },
+                    "modulePosts": True
+                    # {
+                    #     # "include": {
+                    #     #     "replies": {
+                    #     #         "include": {
+                    #     #             "author": True
+                    #     #         }
+                    #     #     }
+                    #     # }
+                    # }
+                }
+            }
+        }
+    )
+    modules = lecturer.modules
+    print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1079,6 +1128,7 @@ if __name__ == "__main__":
     # usingpartialTypes()
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
-    createAppointment()
+    # createAppointment()
     # createModulePost()
     # queryPosts()
+    queryModules()

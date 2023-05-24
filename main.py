@@ -154,6 +154,7 @@ class Window(ttk.Window):
         self.widgetsDict["backbutton"].grid_remove()
         self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
         self.show_canvas(DashboardCanvas)
+        self.bind("<F11>", lambda e: self.togglethewindowbar())
 
     def returnWidgetsDict(self):
         return self.widgetsDict
@@ -299,6 +300,12 @@ class Window(ttk.Window):
 
     def signIn(self):
         try:
+            toast = ToastNotification(
+                title="Signing in",
+                message=f"Signing in...",
+                bootstyle=INFO,
+            )
+            toast.show_toast()
             prisma = Prisma()
             prisma.connect()
             emailtext = self.widgetsDict["signinemail"].get()
@@ -307,10 +314,23 @@ class Window(ttk.Window):
                 where={
                     "email": emailtext
                 },
+                include={
+                    "student": True,
+                    "lecturer": True,
+                }
             )
+            isTeacher = False
+            isStudent = False
+            if user.student == []:
+                isTeacher = True
+            else:
+                isStudent = True
+
             validated = self.validatePassword(
                 password=entrytext, encrypted=user.password)
+
             if not validated:
+                toast.hide_toast()
                 toast = ToastNotification(
                     title="Error",
                     message=f"Incorrect password",
@@ -318,8 +338,8 @@ class Window(ttk.Window):
                 )
                 toast.show_toast()
                 return
-
-            if user.email.endswith("@student.newinti.edu.my"):
+            print("Is teacher? ", isTeacher, "or is Student?", isStudent)
+            if isStudent:
                 student, moduleenrollments = self.setUserContext(
                     userId=user.id, role="student", prisma=prisma)
                 modulesOfStudent = []
@@ -345,31 +365,50 @@ class Window(ttk.Window):
                     "email": student.userProfile.email,
                     "modules": modulesOfStudent,
                     "lecturerinfo": lecturerinfo,
+                    "role": "student",
                 }
-            elif user.email.endswith("@newinti.edu.my"):
-                lecturer = self.setUserContext(
+            elif isTeacher:
+                lecturer, modules = self.setUserContext(
                     userId=user.id, role="lecturer", prisma=prisma)
-                for m in lecturer.modules:
-                    print(m.module.moduleCode)
-                    print(m.module.moduleTitle, m.module.moduleDesc)
-                print(f"Lecturer:\n{lecturer.json(indent=2)}")
+                modulesOfLecturer = []
+                studentinfo = []
+                for mod in modules:
+                    modtup = (mod.moduleCode, mod.moduleTitle, mod.moduleDesc)
+                    modulesOfLecturer.append(modtup)
+                    for me in mod.moduleEnrollments:
+                        studentinfo.append(
+                            (me.student.userProfile.fullName,
+                             me.student.userProfile.email,
+                             me.student.userProfile.contactNo)
+                        )
+                data = {
+                    "id": lecturer.userProfile.id,
+                    "fullName": lecturer.userProfile.fullName,
+                    "email": lecturer.userProfile.email,
+                    "modules": modulesOfLecturer,
+                    "studentinfo": studentinfo,
+                    "role": "lecturer",
+                }
+            toast.hide_toast()
             toast = ToastNotification(
                 title="Success",
                 message=f"Successfully logged in as {user.fullName}",
                 duration=3000,
+                bootstyle=SUCCESS,
             )
             toast.show_toast()
             self.show_frame(Dashboard)
             self.show_canvas(DashboardCanvas)
+            # for page in ["dashboard", "courseview", "discussionsview", "appointmentsview"]:
+            #     self.widgetsDict[page].postLogin(data, prisma)
             dashboard = self.widgetsDict["dashboard"]
-            dashboard.loadSpecificAssets(
-                "student")
+            dashboard.loadSpecificAssets(data["role"])
             dashboard.postLogin(data)
             courseview = self.widgetsDict["courseview"]
             courseview.postLogin(data)
             discussionsview = self.widgetsDict["discussionsview"]
             discussionsview.postLogin(data, prisma)
-            appointmentsview= self.widgetsDict["appointmentsview"]
+            appointmentsview = self.widgetsDict["appointmentsview"]
             appointmentsview.postLogin(data, prisma)
         # prisma.disconnect()
         except Exception as e:
@@ -430,26 +469,26 @@ class Window(ttk.Window):
 
     def updateWidgetsDict(self, root: Frame):
         for widgetname, widget in self.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in self.parentFrame.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in self.postSelectFrame.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in root.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         try:
             for widgetname, widget in self.get_page(Dashboard).children.items():
-                if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+                if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
                     self.widgetsDict[widgetname] = widget
         except:
             pass
         try:
             for widgetname, widget in self.widgetsDict["maincanvas"].children.items():
-                if isinstance(widget, (Label, Button, Frame, Canvas, Entry)) and not widgetname.startswith("!la"):
+                if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
                     self.widgetsDict[widgetname] = widget
         except:
             pass
@@ -1010,7 +1049,8 @@ class Window(ttk.Window):
             # frame.evaluate_js("document.activeElement.blur();")
             ctypes.windll.user32.SetForegroundWindow(
                 ctypes.windll.kernel32.GetConsoleWindow())
-            self.widgetsDict[f"{classname}urlentry"].focus()
+            self.widgetsDict[f"{classname}urlentry"].focus_set()
+            self.focus_set()
 
         self.buttonCreator(r"Assets\Chatbot\Backbutton.png", 0, 0, classname=f"{classname}backbutton",
                            buttonFunction=lambda: goBack(),
@@ -1088,14 +1128,28 @@ class Window(ttk.Window):
                 },
                 include={
                     "userProfile": True,
-                    "modules": {
-                        "include": {
-                            "module": True,
-                        }
-                    }
                 }
             )
-            return lecturer
+            modules = prisma.module.find_many(
+                where={
+                    "lecturerId": lecturer.id
+                },
+                include={
+                    "moduleEnrollments": {
+                        "include": {
+                            "student": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            }
+                        }
+                    },
+                }
+            )
+            for m in modules:
+                for me in m.moduleEnrollments:
+                    me.student.userProfile.fullName
+            return lecturer, modules
         # prisma.disconnect()
 
     def textElement(self, imagepath, xpos, ypos, classname=None,
@@ -1262,9 +1316,9 @@ class UserForms(Frame):
             "school": ["SOC", "SOE", "CEPS", "SOBIZ"],
             "tenure": ["FULLTIME", "PARTTIME"],
             "programme": ["BCSCU", "BCTCU", "DCS", "DCIT", "Unlisted"],
-            "course1": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", ""],
-            "course2": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", ""],
-            "course3": ["Computer Architecture & Network", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning 2", ""]
+            "course1": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics for Computer Science", "Computer Science Activity Led Learning Project 2", ""],
+            "course2": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning Project 2", ""],
+            "course3": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning Project 2", ""]
         }
         self.institution = StringVar(name=f"{self.name}institution")
         self.school = StringVar(name=f"{self.name}school")
@@ -1611,6 +1665,7 @@ class UserForms(Frame):
                                 "email": data["email"],
                                 "password": data["password"],
                                 "contactNo": data["contactNo"],
+                                "isAdmin": True,
                             }
                         },
                         "school": {
@@ -1813,45 +1868,41 @@ class Dashboard(Frame):
         self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas",
                                       bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
         # self.staticImgLabels = []
-        self.loadAllStaticAssets(self.staticImgBtns)
         self.maincanvasref = self.controller.widgetsDict["maincanvas"]
         self.controller.canvasCreator(0, 0, 1920, 920, root=self.maincanvasref, classname="dashboardcanvas",
                                       bgcolor=NICEBLUE, isTransparent=True, transparentcolor=LIGHTYELLOW)
         self.dashboardcanvasref = self.controller.widgetsDict["dashboardcanvas"]
-
-    def loadAllStaticAssets(self, button_settings, label_settings=None):
-        # self.controller.settingsUnpacker(label_settings, "label")
-        self.controller.settingsUnpacker(button_settings, "button")
+        self.controller.settingsUnpacker(self.staticImgBtns, "button")
 
     def loadSpecificAssets(self, role):
         self.controller.widgetsDict["dashboardcanvas"].tk.call(
             'raise', self.controller.widgetsDict["dashboardcanvas"]._w)
         if role == "student":
             self.controller.labelCreator(r"Assets\Dashboard\StudentDashboard.png", 0, 0,
-                                         classname="StudentDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
-            self.gif = AnimatedGif(
-                parent=self.controller.widgetsDict["dashboardcanvas"], controller=self.controller,
-                xpos=180, ypos=460, bg="#344557",
-                framewidth=400, frameheight=300, classname="cutebunny",
-                imagepath=r"Assets\bunnygifresized400x300.gif", imagexpos=0, imageypos=0)
-        elif role == "teacher":
-            self.controller.labelCreator(r"Assets\Dashboard\TeacherDashboard.png", 0, 80,
-                                         classname="TeacherDashboardLabel", root=self.controller.widgetsDict["dashboardcanvas"])
-        # self.controller.widgetRef("dashboardcanvas").tk.call('raise', self.controller.widgetRef("dashboardcanvas")._w)
+                                         classname="StudentDashboardLabel", root=self.dashboardcanvasref)
+        elif role == "lecturer":
+            self.controller.labelCreator(r"Assets\Dashboard\TeacherDashboard.png", 0, 0,
+                                         classname="TeacherDashboardLabel", root=self.dashboardcanvasref)
+        self.gif = AnimatedGif(
+            parent=self.controller.widgetsDict["dashboardcanvas"], controller=self.controller,
+            xpos=180, ypos=460, bg="#344557",
+            framewidth=400, frameheight=300, classname="cutebunny",
+            imagepath=r"Assets\bunnygifresized400x300.gif", imagexpos=0, imageypos=0)
 
-    def postLogin(self, data: dict):
+    def postLogin(self, data: dict, prisma: Prisma = None):
+        role = data["role"]
         id = data["id"]
         fullName = data["fullName"]
         email = data["email"]
         modules = data["modules"]
-        lecturerinfo = data["lecturerinfo"]
         # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
         cont = self.controller
         initialypos = 20
+        print(f"The modules are {modules}")
         for m in modules:
             cont.textElement(
                 imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=760, ypos=initialypos,
-                classname=f"{m[0]}title", root=self.dashboardcanvasref, text=m[1], size=30, xoffset=1,
+                classname=f"{m[0]}title", root=self.dashboardcanvasref, text=m[1], size=28, xoffset=-1,
                 buttonFunction=lambda e=m[0]: print(f"clicked {e}")
             )
             initialypos += 300
@@ -1884,7 +1935,9 @@ class TopBar(Frame):
             (r"Assets\Dashboard\HamburgerMenuTopBar.png", 0, 0, "HamburgerMenu",
              self.framereference, lambda: self.animatedpanel.animate()),
             (r"Assets\Dashboard\HomeButton.png", 760, 0, "homebutton",
-             self.framereference, lambda: print("gohome")),
+             self.framereference, lambda: [
+                 self.controller.show_canvas(DashboardCanvas)
+             ]),
             (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar",
              self.framereference, lambda: self.searchBarLogic()),
             (r"Assets\Dashboard\RibbonTopBar.png", 1760, 20,
@@ -2073,18 +2126,32 @@ class CourseView(Canvas):
                     # print("Getting loaded", widgetname)
                     widget.grid()
 
-    def postLogin(self, data: dict):
+    def postLogin(self, data: dict, prisma: Prisma = None):
         modules = data["modules"]
-        lecturerinfo = data["lecturerinfo"]
-        for i in range(3):
-            modulecode = modules[i][0]
-            moduletitle = modules[i][1]
-            moduledesc = modules[i][2]
-            lecturername = lecturerinfo[i][0]
-            lectureremail = lecturerinfo[i][1]
-            lecturerphone = lecturerinfo[i][2]
-            self.detailsCreator(modulecode, moduletitle, moduledesc,
-                                lecturername, lectureremail, lecturerphone)
+        role = data["role"]
+        if role == "student":
+            lecturerinfo = data["lecturerinfo"]
+            for i in range(3):
+                modulecode = modules[i][0]
+                moduletitle = modules[i][1]
+                moduledesc = modules[i][2]
+                lecturername = lecturerinfo[i][0]
+                lectureremail = lecturerinfo[i][1]
+                lecturerphone = lecturerinfo[i][2]
+                self.detailsCreator(modulecode, moduletitle, moduledesc,
+                                    lecturername, lectureremail, lecturerphone)
+        elif role == "lecturer":
+            studentinfo = data["studentinfo"]
+            for i in range(len(modules)):
+                modulecode = modules[i][0]
+                moduletitle = modules[i][1]
+                moduledesc = modules[i][2]
+                # print(modulecode, moduletitle, moduledesc)
+            for i in range(len(studentinfo)):
+                studentname = studentinfo[i][0]
+                studentemail = studentinfo[i][1]
+                studentphone = studentinfo[i][2]
+                # print(studentname, studentemail, studentphone)
         self.loadcoursebuttons()
 
     def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
@@ -2326,6 +2393,7 @@ class DiscussionsView(Canvas):
     def postLogin(self, data: dict = None, prisma: Prisma = None):
         self.prisma = prisma
         self.userId = data["id"]
+        print(f"User ID: {self.userId}")
         # posts = self.prisma.modulepost.find_many(
         #     order={
         #         "createdAt": "desc"
@@ -2390,7 +2458,7 @@ class DiscussionsView(Canvas):
                 command=lambda: [
                     self.menubutton.config(text=self.modulecodevar.get()),
                     self.callLoadLatestPosts(self.modulecodevar.get()),
-                    print(self.modulecodevar.get())]
+                ]
             )
         self.modulecodevar.set("INT4004CEM")
         self.menubutton["menu"] = self.menubuttonmenu
@@ -2426,7 +2494,7 @@ class DiscussionsView(Canvas):
         prisma = Prisma()
         prisma.connect()
         title = self.controller.widgetsDict["posttitleent"].get()
-        content = self.postcontenttext.get("1.0", END)
+        content = self.postcontenttext.get("1.0", 'end-1c')
         findmodule = prisma.module.find_first(
             where={
                 "moduleCode": self.modulecodevar.get()
@@ -2441,7 +2509,6 @@ class DiscussionsView(Canvas):
             }
         )
         self.gif.grid_forget()
-        print(f"Module Post:\n{module.json(indent=2)}")
         postContentList = self.loadLatestPosts(
             prisma=prisma, moduleCode=self.modulecodevar.get())
         heightofframe = len(postContentList) * 100
@@ -2478,6 +2545,9 @@ class DiscussionsView(Canvas):
             createdat = tupleofcontent[5]
             updatedat = tupleofcontent[6]
             repliesList = tupleofcontent[7]
+            authorId = tupleofcontent[8]
+            # if authorId == self.userId:
+            #     print(discussiontitle, authorId)
             # using tuple comprehension to get of them in one line
             imagepath = r"Assets\DiscussionsView\discussionstitlecomponentbg.png"
             xpos = initialcoordinates[0]
@@ -2514,6 +2584,8 @@ class DiscussionsView(Canvas):
         createdat = tupleofcontent[5]
         updatedat = tupleofcontent[6]
         repliesList = tupleofcontent[7]
+        authorId = tupleofcontent[8]
+        # print(author, authorId)
         self.controller.frameCreator(
             root=self.postviewframe, framewidth=1100, frameheight=660,
             classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
@@ -2575,13 +2647,29 @@ class DiscussionsView(Canvas):
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\exampleofapost.png", xpos=0, ypos=0,
             classname="exampleofapost", root=self.scrolledframe, isPlaced=True,
-            buttonFunction=lambda: print(f"{tupleofcontent} was clicked")
+            # buttonFunction=lambda: print(f"{tupleofcontent} was clicked")
         )
         # AUTHOR AND DATE
+        timestrfmt = r'%A, %B %d %Y at %I:%M %p'
+        datetimestr = datetime.now().strftime(timestrfmt)
+        if updatedat == createdat:
+            authoranddatetext = f"{author} posted on {createdat}"
+        else:
+            timedelta = datetime.strptime(
+                datetimestr, timestrfmt) - datetime.strptime(updatedat, timestrfmt)
+            if timedelta.days > 0:
+                timedelta = f"{timedelta.days} days"
+            elif timedelta.seconds//3600 > 0:
+                timedelta = f"{timedelta.seconds//3600} hours"
+            elif timedelta.seconds//60 > 0:
+                timedelta = f"{timedelta.seconds//60} minutes"
+            elif timedelta.seconds < 60:
+                timedelta = f"{timedelta.seconds} seconds"
+            authoranddatetext = f"{author} posted on {createdat} (updated {timedelta} ago)"
         self.controller.textElement(
             imagepath=r"Assets\DiscussionsView\fullnamepostedon.png", xpos=20, ypos=20,
             classname="fullnamepostedon", root=self.scrolledframe, isPlaced=True,
-            text=f"{author} posted on {createdat}", fg=BLACK, size=24, xoffset=-1
+            text=authoranddatetext, fg=BLACK, size=22, xoffset=-2
         )
         # EMAIL OF AUTHOR
         self.controller.textElement(
@@ -2607,6 +2695,19 @@ class DiscussionsView(Canvas):
             x=20, y=120, width=1060, height=120
         )
         self.contenttext.config(state=DISABLED)
+        # buttons to delete and edit the post
+        if self.userId == authorId:
+            self.controller.buttonCreator(
+                imagepath=r"Assets\DiscussionsView\edit.png", xpos=960, ypos=20,
+                classname="editpost", root=self.scrolledframe, isPlaced=True,
+                buttonFunction=lambda post=(
+                    postId, None, self.modulecodevar.get(), "contenttext", True): self.editReplyorPost(*post)
+            )
+            self.controller.buttonCreator(
+                imagepath=r"Assets\DiscussionsView\Trash.png", xpos=1020, ypos=20,
+                classname="deletepost", root=self.scrolledframe, isPlaced=True,
+                buttonFunction=lambda p=postId: print(f"{p} was clicked")
+            )
         # REPLIES under a post
         replycoordinates = (40, 280)
         authorCoordinates = (
@@ -2624,6 +2725,10 @@ class DiscussionsView(Canvas):
             repAuthorEmail = replies[2]
             repCreatedAt = replies[3]
             repUpdatedAt = replies[4]
+            replyId = replies[5]
+            repAuthorId = replies[6]
+            # if repAuthorId == self.userId:
+            #     print(replyAuthor, repAuthorId)
             authorCoordinates = (
                 replycoordinates[0] + 20, replycoordinates[1] + 20)
             textCoordinates = (
@@ -2634,11 +2739,27 @@ class DiscussionsView(Canvas):
                 classname=f"exampleofareply{replycounter}", root=self.scrolledframe, isPlaced=True,
                 buttonFunction=lambda rep=replies: print(f"{rep} was clicked")
             )
+            timestrfmt = r'%A, %B %d %Y at %I:%M %p'
+            datetimestr = datetime.now().strftime(timestrfmt)
+            if repUpdatedAt == repCreatedAt:
+                repAuthorDate = f"{replyAuthor} replied on {repCreatedAt}"
+            else:
+                timedelta = datetime.strptime(
+                    datetimestr, timestrfmt) - datetime.strptime(repUpdatedAt, timestrfmt)
+                if timedelta.days > 0:
+                    timedelta = f"{timedelta.days} days"
+                elif timedelta.seconds//3600 > 0:
+                    timedelta = f"{timedelta.seconds//3600} hours"
+                elif timedelta.seconds//60 > 0:
+                    timedelta = f"{timedelta.seconds//60} minutes"
+                elif timedelta.seconds < 60:
+                    timedelta = f"{timedelta.seconds} seconds"
+                repAuthorDate = f"{replyAuthor} replied on {repCreatedAt} (updated {timedelta} ago)"
             # reply author and date
             self.controller.textElement(
                 imagepath=r"Assets\DiscussionsView\fullnamepostedon.png", xpos=authorCoordinates[0], ypos=authorCoordinates[1],
                 classname=f"replydetailsfullnamedateemail{replycounter}", root=self.scrolledframe, isPlaced=True,
-                text=f"{replyAuthor} replied on {repCreatedAt}", fg=BLACK, size=24, xoffset=-1
+                text=repAuthorDate, fg=BLACK, size=22, xoffset=-2
             )
             # reply email
             self.controller.textElement(
@@ -2647,14 +2768,33 @@ class DiscussionsView(Canvas):
                 text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=0
             )
             # reply content
+            replytextname = f"replycontent{replycounter}"
+
             text = Text(
                 self.scrolledframe, width=1, height=1, bg=WHITE, fg=BLACK, font=("Arial", 16), wrap=WORD,
-                name=f"replycontent{replycounter}", padx=20, pady=20, relief=FLAT, bd=0, highlightthickness=0,
+                name=replytextname, padx=20, pady=20, relief=FLAT, bd=0, highlightthickness=0,
             )
             text.insert(END, replyContent)
             text.place(
                 x=textCoordinates[0], y=textCoordinates[1], width=1020, height=120
             )
+            # buttons to edit and delete a reply
+            if repAuthorId == self.userId:
+                # edit
+                self.controller.buttonCreator(
+                    imagepath=r"Assets\DiscussionsView\edit.png", xpos=authorCoordinates[0]+900, ypos=authorCoordinates[1],
+                    classname=f"editreply{replycounter}", root=self.scrolledframe, isPlaced=True,
+                    buttonFunction=lambda rep=(postId, replyId,
+                                               self.modulecodevar.get(), replytextname
+                                               ): self.editReplyorPost(*rep)
+                )
+                # delete
+                self.controller.buttonCreator(
+                    imagepath=r"Assets\DiscussionsView\Trash.png", xpos=authorCoordinates[0]+960, ypos=authorCoordinates[1],
+                    classname=f"deletereply{replycounter}", root=self.scrolledframe, isPlaced=True,
+                    buttonFunction=lambda rep=replyId: print(
+                        f"{rep} was clicked")
+                )
             text.config(state=DISABLED)
             replycounter += 1
             replycoordinates = (replycoordinates[0], replycoordinates[1] + 280)
@@ -2663,7 +2803,6 @@ class DiscussionsView(Canvas):
         partiCounter = 1
         try:
             for i in range(1, len(participants)+10):
-                print(f"{i}inpost")
                 self.controller.widgetsDict[f"{i}inpost"].grid_remove()
         except:
             pass
@@ -2677,7 +2816,7 @@ class DiscussionsView(Canvas):
             partiCoords = (partiCoords[0], partiCoords[1] + 40)
             partiCounter += 1
 
-        # CREATE REPLY REGION
+        # CREATE/EDIT REPLY REGION
         self.replytextwidget = Text(
             self.postviewframe, width=1, height=1, bg=WHITE, fg=BLACK, font=("Arial", 16), wrap=WORD,
             name="replytextwidget", padx=20, pady=20, relief=FLAT, bd=0, highlightthickness=0,
@@ -2685,17 +2824,35 @@ class DiscussionsView(Canvas):
         self.replytextwidget.place(
             x=1300, y=460, width=560, height=300
         )
+        self.controller.textElement(
+            imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+            classname="replyheader", root=self.postviewframe, isPlaced=True,
+            text="Add a reply:", fg=BLACK, size=36,
+        )
         self.controller.buttonCreator(
-            imagepath=r"Assets\DiscussionsView\cancelreply.png", xpos=1300, ypos=780,
-            classname="cancelreply", root=self.postviewframe, isPlaced=True,
+            imagepath=r"Assets\DiscussionsView\cancelreplyedit.png", xpos=1300, ypos=780,
+            classname="cancelreplyedit", root=self.postviewframe,
             buttonFunction=lambda: self.replytextwidget.delete('1.0', END)
         )
         self.controller.buttonCreator(
-            imagepath=r"Assets\DiscussionsView\addreply.png", xpos=1620, ypos=780,
-            classname="addreply", root=self.postviewframe, isPlaced=True,
+            imagepath=r"Assets\DiscussionsView\cancelreply.png", xpos=1300, ypos=780,
+            classname="cancelreply", root=self.postviewframe,
+            buttonFunction=lambda: self.replytextwidget.delete('1.0', END)
+        )
+        self.controller.buttonCreator(
+            imagepath=r"Assets\DiscussionsView\editreply.png", xpos=1620, ypos=780,
+            classname="editreply", root=self.postviewframe,
             buttonFunction=lambda: self.replyThreaded(
                 postId, self.modulecodevar.get())
         )
+        self.controller.buttonCreator(
+            imagepath=r"Assets\DiscussionsView\addreply.png", xpos=1620, ypos=780,
+            classname="addreply", root=self.postviewframe,
+            buttonFunction=lambda: self.replyThreaded(
+                postId, self.modulecodevar.get())
+        )
+        self.controller.widgetsDict["cancelreplyedit"].grid_remove()
+        self.controller.widgetsDict["editreply"].grid_remove()
 
     def clearReplyText(self):
         self.replytextwidget.delete('1.0', END)
@@ -2705,8 +2862,134 @@ class DiscussionsView(Canvas):
         t.daemon = True
         t.start()
 
+    def editReplyorPost(self, postId, replyId, moduleCode: str = "INT4004CEM", replytextname: Text = None, isPost: bool = False):
+        if isPost:
+            print(f"Editing post {postId} in module {moduleCode}")
+        else:
+            print(f"Editing reply {replyId} in post {postId} in module {moduleCode}")
+        textwidget = self.controller.widgetsDict[f"{replytextname}"]
+        addreplybtn = self.controller.widgetsDict["addreply"]
+        editreplybtn = self.controller.widgetsDict["editreply"]
+        cancelreplybtn = self.controller.widgetsDict["cancelreply"]
+        cancelreplyeditbtn = self.controller.widgetsDict["cancelreplyedit"]
+        addreplybtn.grid_remove()
+        editreplybtn.grid()
+        cancelreplybtn.grid_remove()
+        cancelreplyeditbtn.grid()
+        text = textwidget.get("1.0", 'end-1c')
+        self.replytextwidget.focus_set()
+        self.replytextwidget.delete('1.0', END)
+        self.replytextwidget.insert(END, text)
+        if isPost:
+            self.controller.textElement(
+                imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+                classname="replyheader", root=self.postviewframe, isPlaced=True,
+                text="Editing Post: ", fg=BLACK, size=36,
+            )
+            editreplybtn.config(
+                command=lambda: self.callUpdateReply(
+                    postId, replyId, moduleCode, replytextname, isPost=True)
+            )
+        else:
+            self.controller.textElement(
+                imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+                classname="replyheader", root=self.postviewframe, isPlaced=True,
+                text="Editing Reply: ", fg=BLACK, size=36,
+            )
+            editreplybtn.config(
+                command=lambda: self.callUpdateReply(
+                    postId, replyId, moduleCode, replytextname)
+            )
+        cancelreplyeditbtn.config(
+            command=lambda: [
+                addreplybtn.grid(),
+                editreplybtn.grid_remove(),
+                cancelreplybtn.grid(),
+                cancelreplyeditbtn.grid_remove(),
+                self.replytextwidget.delete('1.0', END),
+                self.controller.textElement(
+                    imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+                    classname="replyheader", root=self.postviewframe, isPlaced=True,
+                    text="Add a reply:", fg=BLACK, size=36,
+                )
+            ]
+        )
+
+    def callUpdateReply(self, postId, replyId, moduleCode: str = "INT4004CEM", replytextname: Text = None, isPost: bool = False):
+        t = threading.Thread(target=self.updateReply, args=(
+            postId, replyId, moduleCode, replytextname, isPost))
+        t.daemon = True
+        t.start()
+
+    def updateReply(self, postId, replyId, moduleCode: str = "INT4004CEM", replytextname: Text = None, isPost: bool = False):
+        if isPost:
+            toasttitle = "Updating Post"
+            toastmessage = "Please wait while we update your post..."
+        else:
+            toasttitle = "Updating Reply"
+            toastmessage = "Please wait while we update your reply..."
+        toast = ToastNotification(
+            title=toasttitle,
+            message=toastmessage,
+            bootstyle=INFO,
+        )
+        newtext = self.replytextwidget.get("1.0", 'end-1c')
+        toast.show_toast()
+        prisma = self.prisma
+        if isPost:
+            reply = prisma.modulepost.update(
+                data={
+                    "content": newtext,
+                },
+                where={
+                    "id": postId
+                }
+            )
+            newtoasttitle = "Post Updated"
+            newtoastmsg = "Your post has been updated successfully!"
+        else:
+            reply = prisma.reply.update(
+                data={
+                    "content": newtext,
+                },
+                where={
+                    "replyId": replyId
+                }
+            )
+            newtoasttitle = "Reply Updated"
+            newtoastmsg = "Your reply has been updated successfully!"
+        toast.hide_toast()
+        newtoast = ToastNotification(
+            title=newtoasttitle,
+            message=newtoastmsg,
+            bootstyle=SUCCESS,
+            duration=500,
+        )
+        newtoast.show_toast()
+        addreplybtn = self.controller.widgetsDict["addreply"]
+        editreplybtn = self.controller.widgetsDict["editreply"]
+        cancelreplybtn = self.controller.widgetsDict["cancelreply"]
+        cancelreplyeditbtn = self.controller.widgetsDict["cancelreplyedit"]
+        addreplybtn.grid(),
+        editreplybtn.grid_remove(),
+        cancelreplybtn.grid(),
+        cancelreplyeditbtn.grid_remove(),
+        self.controller.textElement(
+            imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+            classname="replyheader", root=self.postviewframe, isPlaced=True,
+            text="Add a reply:", fg=BLACK, size=36,
+        )
+        self.replytextwidget.delete('1.0', END)
+        self.refreshReplies(postId, prisma, moduleCode)
+
     def addReply(self, postId, moduleCode: str = "INT4004CEM"):
-        replytext = self.replytextwidget.get("1.0", END)
+        toast = ToastNotification(
+            title="Adding Reply",
+            message="Please wait while we add your reply...",
+            bootstyle=INFO,
+        )
+        toast.show_toast()
+        replytext = self.replytextwidget.get("1.0", 'end-1c')
         prisma = self.prisma
         reply = prisma.reply.create(
             data={
@@ -2715,9 +2998,15 @@ class DiscussionsView(Canvas):
                 "authorId": self.userId,  # taken from postlogin
             }
         )
+        toast.hide_toast()
+        newtoast = ToastNotification(
+            title="Reply Added",
+            message="Your reply has been added successfully!",
+            bootstyle=SUCCESS,
+            duration=500,
+        )
+        newtoast.show_toast()
         self.refreshReplies(postId, prisma, moduleCode)
-        # self.postviewframe.grid_remove()
-        print(f"Reply:\n: {reply.json(indent=2)}")
 
     def callLoadLatestPosts(self, moduleCode: str = "INT4004CEM"):
         prisma = self.prisma
@@ -2759,18 +3048,20 @@ class DiscussionsView(Canvas):
             (
                 post.id, post.title, post.content, post.author.fullName, post.author.email,
                 kualalumpur.convert(post.createdAt).strftime(
-                    r'%A, %B %e %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
+                    r'%A, %B %d %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
                 kualalumpur.convert(post.updatedAt).strftime(
-                    r'%A, %B %e %Y at %I:%M %p'),
+                    r'%A, %B %d %Y at %I:%M %p'),
                 [
                     [
                         reply.content, reply.author.fullName, reply.author.email,
                         kualalumpur.convert(reply.createdAt).strftime(
-                            r'%A, %B %e %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
+                            r'%A, %B %d %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
                         kualalumpur.convert(reply.updatedAt).strftime(
-                            r'%A, %B %e %Y at %I:%M %p')
+                            r'%A, %B %d %Y at %I:%M %p'),
+                        reply.replyId, reply.authorId,
                     ] for reply in post.replies
-                ]
+                ],
+                post.authorId
             ) for post in posts
         ]
         return postContentList
@@ -2861,14 +3152,30 @@ class AppointmentsView(Canvas):
         self.scrolledframe = ScrolledFrame(
             self, width=1, height=1, name="appointmentscrolledframe", autohide=True, padding=0
         )
-        self.scrolledframe.grid(
-            row=int(180/20), column=int(1420/20), columnspan=int(460/20), rowspan=int(700/20), sticky=NSEW
-        )
+        # self.scrolledframe.grid(
+        #     row=int(180/20), column=int(1420/20), columnspan=int(460/20), rowspan=int(700/20), sticky=NSEW
+        # )
         self.scrolledframe.grid_propagate(False)
-        gridGenerator(self.scrolledframe, int(460/20), int(960/20), DARKBLUE)
-        # there has to be a better way to do this, to generate the hours in 24 hours format
-        # like :
-        # from datetime import datetime
+        # gridGenerator(self.scrolledframe, int(460/20), int(960/20), DARKBLUE)
+        self.controller.frameCreator(
+            xpos=1420, ypos=180, framewidth=460, frameheight=680, root=self,
+            classname="appcanvasframe",
+        )
+        self.appcanvasframe = self.controller.widgetsDict["appcanvasframe"]
+        self.controller.canvasCreator(
+            xpos=0, ypos=0, width=460, height=960, root=self.appcanvasframe,
+            classname="appdisplaycanvas",
+            # xpos=0, ypos=0, framewidth=460, frameheight=960, root=self,
+            # classname="appdisplayframe",
+        )
+        self.appdisplayframe = self.controller.widgetsDict["appdisplaycanvas"]
+        self.scrollbar = Scrollbar(
+            self.appdisplayframe, orient=VERTICAL, command=self.appdisplayframe.yview
+        )
+        self.appdisplayframe.configure(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.place(x=440, y=0, width=20, height=960)
+        self.appdisplayframe.configure(
+            scrollregion=self.appdisplayframe.bbox("all"))
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print("Current Time =", current_time)
@@ -2883,13 +3190,13 @@ class AppointmentsView(Canvas):
         for i in range(24):
             self.controller.textElement(
                 r"Assets\AppointmentsView\timehours.png", xpos=0,
-                ypos=initialypos, root=self.scrolledframe, size=30, classname=f"hour{i}",
+                ypos=initialypos, root=self.appdisplayframe, size=30, classname=f"hour{i}",
                 text=hours[i], isPlaced=True
             )
             self.controller.textElement(
                 r"Assets\AppointmentsView\eventdetails.png", xpos=100,
-                ypos=initialypos, root=self.scrolledframe, size=30, classname=f"event{i}",
-                text=f"Placeholder event {i}", buttonFunction=lambda i=i: print(f"event {i} clicked"), isPlaced=True
+                ypos=initialypos, root=self.appdisplayframe, size=30, classname=f"event{i}",
+                text=f"Placeholder event {i}", buttonFunction=lambda i=i: print(f"event {i} clicked"), isPlaced=True,
             )
             initialypos += 40
         self.creationframe.grid_remove()
@@ -2906,9 +3213,9 @@ class AppointmentsView(Canvas):
         ]
         self.staticBtns = [
             (r"Assets\AppointmentsView\Create Appointment.png", 40, 600, "createappointmentbtn", self,
-            lambda: self.loadAppCreation()),
+             lambda: self.loadAppCreation()),
             (r"Assets\AppointmentsView\manageappointments.png", 600, 600, "manageappointmentsbtn", self,
-            lambda: self.loadAppView()),
+             lambda: self.loadAppView()),
             (r"Assets\My Courses\exitbutton.png", 1840, 0, "appcreateexitbtn", self.creationframe,
              lambda: self.unloadAppCreation()),
             (r"Assets\My Courses\exitbutton.png", 1840, 0, "appviewexitbtn", self.viewFrame,
@@ -2916,6 +3223,7 @@ class AppointmentsView(Canvas):
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
+
     def createFrames(self):
         self.controller.frameCreator(
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
@@ -2925,13 +3233,16 @@ class AppointmentsView(Canvas):
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
             classname="appointmentsmanage",
         )
-    def postLogin(self, data: dict=None, prisma: Prisma=None):
+
+    def postLogin(self, data: dict = None, prisma: Prisma = None):
         self.prisma = prisma
         self.userId = data["id"]
         self.data = data
-        appContentList = self.loadLatestAppointments(prisma=self.prisma, userId=self.userId)
+        appContentList = self.loadLatestAppointments(
+            prisma=self.prisma, userId=self.userId)
         print(appContentList)
-    def loadLatestAppointments(self, prisma: Prisma=None, userId: str=None):
+
+    def loadLatestAppointments(self, prisma: Prisma = None, userId: str = None):
         appointments = prisma.appointment.find_many(
             include={
                 "lecturer": {
@@ -2943,7 +3254,7 @@ class AppointmentsView(Canvas):
                     "include": {
                         "userProfile": True
                     }
-                } 
+                }
             },
             where={
                 "student": {
@@ -2956,20 +3267,23 @@ class AppointmentsView(Canvas):
         kualalumpur = timezone("Asia/Kuala_Lumpur")
         appContentList = [
             (
-                app.id, 
-                (app.startTime.date(), app.startTime.day, app.startTime.month, app.startTime.year, app.startTime.hour, app.startTime.minute),
-                (app.endTime, app.endTime.month, app.endTime.year, app.endTime.hour, app.endTime.minute),
-                app.date, app.location,  
+                app.id,
+                (app.startTime.date(), app.startTime.day, app.startTime.month,
+                 app.startTime.year, app.startTime.hour, app.startTime.minute),
+                (app.endTime, app.endTime.month, app.endTime.year,
+                 app.endTime.hour, app.endTime.minute),
+                app.date, app.location,
                 app.student.userProfile.fullName,
-                app.lecturer.userProfile.fullName,                
-                app.isAccepted, app.isCompleted, 
+                app.lecturer.userProfile.fullName,
+                app.isAccepted, app.isCompleted,
                 kualalumpur.convert(app.createdAt).strftime(
                     r"%A, %B %e %Y at %I:%M %p"),
                 kualalumpur.convert(app.updatedAt).strftime(
                     r"%A, %B %e %Y at %I:%M %p"),
             ) for app in appointments
-        ] 
+        ]
         return appContentList
+
     def loadAppCreation(self):
         self.creationframe.grid()
         self.creationframe.tkraise()
@@ -3073,13 +3387,15 @@ class AppointmentsView(Canvas):
 def runGui():
     window = Window()
     window.mainloop()
-    
+
+
 def runGuiThreaded():
     t = Thread(ThreadStart(runGui))
     t.ApartmentState = ApartmentState.STA
     t.Start()
     t.Daemon = True
     t.Join()
+
 
 if __name__ == "__main__":
     # runGui()

@@ -10,6 +10,10 @@ dt = datetime(2021, 5, 18, 00, 30)
 dt = kualalumpur.convert(dt)
 print(dt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
 some_date1 = datetime.now()
+timedelta = timedelta(days=15, hours=123)
+some_date1 = some_date1 + timedelta
+print(some_date1)
+
 pendulum.set_locale("en")
 #using datetime to print time in malaysia, with some_date 
 print(some_date1.strftime(r'%A %d %B %Y %H:%M:%S %z'))
