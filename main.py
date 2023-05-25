@@ -10,6 +10,7 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
+from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
 from pathlib import Path
 from itertools import cycle
@@ -2199,6 +2200,8 @@ class CourseView(Canvas):
             bootstyle="success",
             duration=500,
         )
+        discview.creationframe.grid_remove()
+        discview.postviewframe.grid_remove()
         discview.modulecodevar.set(modulecode)
         discview.menubutton.configure(text=modulecode)
         toast2.show_toast()
@@ -2232,7 +2235,7 @@ class AnimatedStarBtn(Frame):
         self.postId = postId
         self.userId = userId
         self.prisma = prisma
-        print(f"Favorite post button for {postId} created for {userId}")
+        # self.checkIsFavorited()
         classname = classname.replace(" ", "").lower()
         widthspan = int(framewidth / 20)
         heightspan = int(frameheight / 20)
@@ -2267,8 +2270,9 @@ class AnimatedStarBtn(Frame):
         imgrowspan = int(self.imgheight / 20)
         imgcolumnspan = int(self.imgwidth / 20)
 
-        self.img_container = Button(self, image=next(self.image_cycle), width=1, bg="#344557",
+        self.img_container = Button(self, image=next(self.image_cycle), width=1, bg="#344557", cursor="hand2",
                                     command=lambda: self.trigger_animation())
+
         if isPlaced:
             self.img_container.place(
                 x=0, y=0, width=self.imgwidth, height=self.imgheight
@@ -2282,27 +2286,131 @@ class AnimatedStarBtn(Frame):
         self.animation_status.trace('w', self.animate)
 
         # self.after(self.framerate, self.next_frame)
+        self.tooltip = ToolTip(self.img_container, f"Click to favorite post {postId}", bootstyle=(INFO, INVERSE))
+    # def checkIsFavorited(self, postId, userId):
+    #     prisma = self.prisma
+    #     def checkIsFavoritedCallback(result):
+    #         user = prisma.userprofile.find_first(
+    #             where={
+    #                 "id": userId
+    #             },
+    #             include={
+    #                 "favoritePosts": {
+    #                     "where": {
+    #                         "id": postId
+    #                     }
+    #                 }
+    #             }
+    #         )
+    #         if user.favoritePosts != []:
+    #             self.animation_status.set("forward")
+    #             self.tooltip.hide_tip()
+    #             self.tooltip = ToolTip(self.img_container, f"Click to unfavorite post {self.postId}", bootstyle=(DANGER, INVERSE))
+    #         else:
+    #             self.animation_status.set("start")
+    #             self.tooltip.hide_tip()
+    #             self.tooltip = ToolTip(self.img_container, f"Click to favorite post {self.postId}", bootstyle=(INFO, INVERSE))
+    #     t = threading.Thread(target=self.checkIsFavoritedCallback, args=(self.postId, self.userId), daemon=True)
+    #     t.start()
 
     def next_frame(self):
         self.img_container.configure(image=next(self.image_cycle))
         self.after(self.framerate, self.next_frame)
 
-    def infinite_animate(self):
-        self.frame_index += 1
-        self.frame_index = 0 if self.frame_index > self.animation_length else self.frame_index
-        self.img_container.configure(image=next(self.image_cycle))
-        self.after(self.framerate, self.infinite_animate)
+    # def infinite_animate(self):
+    #     self.frame_index += 1
+    #     self.frame_index = 0 if self.frame_index > self.animation_length else self.frame_index
+    #     self.img_container.configure(image=next(self.image_cycle))
+    #     self.after(self.framerate, self.infinite_animate)
 
     def trigger_animation(self):
         if self.animation_status.get() == "start":
             self.frame_index = 0
             self.animation_status.set("forward")
+            self.tooltip.hide_tip()
+            self.tooltip = ToolTip(self.img_container, f"Click to unfavorite post {self.postId}", bootstyle=(DANGER, INVERSE))
+            self.callUpdateUser(userId=self.userId, postId=self.postId)
             print(f"post is favorited with details {self.postId}, for user {self.userId}")
         if self.animation_status.get() == "end":
             self.frame_index = self.animation_length
             self.animation_status.set("backward")
+            self.tooltip.hide_tip()
+            self.tooltip = ToolTip(self.img_container, f"Click to favorite post {self.postId}", bootstyle=(INFO, INVERSE))
+            self.callUnfavoritePost(userId=self.userId, postId=self.postId)
             print(f"post is unfavorited with details {self.postId}, for user {self.userId}")
-
+    def callUpdateUser(self, userId=None, postId=None):
+        prisma = self.prisma
+        def updateuser():
+            toast = ToastNotification(
+                title="Please be patient...",
+                message="We are updating your favorite posts",
+                bootstyle=(INFO)
+            )
+            toast.show_toast()
+            userprofile = prisma.userprofile.update(
+                where={
+                    "id": userId
+                },
+                data={
+                    "favoritePosts": {
+                        "connect": {
+                            "id": postId
+                        }
+                    }
+                },
+                include={
+                    "favoritePosts": True
+                }
+            )
+            toast.hide_toast()
+            newtoast = ToastNotification(
+                title="Success",
+                message="Post added to your favorites",
+                bootstyle=(SUCCESS),
+                duration=500,
+            )
+            newtoast.show_toast()
+            for post in userprofile.favoritePosts:
+                print(post.title)
+            print(f"post is favorited with details {postId}, for user {userId}")
+        t = threading.Thread(target=updateuser)
+        t.start()
+    def callUnfavoritePost(self, userId=None, postId=None):
+        prisma = self.prisma
+        def updateuser():
+            toast = ToastNotification(
+                title="Please be patient...",
+                message="We are updating your favorite posts",
+                bootstyle=(INFO)
+            )
+            userprofile = prisma.userprofile.update(
+                where={
+                    "id": userId
+                },
+                data={
+                    "favoritePosts": {
+                        "disconnect": {
+                            "id": postId
+                        }
+                    }
+                },
+                include={
+                    "favoritePosts": True
+                }
+            )
+            toast.hide_toast()
+            newtoast = ToastNotification(
+                title="Success",
+                message="Post removed from your favorites",
+                bootstyle=(SUCCESS),
+                duration=500,
+            )
+            newtoast.show_toast()
+            for post in userprofile.favoritePosts:
+                print(post.title)
+            print(f"post is unfavorited with details {postId}, for user {userId}")
+        t = threading.Thread(target=updateuser)
+        t.start()
     def animate(self, *args):
         if self.animation_status.get() == "forward":
             self.frame_index += 1
@@ -2452,7 +2560,6 @@ class DiscussionsView(Canvas):
         #     except:
         #         print("no replies")
         postContentList = self.loadLatestPosts(prisma=self.prisma)
-        # print("the postidandtitlelist is: ", postContentList)
         self.controller.frameCreator(
             xpos=560, ypos=120, framewidth=400, frameheight=80, root=self,
             classname="modulecodeframe", bg=WHITE
@@ -2566,6 +2673,7 @@ class DiscussionsView(Canvas):
             updatedat = tupleofcontent[6]
             repliesList = tupleofcontent[7]
             authorId = tupleofcontent[8]
+            favoritedPostIds = tupleofcontent[9]
             # if authorId == self.userId:
             #     print(discussiontitle, authorId)
             # using tuple comprehension to get of them in one line
@@ -2580,6 +2688,8 @@ class DiscussionsView(Canvas):
                     num),
                 root=self.postscrolledframe, text=discussiontitle, fg=BLACK, size=28, xoffset=-1, isPlaced=True,
             )
+            if postId in favoritedPostIds:
+                print(discussiontitle, "is favorited")
             AnimatedStarBtn(
                 parent=self.postscrolledframe,
                 xpos=initialcoordinates[0] + 760,
@@ -3215,6 +3325,17 @@ class DiscussionsView(Canvas):
                 }
             }
         )
+        user = prisma.userprofile.find_first(
+            where={
+                "id": self.userId
+            },
+            include={
+                "favoritePosts": True
+            }
+        )
+        favoritedPostIds = []
+        for p in user.favoritePosts:
+            favoritedPostIds.append(p.id)
         # from pendulum
         # prisma's datetime fields are saved automatically in UTC
         # converting to local timezone:
@@ -3236,7 +3357,8 @@ class DiscussionsView(Canvas):
                         reply.replyId, reply.authorId,
                     ] for reply in post.replies
                 ],
-                post.authorId
+                post.authorId, 
+                favoritedPostIds
             ) for post in posts
         ]
         return postContentList
