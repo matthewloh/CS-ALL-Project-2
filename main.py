@@ -2706,7 +2706,8 @@ class DiscussionsView(Canvas):
             self.controller.buttonCreator(
                 imagepath=r"Assets\DiscussionsView\Trash.png", xpos=1020, ypos=20,
                 classname="deletepost", root=self.scrolledframe, isPlaced=True,
-                buttonFunction=lambda p=postId: print(f"{p} was clicked")
+                buttonFunction=lambda post=(postId)
+                : print(f"{p} was clicked")
             )
         # REPLIES under a post
         replycoordinates = (40, 280)
@@ -2727,8 +2728,6 @@ class DiscussionsView(Canvas):
             repUpdatedAt = replies[4]
             replyId = replies[5]
             repAuthorId = replies[6]
-            # if repAuthorId == self.userId:
-            #     print(replyAuthor, repAuthorId)
             authorCoordinates = (
                 replycoordinates[0] + 20, replycoordinates[1] + 20)
             textCoordinates = (
@@ -2851,22 +2850,40 @@ class DiscussionsView(Canvas):
             buttonFunction=lambda: self.replyThreaded(
                 postId, self.modulecodevar.get())
         )
+        self.controller.buttonCreator(
+            imagepath=r"Assets\DiscussionsView\canceldelete.png", xpos=1300, ypos=780,
+            classname="canceldelete", root=self.postviewframe,
+            buttonFunction=lambda: self.replytextwidget.delete('1.0', END) 
+        )
+        self.controller.buttonCreator(
+            imagepath=r"Assets\DiscussionsView\confirmdelete.png", xpos=1620, ypos=780,
+            classname="confirmdelete", root=self.postviewframe,
+            buttonFunction=lambda: self.replytextwidget.delete('1.0', END)
+        )
         self.controller.widgetsDict["cancelreplyedit"].grid_remove()
         self.controller.widgetsDict["editreply"].grid_remove()
-
+        self.controller.widgetsDict["canceldelete"].grid_remove()
+        self.controller.widgetsDict["confirmdelete"].grid_remove()
     def clearReplyText(self):
         self.replytextwidget.delete('1.0', END)
-
     def replyThreaded(self, postId, moduleCode: str = "INT4004CEM"):
         t = threading.Thread(target=self.addReply, args=(postId, moduleCode))
         t.daemon = True
         t.start()
-
+    def deleteReplyorPost(self, postId, replyId, isPost: bool = False):
+        
+        pass
+        # if isPost:
+        #     self.controller.textElement(
+        #         imagepath=r"Assets\DiscussionsView\deletepost.png", root=self.scrolledframe, isPlaced=True,
+        #         text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=0
+        #     )
+        # else:
+        #     self.controller.textElement(
+        #         imagepath=r"Assets\DiscussionsView\deletepost.png", root=self.scrolledframe, isPlaced=True,
+        #         text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=0
+        #     )
     def editReplyorPost(self, postId, replyId, moduleCode: str = "INT4004CEM", replytextname: Text = None, isPost: bool = False):
-        if isPost:
-            print(f"Editing post {postId} in module {moduleCode}")
-        else:
-            print(f"Editing reply {replyId} in post {postId} in module {moduleCode}")
         textwidget = self.controller.widgetsDict[f"{replytextname}"]
         addreplybtn = self.controller.widgetsDict["addreply"]
         editreplybtn = self.controller.widgetsDict["editreply"]
