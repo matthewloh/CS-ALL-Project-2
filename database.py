@@ -1068,52 +1068,67 @@ def queryPosts():
 
 def queryModules():
     prisma.connect()
-    lecturer = prisma.lecturer.find_first(
+    print(prisma.reply.count(
         where={
-            "userProfile": {
+            "author": {
                 "is": {
-                    "email": "vaithegy.doraisamy@newinti.edu.my"
-                }
-            }
-        },
-        include={
-            "userProfile": True,
-            "appointments": {
-                "include": {
-                    "student": {
-                        "include": {
-                            "userProfile": True
-                        }
-                    }
-                }
-            },
-            "modules": {
-                "include": {
-                    "moduleEnrollments": {
-                        "include": {
-                            "student": {
-                                "include": {
-                                    "userProfile": True
-                                }
-                            }
-                        }
-                    },
-                    "modulePosts": True
-                    # {
-                    #     # "include": {
-                    #     #     "replies": {
-                    #     #         "include": {
-                    #     #             "author": True
-                    #     #         }
-                    #     #     }
-                    #     # }
-                    # }
+                    "fullName": "Matthew Loh Yet Marn"
                 }
             }
         }
-    )
-    modules = lecturer.modules
-    print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
+    ))
+
+    # lecturer = prisma.lecturer.find_first(
+    #     where={
+    #         "userProfile": {
+    #             "is": {
+    #                 "email": "vaithegy.doraisamy@newinti.edu.my"
+    #             }
+    #         }
+    #     },
+    #     include={
+    #         "userProfile": True,
+    #         "appointments": {
+    #             "include": {
+    #                 "student": {
+    #                     "include": {
+    #                         "userProfile": True
+    #                     }
+    #                 }
+    #             }
+    #         },
+    #         "modules": {
+    #             "include": {
+    #                 "moduleEnrollments": {
+    #                     "include": {
+    #                         "student": {
+    #                             "include": {
+    #                                 "userProfile": True
+    #                             }
+    #                         }
+    #                     }
+    #                 },
+    #                 "modulePosts": True
+    #                 # {
+    #                 #     # "include": {
+    #                 #     #     "replies": {
+    #                 #     #         "include": {
+    #                 #     #             "author": True
+    #                 #     #         }
+    #                 #     #     }
+    #                 #     # }
+    #                 # }
+    #             }
+    #         }
+    #     }
+    # )
+        # print(f"Module Posts:\n{module.modulePosts.json(indent=2)}\n")
+        # for post in module.modulePosts:
+        #     print(f"Post:\n{post.json(indent=2)}\n")
+        #     print(f"Replies:\n{post.replies.json(indent=2)}\n")
+        #     for reply in post.replies:
+        #         print(f"Reply:\n{reply.json(indent=2)}\n")
+    # print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~

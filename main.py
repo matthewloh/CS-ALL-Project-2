@@ -1487,7 +1487,7 @@ class UserForms(Frame):
                                       pady=5)
         self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=# lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            classname=f"{self.name}completeregbutton", buttonFunction=  # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
             lambda: self.send_data(
                 data={
                     "fullName": entries["fullname"].get(),
@@ -2224,10 +2224,15 @@ class AnimatedStarBtn(Frame):
     def __init__(self,
                  parent=None, controller: Window = None,
                  xpos=0, ypos=0, framewidth=0, frameheight=0, isPlaced=False,
-                 classname=None, imagexpos=0, imageypos=0, bg=WHITE):
+                 classname=None, imagexpos=0, imageypos=0, bg=WHITE,
+                 prisma: Prisma = None, postId=None, userId=None):
         super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname)
         self.controller = controller
         self.grid_propagate(False)
+        self.postId = postId
+        self.userId = userId
+        self.prisma = prisma
+        print(f"Favorite post button for {postId} created for {userId}")
         classname = classname.replace(" ", "").lower()
         widthspan = int(framewidth / 20)
         heightspan = int(frameheight / 20)
@@ -2292,9 +2297,11 @@ class AnimatedStarBtn(Frame):
         if self.animation_status.get() == "start":
             self.frame_index = 0
             self.animation_status.set("forward")
+            print(f"post is favorited with details {self.postId}, for user {self.userId}")
         if self.animation_status.get() == "end":
             self.frame_index = self.animation_length
             self.animation_status.set("backward")
+            print(f"post is unfavorited with details {self.postId}, for user {self.userId}")
 
     def animate(self, *args):
         if self.animation_status.get() == "forward":
@@ -2306,7 +2313,6 @@ class AnimatedStarBtn(Frame):
                 self.after(20, self.animate)
             else:
                 self.animation_status.set("end")
-
         if self.animation_status.get() == "backward":
             self.frame_index -= 1
             self.img_container.configure(image=self.images[self.frame_index])
@@ -2314,6 +2320,20 @@ class AnimatedStarBtn(Frame):
                 self.after(20, self.animate)
             else:
                 self.animation_status.set("start")
+    
+    def favoritePost(self, prisma:Prisma, postId, userId):
+        prisma.modulepost.update(
+            where={
+                "id": postId
+            },
+            data={
+                "favoritedBy": {
+                    "connect": {
+                        "id": userId
+                    }
+                }
+            }
+        )
 
 
 class DiscussionsView(Canvas):
@@ -2566,6 +2586,7 @@ class DiscussionsView(Canvas):
                 ypos=initialcoordinates[1] + 20,
                 framewidth=40, frameheight=40, classname=f"post{postId}favoritestar",
                 imagexpos=0, imageypos=0, isPlaced=True,
+                prisma=self.prisma, postId=postId, userId=self.userId,
             )
             initialcoordinates = (
                 initialcoordinates[0], initialcoordinates[1] + 100)
@@ -2706,8 +2727,8 @@ class DiscussionsView(Canvas):
             self.controller.buttonCreator(
                 imagepath=r"Assets\DiscussionsView\Trash.png", xpos=1020, ypos=20,
                 classname="deletepost", root=self.scrolledframe, isPlaced=True,
-                buttonFunction=lambda post=(postId)
-                : print(f"{p} was clicked")
+                buttonFunction=lambda post=(
+                    postId, None, self.modulecodevar.get(), True): self.deleteReplyorPost(*post)
             )
         # REPLIES under a post
         replycoordinates = (40, 280)
@@ -2791,8 +2812,8 @@ class DiscussionsView(Canvas):
                 self.controller.buttonCreator(
                     imagepath=r"Assets\DiscussionsView\Trash.png", xpos=authorCoordinates[0]+960, ypos=authorCoordinates[1],
                     classname=f"deletereply{replycounter}", root=self.scrolledframe, isPlaced=True,
-                    buttonFunction=lambda rep=replyId: print(
-                        f"{rep} was clicked")
+                    buttonFunction=lambda rep=(
+                        postId, replyId, self.modulecodevar.get()): self.deleteReplyorPost(*rep)
                 )
             text.config(state=DISABLED)
             replycounter += 1
@@ -2853,50 +2874,193 @@ class DiscussionsView(Canvas):
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\canceldelete.png", xpos=1300, ypos=780,
             classname="canceldelete", root=self.postviewframe,
-            buttonFunction=lambda: self.replytextwidget.delete('1.0', END) 
+            buttonFunction=lambda: self.replytextwidget.delete('1.0', END)
         )
         self.controller.buttonCreator(
             imagepath=r"Assets\DiscussionsView\confirmdelete.png", xpos=1620, ypos=780,
             classname="confirmdelete", root=self.postviewframe,
             buttonFunction=lambda: self.replytextwidget.delete('1.0', END)
         )
-        self.controller.widgetsDict["cancelreplyedit"].grid_remove()
-        self.controller.widgetsDict["editreply"].grid_remove()
-        self.controller.widgetsDict["canceldelete"].grid_remove()
-        self.controller.widgetsDict["confirmdelete"].grid_remove()
+        self.controller.labelCreator(
+            imagepath=r"Assets\DiscussionsView\deletewarninglabel.png", xpos=1300, ypos=460,
+            classname="deletewarninglabel", root=self.postviewframe,
+        )
+        self.controller.textElement(
+            imagepath=r"Assets\DiscussionsView\replytotal.png", xpos=1380, ypos=580,
+            classname="replytotal", root=self.postviewframe, font=INTERBOLD,
+            text=f"This post has {len(repliesList)} replies.", fg="#d2564e", size=28,
+        )
+        self.controller.textElement(
+            imagepath=r"Assets\DiscussionsView\participantstotal.png", xpos=1380, ypos=660,
+            classname="participantstotal", root=self.postviewframe, font=INTERBOLD,
+            text=f"From {len(participants)} participants.", fg="#d2564e", size=28,
+        )
+        self.replyWidgets = [
+            self.controller.widgetsDict["cancelreply"],
+            self.controller.widgetsDict["addreply"],
+        ]
+        self.replyDeleteWidgets = [
+            self.controller.widgetsDict["canceldelete"],
+            self.controller.widgetsDict["confirmdelete"],
+            self.controller.widgetsDict["deletewarninglabel"]
+        ]
+        self.replyDeletePostOnly = [
+            self.controller.widgetsDict["replytotal"],
+            self.controller.widgetsDict["participantstotal"]
+        ]
+        self.replyEditWidgets = [
+            self.controller.widgetsDict["cancelreplyedit"],
+            self.controller.widgetsDict["editreply"]
+        ]
+        for widget in self.replyDeletePostOnly:
+            widget.grid_remove()
+        for widget in self.replyDeleteWidgets:
+            widget.grid_remove()
+        for widget in self.replyEditWidgets:
+            widget.grid_remove()
+
     def clearReplyText(self):
         self.replytextwidget.delete('1.0', END)
+
     def replyThreaded(self, postId, moduleCode: str = "INT4004CEM"):
         t = threading.Thread(target=self.addReply, args=(postId, moduleCode))
         t.daemon = True
         t.start()
-    def deleteReplyorPost(self, postId, replyId, isPost: bool = False):
-        
-        pass
-        # if isPost:
-        #     self.controller.textElement(
-        #         imagepath=r"Assets\DiscussionsView\deletepost.png", root=self.scrolledframe, isPlaced=True,
-        #         text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=0
-        #     )
-        # else:
-        #     self.controller.textElement(
-        #         imagepath=r"Assets\DiscussionsView\deletepost.png", root=self.scrolledframe, isPlaced=True,
-        #         text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=0
-        #     )
-    def editReplyorPost(self, postId, replyId, moduleCode: str = "INT4004CEM", replytextname: Text = None, isPost: bool = False):
-        textwidget = self.controller.widgetsDict[f"{replytextname}"]
+
+    def deleteReplyorPost(self, postId, replyId, moduleCode: str = "INT4004CEM", isPost: bool = False):
         addreplybtn = self.controller.widgetsDict["addreply"]
         editreplybtn = self.controller.widgetsDict["editreply"]
-        cancelreplybtn = self.controller.widgetsDict["cancelreply"]
+        canceldeletebtn = self.controller.widgetsDict["canceldelete"]
+        confirmdeletebtn = self.controller.widgetsDict["confirmdelete"]
+        deletewarninglabel = self.controller.widgetsDict["deletewarninglabel"]
+        [widget.grid_remove() for widget in self.replyWidgets]
+        [widget.grid_remove() for widget in self.replyEditWidgets]
+        [widget.grid() for widget in self.replyDeleteWidgets]
+        [widget.tk.call("raise", widget._w)
+         for widget in self.replyDeleteWidgets]
+        [widget.grid() if isPost else None for widget in self.replyDeletePostOnly]
+        [widget.tk.call("raise", widget._w)
+         if isPost else None for widget in self.replyDeletePostOnly]
+        if isPost:
+            self.controller.textElement(
+                imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+                classname="replyheader", root=self.postviewframe, isPlaced=True,
+                text="Deleting post: ", fg=BLACK, size=36,
+            )
+            confirmdeletebtn.config(
+                command=lambda: self.callDeleteReply(
+                    postId, replyId, moduleCode, isPost=True)
+            )
+        else:
+            self.controller.textElement(
+                imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+                classname="replyheader", root=self.postviewframe, isPlaced=True,
+                text="Deleting reply: ", fg=BLACK, size=36,
+            )
+            confirmdeletebtn.config(
+                command=lambda: self.callDeleteReply(
+                    postId, replyId, moduleCode)
+            )
+        canceldeletebtn.config(
+            command=lambda: [
+                [widget.grid_remove() for widget in self.replyEditWidgets],
+                [widget.grid_remove() for widget in self.replyDeleteWidgets],
+                [widget.grid_remove() for widget in self.replyDeletePostOnly],
+                [widget.grid() for widget in self.replyWidgets],
+                self.replytextwidget.delete('1.0', END),
+                self.controller.textElement(
+                    imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+                    classname="replyheader", root=self.postviewframe, isPlaced=True,
+                    text="Add a reply:", fg=BLACK, size=36,
+                )
+            ]
+        )
+
+    def callDeleteReply(self, postId, replyId, moduleCode: str = "INT4004CEM", isPost: bool = False):
+        t = threading.Thread(target=self.deleteReply, args=(
+            postId, replyId, moduleCode, isPost))
+        t.daemon = True
+        t.start()
+
+    def deleteReply(self, postId, replyId, moduleCode: str = "INT4004CEM", isPost: bool = False):
+        if isPost:
+            toasttitle = "Deleting Post"
+            toastmessage = "Please wait while we delete your post..."
+        else:
+            toasttitle = "Deleting Reply"
+            toastmessage = "Please wait while we delete your reply..."
+        toast = ToastNotification(
+            title=toasttitle,
+            message=toastmessage,
+            bootstyle=INFO,
+        )
+        toast.show_toast()
+        prisma = self.prisma
+        if isPost:
+            post = prisma.modulepost.delete(
+                where={
+                    "id": postId
+                }
+            )
+            newtoasttitle = "Post Deleted"
+            newtoastmessage = "Your post has been deleted successfully!"
+        else:
+            reply = prisma.reply.delete(
+                where={
+                    "replyId": replyId
+                }
+            )
+            newtoasttitle = "Reply Deleted"
+            newtoastmessage = "Your reply has been deleted successfully!"
+        toast.hide_toast()
+        newtoast = ToastNotification(
+            title=newtoasttitle,
+            message=newtoastmessage,
+            bootstyle=SUCCESS,
+            duration=500,
+        )
+        newtoast.show_toast()
+        [widget.grid() for widget in self.replyWidgets]
+        [widget.grid_remove() for widget in self.replyDeleteWidgets]
+        [widget.grid_remove() for widget in self.replyEditWidgets]
+        self.controller.textElement(
+            imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
+            classname="replyheader", root=self.postviewframe, isPlaced=True,
+            text="Add a reply:", fg=BLACK, size=36,
+        )
+        try:
+            self.refreshReplies(postId, prisma, moduleCode)
+            if isPost:
+                postContentList = self.refreshPosts(prisma, moduleCode)
+                self.loadDiscussionTopics(postContentList)
+                self.unloadPostView()
+                toast = ToastNotification(
+                    title="The post was deleted",
+                    message="Returning to the discussion topics...",
+                    bootstyle=DANGER,
+                    duration=1000,
+                )
+                toast.show_toast()
+        except:
+            postContentList = self.refreshPosts(prisma, moduleCode)
+            self.loadDiscussionTopics(postContentList)
+            self.unloadPostView()
+
+    def editReplyorPost(self, postId, replyId, moduleCode: str = "INT4004CEM", replytextname: Text = None, isPost: bool = False):
+        textwidget = self.controller.widgetsDict[f"{replytextname}"]
+        editreplybtn = self.controller.widgetsDict["editreply"]
         cancelreplyeditbtn = self.controller.widgetsDict["cancelreplyedit"]
-        addreplybtn.grid_remove()
-        editreplybtn.grid()
-        cancelreplybtn.grid_remove()
-        cancelreplyeditbtn.grid()
+        # important lesson for today, tuple comprehensions do not exist in python, so you have to use list comprehensions
+        [widget.grid_remove() for widget in self.replyWidgets]
+        [widget.grid_remove() for widget in self.replyDeleteWidgets]
+        [widget.grid_remove() for widget in self.replyDeletePostOnly]
+        [widget.grid() for widget in self.replyEditWidgets]
         text = textwidget.get("1.0", 'end-1c')
+
         self.replytextwidget.focus_set()
         self.replytextwidget.delete('1.0', END)
         self.replytextwidget.insert(END, text)
+
         if isPost:
             self.controller.textElement(
                 imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
@@ -2919,10 +3083,9 @@ class DiscussionsView(Canvas):
             )
         cancelreplyeditbtn.config(
             command=lambda: [
-                addreplybtn.grid(),
-                editreplybtn.grid_remove(),
-                cancelreplybtn.grid(),
-                cancelreplyeditbtn.grid_remove(),
+                [widget.grid_remove() for widget in self.replyEditWidgets],
+                [widget.grid_remove() for widget in self.replyDeleteWidgets],
+                [widget.grid() for widget in self.replyWidgets],
                 self.replytextwidget.delete('1.0', END),
                 self.controller.textElement(
                     imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
@@ -2983,14 +3146,9 @@ class DiscussionsView(Canvas):
             duration=500,
         )
         newtoast.show_toast()
-        addreplybtn = self.controller.widgetsDict["addreply"]
-        editreplybtn = self.controller.widgetsDict["editreply"]
-        cancelreplybtn = self.controller.widgetsDict["cancelreply"]
-        cancelreplyeditbtn = self.controller.widgetsDict["cancelreplyedit"]
-        addreplybtn.grid(),
-        editreplybtn.grid_remove(),
-        cancelreplybtn.grid(),
-        cancelreplyeditbtn.grid_remove(),
+        [widget.grid() for widget in self.replyWidgets]
+        [widget.grid_remove() for widget in self.replyDeleteWidgets]
+        [widget.grid_remove() for widget in self.replyEditWidgets]
         self.controller.textElement(
             imagepath=r"Assets\DiscussionsView\replyheader.png", xpos=1320, ypos=400,
             classname="replyheader", root=self.postviewframe, isPlaced=True,
