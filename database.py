@@ -1,8 +1,9 @@
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+from pendulum import timezone
 # ~~~~ MYSQL ~~~~
 # import os
 # from dotenv import load_dotenv
@@ -1065,26 +1066,59 @@ def queryPosts():
     #     # print(f"Author:\n{post.author.json(indent=2)}\n")
     #     # print(f"Student:\n{post.author.student.json(indent=2)}\n")
     #     # print(f"User Profile:\n{post.author.json(indent=2)}\n")
+    # userprofile = prisma.userprofile.update(
+    #     where={
+    #         "email": "p21013568@student.newinti.edu.my"
+    #     },
+    #     data={
+    #         "favoritePosts": {
+    #             "disconnect": {
+    #                 "id": 61
+    #             }
+    #         }
+    #     },
+    #     include={
+    #         "favoritePosts": True
+    #     }
+    # )
+    # for post in userprofile.favoritePosts:
+    #     print(f"Post:\n{post.json(indent=2)}\n")
+    # userprofile = prisma.userprofile.update(
+    #     where={
+    #         "email": "p21013568@student.newinti.edu.my"
+    #     },
+    #     data={
+    #         "favoritePosts": {
+    #             "connect": {
+    #                 "id": 61
+    #             }
+    #         }
+    #     },
+    #     include={
+    #         "favoritePosts": True
+    #     }
+    # )
+    # for post in userprofile.favoritePosts:
+    #     print(f"Post:\n{post.json(indent=2)}\n")
+    utc = timezone("UTC")
+    kualalumpur = timezone("Asia/Kuala_Lumpur")
+    time = kualalumpur.convert(datetime.now())
+    newtime = utc.convert(time)
+    # print(time)
+    # print(newtime)
+    # post = prisma.modulepost.update(
+    #     where={
+    #         "id": 61
+    #     },
+    #     data={
+    #         "editedAt": newtime
+    #     }
+    # )
+    # linking this post to a userprofile's favorite posts
+    # print(f"Post:\n{post.json(indent=2)}\n")
     userprofile = prisma.userprofile.update(
         where={
-            "email": "p21013568@student.newinti.edu.my"
-        },
-        data={
-            "favoritePosts": {
-                "disconnect": {
-                    "id": 61
-                }
-            }
-        },
-        include={
-            "favoritePosts": True
-        }
-    )
-    for post in userprofile.favoritePosts:
-        print(f"Post:\n{post.json(indent=2)}\n")
-    userprofile = prisma.userprofile.update(
-        where={
-            "email": "p21013568@student.newinti.edu.my"
+            "id": "clhrvvvmm0001vts06psqzlye"
         },
         data={
             "favoritePosts": {
@@ -1098,7 +1132,9 @@ def queryPosts():
         }
     )
     for post in userprofile.favoritePosts:
-        print(f"Post:\n{post.json(indent=2)}\n")
+        print(kualalumpur.convert(post.updatedAt))
+        print(kualalumpur.convert(post.editedAt))
+        # print(f"Post:\n{post.json(indent=2)}\n")
 
 def queryModules():
     prisma.connect()

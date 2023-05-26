@@ -25,7 +25,7 @@ model UserProfile {
   student       Student[]
   // One user can create many posts and many replies
   createdPosts  ModulePost[] @relation("CreatedPosts")
-  favoritePosts ModulePost[] @relation("FavoritePosts")
+  favoritePosts ModulePost[]
   replies       Reply[]
 }
 
@@ -138,23 +138,22 @@ model Module {
 }
 
 model ModulePost {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   title     String
-  content   String?  @db.Text
+  content   String?   @db.Text
   moduleId  String
-  module    Module   @relation(fields: [moduleId], references: [id])
+  module    Module    @relation(fields: [moduleId], references: [id])
   replies   Reply[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime? @default(now())
 
-  authorId      String
-  author        UserProfile  @relation("CreatedPosts", fields: [authorId], references: [id])
-  favoritedById String?
-  favoritedBy   UserProfile? @relation("FavoritePosts", fields: [favoritedById], references: [id])
+  authorId    String
+  author      UserProfile   @relation("CreatedPosts", fields: [authorId], references: [id])
+  favoritedBy UserProfile[]
 
   @@index([moduleId])
   @@index([authorId])
-  @@index([favoritedById])
 }
 
 model Reply {
@@ -166,6 +165,7 @@ model Reply {
   updatedAt         DateTime    @updatedAt
   authorId          String
   author            UserProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  editedAt          DateTime?   @default(now())
 
   @@index([modulePostId])
   @@index([authorId])

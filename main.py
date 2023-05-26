@@ -14,9 +14,7 @@ from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
 from pathlib import Path
 from itertools import cycle
-import mysql.connector
 from dotenv import load_dotenv
-from mysql.connector import Error
 from prisma import Prisma
 from multiprocessing import Process
 from elementcreator import gridGenerator
@@ -28,35 +26,8 @@ from datetime import datetime, timedelta, timezone
 from nonstandardimports import *
 import pendulum
 from pendulum import timezone
+
 load_dotenv()
-
-
-# connection = mysql.connector.connect(
-#     host=os.getenv("DB_HOST"),
-#     database=os.getenv("DB_DATABASE"),
-#     user=os.getenv("DB_USERNAME"),
-#     password=os.getenv("DB_PASSWORD"),
-#     ssl_ca=os.getenv("SSL_CERT")
-# )
-# try:
-#     if connection.is_connected():
-#         c = connection.cursor()
-#     with connection:
-#         c.execute("select @@version ")
-#         version = c.fetchone()
-#         if version:
-#             print('Running version: ', version)
-#         else:
-#             print('Not connected.')
-
-#         c.execute("""
-#                 SHOW TABLES
-#                 """)
-#         results = c.fetchall()
-#         print(results)
-#     # connection.close()
-# except Error as e:
-#     print("Error while connecting to MySQL", e)
 
 # https://stackoverflow.com/a/68621773
 # This bit of code allows us to remove the window bar present in tkinter
@@ -135,17 +106,15 @@ class Window(ttk.Window):
             self.frames[F] = frame
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
             frame.grid_propagate(False)
-            frame.controller.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas",
-                                           bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
-            self.updateWidgetsDict(frame)
+            self.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas",
+                               bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
+            # self.updateWidgetsDict(frame)
             frame.grid_remove()
         for FRAME in (DashboardCanvas, SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, FavoritesView, AppointmentsView):
-            canvas = FRAME(
-                parent=self.widgetsDict["maincanvas"], controller=self)
+            canvas = FRAME(parent=self.widgetsDict["maincanvas"], controller=self)
             self.canvasInDashboard[FRAME] = canvas
             self.updateWidgetsDict(canvas)
-            canvas.grid(row=0, column=0, columnspan=96,
-                        rowspan=46, sticky=NSEW)
+            canvas.grid(row=0, column=0, columnspan=96, rowspan=46, sticky=NSEW)
             canvas.grid_propagate(False)
             canvas.grid_remove()
         self.loadSignInPage()
@@ -156,9 +125,6 @@ class Window(ttk.Window):
         self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
         self.show_canvas(DashboardCanvas)
         self.bind("<F11>", lambda e: self.togglethewindowbar())
-
-    def returnWidgetsDict(self):
-        return self.widgetsDict
 
     def initializeWindow(self):
         windll.shcore.SetProcessDpiAwareness(1)
@@ -607,25 +573,7 @@ class Window(ttk.Window):
         SetWindowLongPtrW(hwnd, GWL_STYLE, style)
         self.state("normal")
 
-    def buttonCreator(
-        self,
-        imagepath,
-        xpos,
-        ypos,
-        classname=None,
-        buttonFunction=None,
-        root=None,
-        relief=SUNKEN,
-        overrideRelief=FLAT,
-        text=None,
-        fg=WHITE,
-        font=("Avenir Next Bold", 16),
-        wraplength=None,
-        pady=None,
-        hasImage=True,
-        bg=WHITE,
-        isPlaced=False,
-    ):
+    def buttonCreator(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=SUNKEN, overrideRelief=FLAT, pady=None, hasImage=True, bg=WHITE, isPlaced=False):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
         will destroy the dictionary if not referenced to something. Thus, we pass it with an identifier string variable called classname.\n\n
@@ -635,7 +583,6 @@ class Window(ttk.Window):
         {'StudentButton': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000246A6976710>}}
         Then, we pass the classname to the inner dictionary, which gives us a label or button with the image we want.
         """
-
         classname = classname.replace(" ", "").lower()
         self.createImageReference(imagepath, classname)
         image = self.imageDict[classname]
@@ -645,64 +592,26 @@ class Window(ttk.Window):
         # the W value of the image divided by 20 to get the column position
         columnarg = int(xpos/20)
         rowarg = int(ypos/20)
-        placedwidth = int(image.width())
-        placedheight = int(image.height())
-        button_kwargs = {
-            "root": root,
-            "image": image,
-            "relief": overrideRelief,
-            "width": 1,
-            "height": 1,
-            "cursor": "hand2",
-            "state": NORMAL,
-            "name": classname.replace(" ", "").lower(),
-            "text": text,
-        }
-
+        if isPlaced:
+            placedwidth = int(image.width())
+            placedheight = int(image.height())
         button = Button(
-            root, image=image,
-            command=lambda: buttonFunction() if buttonFunction else print(
-                f"This is the {classname} button"),
-            relief=relief if not overrideRelief else overrideRelief,
-            bg=bg, width=1, height=1,
-            cursor="hand2", state=button_kwargs["state"],
-            name=button_kwargs["name"],
-            text=text, font=font, wraplength=wraplength, compound=CENTER, fg=fg,
-            justify=LEFT,
-            autostyle=False,
+            root, image=image, command=lambda: buttonFunction(
+            ) if buttonFunction else print(f"This is the {classname} button"),
+            relief=relief if not overrideRelief else overrideRelief, bg=bg, width=1, height=1,
+            cursor="hand2", state=NORMAL,
+            name=classname, autostyle=False
         )
         if isPlaced:
-            button.place(
-                x=xpos,
-                y=ypos,
-                width=placedwidth,
-                height=placedheight,
-            )
+            button.place(x=xpos, y=ypos, width=placedwidth,
+                         height=placedheight)
         else:
-            button.grid(
-                row=rowarg,
-                column=columnarg,
-                rowspan=heightspan,
-                columnspan=widthspan,
-                sticky=NSEW
-            )
+            button.grid(row=rowarg, column=columnarg,
+                        rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         self.widgetsDict[classname].grid_propagate(False)
 
-    def labelCreator(
-        self,
-        imagepath,
-        xpos,
-        ypos,
-        classname=None,
-        root=None,
-        overrideRelief=FLAT,
-        # (defines image=, text=, font=, compound=, wraplength=, justify=, anchor=,)
-        text=None,
-        font=("Avenir Next Medium", 16),
-        wraplength=None,
-        isPlaced=False,
-    ):
+    def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
         will destroy the image if not referenced to something. Thus, we pass it with an identifier string variable called classname.\n\n
@@ -711,7 +620,6 @@ class Window(ttk.Window):
         will first return a dictionary with the following format:\n
         {'StudentButton': {'columnspan': 30, 'rowspan': 30, 'row': 16, 'column': 12, 'image': <PIL.ImageTk.PhotoImage object at 0x00000246A6976710>}}
         """
-
         classname = classname.replace(" ", "").lower()
         self.createImageReference(imagepath, classname)
         image = self.imageDict[classname]
@@ -725,55 +633,25 @@ class Window(ttk.Window):
         placedheight = int(image.height())
         label = Label(
             root, image=image, relief=FLAT, width=1, height=1,
-            cursor="", state=NORMAL, name=classname,
-            text=text, font=font, wraplength=wraplength, compound=CENTER, fg=WHITE, justify=LEFT,
+            state=NORMAL, name=classname,
             autostyle=False,
         )
         if isPlaced:
-            label.place(
-                x=xpos,
-                y=ypos,
-                width=placedwidth,
-                height=placedheight,
-            )
+            label.place(x=xpos, y=ypos, width=placedwidth, height=placedheight)
         else:
-            label.grid(
-                row=rowarg,
-                column=columnarg,
-                rowspan=heightspan,
-                columnspan=widthspan,
-                sticky=NSEW
-            )
-
+            label.grid(row=rowarg, column=columnarg,
+                       rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
 
-    def frameCreator(
-        self,
-        xpos,
-        ypos,
-        framewidth,
-        frameheight,
-        root=None,
-        classname=None,
-        bg=LIGHTYELLOW,
-        relief=FLAT,
-        imgSettings=None,
-    ):
+    def frameCreator(self, xpos, ypos, framewidth, frameheight, root=None, classname=None, bg=LIGHTYELLOW, relief=FLAT, imgSettings=None):
         classname = classname.replace(" ", "").lower()
         widthspan = int(framewidth / 20)
         heightspan = int(frameheight / 20)
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
 
-        Frame(root, width=1, height=1, bg=bg, relief=relief,
-              name=classname, autostyle=False,
-              ).grid(
-            row=rowarg,
-            column=columnarg,
-            rowspan=heightspan,
-            columnspan=widthspan,
-            sticky=NSEW,
-        )
+        Frame(root, width=1, height=1, bg=bg, relief=relief, name=classname, autostyle=False,).grid(
+            row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         if imgSettings:
             listofimages = list(enumerate(imgSettings))
@@ -794,56 +672,29 @@ class Window(ttk.Window):
                             root=widget,
                             buttonFunction=j[4])
 
-    def entryCreator(
-            self, xpos, ypos,
-            width, height,
-            root=None, classname=None, bg=WHITE,
-            relief=FLAT, fg=BLACK, textvariable=None, pady=None,
-            font=("Avenir Next Medium", 16)):
-
+    def entryCreator(self, xpos, ypos, width, height, root=None, classname=None, bg=WHITE, relief=FLAT, fg=BLACK, textvariable=None, pady=None, font=("Avenir Next Medium", 16)):
         classname = classname.lower().replace(" ", "")
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
         widthspan = int(width / 20)
         heightspan = int(height / 20)
         self.updateWidgetsDict(root=root)
-        Entry(root, bg=bg, relief=SOLID,
-              font=font, fg=fg, width=1,
-              name=classname,
-              autostyle=False,
-              textvariable=textvariable).grid(
-            row=rowarg,
-            column=columnarg,
-            rowspan=heightspan,
-            columnspan=widthspan,
-            sticky=NSEW,
-            pady=pady,
-        )
+        Entry(root, bg=bg, relief=SOLID, font=font, fg=fg, width=1, name=classname, autostyle=False, textvariable=textvariable).grid(
+            row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW, pady=pady)
         self.updateWidgetsDict(root=root)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
 
-    def canvasCreator(
-        self, xpos, ypos, width, height, root, classname=None,
-        bgcolor=WHITE, imgSettings=None,
-        relief=FLAT,
-        isTransparent=False, transparentcolor=TRANSPARENTGREEN,
-    ):
+    def canvasCreator(self, xpos, ypos, width, height, root, classname=None, bgcolor=WHITE, imgSettings=None, relief=FLAT, isTransparent=False, transparentcolor=TRANSPARENTGREEN):
         classname = classname.lower().replace(" ", "")
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
         widthspan = int(width / 20)
         heightspan = int(height / 20)
-
         if imgSettings:
-            listofimages = list(
-                enumerate(imgSettings)
-            )
-        Canvas(root, bg=bgcolor,
-               highlightcolor=bgcolor,
-               relief=FLAT, width=1, height=1,
-               name=classname, highlightthickness=0, autostyle=False
+            listofimages = list(enumerate(imgSettings))
+        Canvas(root, bg=bgcolor, highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=classname, highlightthickness=0, autostyle=False
                ).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
@@ -871,12 +722,7 @@ class Window(ttk.Window):
                         )
         self.updateWidgetsDict(root=root)
 
-    def menubuttonCreator(
-        self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None,  # Essential
-        bgcolor=WHITE,
-        relief=FLAT, font=("Helvetica", 16),
-        text=None, variable=None, listofvalues=None, command=None,  # Special Values
-    ):
+    def menubuttonCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), text=None, variable=None, listofvalues=None, command=None):
         """
         Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
         and places a menubutton inside of it. The menubutton is then returned into the global dict of widgets.\n
@@ -911,7 +757,6 @@ class Window(ttk.Window):
             menubutton, tearoff=0, name=f"{classname}menu",
             bg=LIGHTPURPLE, relief=FLAT, font=("Helvetica", 12),
         )
-
         for x in listofvalues:
             menubtnmenu.add_radiobutton(label=x, variable=variable, value=x,
                                         command=lambda: [command(), menubutton.config(text=variable.get())])
@@ -920,13 +765,7 @@ class Window(ttk.Window):
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
 
-    def ttkEntryCreator(
-        self, xpos=None, ypos=None, width=None, height=None,
-        root=None, classname=None,
-        bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16),
-        validation=False, passwordchar="*",
-        isContactNo=False, isEmail=False,
-    ):
+    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*", isContactNo=False, isEmail=False):
         """
         Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
         and places a ttk.Entry inside of it. The ttk.Entry is then returned into the global dict of widgets.\n
@@ -955,16 +794,13 @@ class Window(ttk.Window):
                 return True
             else:
                 return False
-            # pass
 
         frameref = self.widgetsDict[f"{classname}hostfr"]
         themename = f"{str(root).split('.')[-1]}.TEntry"
-        entrystyle = ttk.Style().configure(
+        ttk.Style().configure(
             style=themename, font=font, background=NICEBLUE, foreground=BLACK,
         )
-        entry = ttk.Entry(frameref,
-                          #   style=themename,
-                          bootstyle=PRIMARY,
+        entry = ttk.Entry(frameref, bootstyle=PRIMARY,
                           name=classname, font=font, background=bgcolor)
         entry.grid(row=0, column=0, rowspan=heightspan,
                    columnspan=widthspan, sticky=NSEW)
@@ -990,11 +826,7 @@ class Window(ttk.Window):
         self.widgetsDict[classname] = entry
         self.updateWidgetsDict(root=root)
 
-    def webview2creator(
-        self, xpos=None, ypos=None, framewidth=None, frameheight=None, root=None, classname=None,
-        bgcolor=WHITE, relief=FLAT, font=("Avenir Next", 16),
-        url=None,
-    ):
+    def webview2creator(self, xpos=None, ypos=None, framewidth=None, frameheight=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Avenir Next", 16), url=None):
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
         widthspan = int(framewidth / 20)
@@ -1007,9 +839,8 @@ class Window(ttk.Window):
                            rowspan=3, columnspan=widthspan, sticky=NSEW)
         frame = WebView2(parent=root, width=1, height=1,
                          url=url, name=classname, bg=bgcolor)
-        frame.grid(
-            row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
-        )
+        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan,
+                   columnspan=widthspan, sticky=NSEW)
         # binding a callback button to go back in javascript
 
         def goBack():
@@ -1086,6 +917,7 @@ class Window(ttk.Window):
         colorkey = win32api.RGB(red, green, blue)
         return colorkey
 
+    # DATABASE FUNCTIONS
     def setUserContext(self, userId=None, role="student", prisma: Prisma = None):
         if role == "student":
             student = prisma.student.find_first(
@@ -1153,11 +985,7 @@ class Window(ttk.Window):
             return lecturer, modules
         # prisma.disconnect()
 
-    def textElement(self, imagepath, xpos, ypos, classname=None,
-                    buttonFunction=None, root=None, relief=FLAT,
-                    fg=BLACK, bg=WHITE, font=SFPRO,
-                    text=None, size=40, isPlaced=False,
-                    index=0, xoffset=0):
+    def textElement(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=FLAT, fg=BLACK, bg=WHITE, font=SFPRO, text=None, size=40, isPlaced=False, index=0, xoffset=0):
         classname = classname.replace(" ", "").lower()
         # ~~~ ADD TEXT TO IMAGE FUNCTIONS ~~~
         h = fg.lstrip("#")
@@ -1184,30 +1012,21 @@ class Window(ttk.Window):
 
         if buttonFunction:
             if isPlaced:
-                Button(root, image=image, cursor="hand2",
-                       command=lambda: buttonFunction() if buttonFunction else print(
-                           "No function assigned to button"),
-                       relief=relief,
-                       bg=bg, width=1, height=1, name=classname, autostyle=False).place(
-                    x=xpos, y=ypos, width=placedwidth, height=placedheight
-                )
+                Button(root, image=image, cursor="hand2", command=lambda: buttonFunction() if buttonFunction else print("No function assigned to button"),
+                       relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False
+                       ).place(x=xpos, y=ypos, width=placedwidth, height=placedheight)
             else:
-                Button(root, image=image, cursor="hand2",
-                       command=lambda: buttonFunction() if buttonFunction else print(
-                           "No function assigned to button"),
-                       relief=relief,
-                       bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
-                    row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
-                )
+                Button(root, image=image, cursor="hand2", command=lambda: buttonFunction() if buttonFunction else print("No function assigned to button"),
+                       relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False
+                       ).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         else:
             if isPlaced:
-                Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False).place(
-                    x=xpos, y=ypos, width=placedwidth, height=placedheight
-                )
+                Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False
+                      ).place(x=xpos, y=ypos, width=placedwidth, height=placedheight)
             else:
-                Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False).grid(
-                    row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
-                )
+                Label(root, image=image, relief=relief, bg=bg, width=1, height=1, name=classname, autostyle=False
+                      ).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+
         self.updateWidgetsDict(root=root)
         self.widgetsDict[classname].grid_propagate(False)
         return self.widgetsDict[classname]
@@ -1488,7 +1307,7 @@ class UserForms(Frame):
                                       pady=5)
         self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=  # lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
+            classname=f"{self.name}completeregbutton", buttonFunction=# lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
             lambda: self.send_data(
                 data={
                     "fullName": entries["fullname"].get(),
@@ -2262,7 +2081,7 @@ class AnimatedStarBtn(Frame):
                     sequence_frame) for sequence_frame in reversedsequence]
                 self.image_cycle = cycle(self.images)
                 self.framerate = im.info['duration']
-        else:                
+        else:
             with Image.open(file_path) as im:
                 # sequence
                 sequence = ImageSequence.Iterator(im)
@@ -2299,9 +2118,11 @@ class AnimatedStarBtn(Frame):
 
         # self.after(self.framerate, self.next_frame)
         if self.isFavorited:
-            self.tooltip = ToolTip(self.img_container, f"Click to unfavorite {self.postTitle}", bootstyle=(DANGER, INVERSE))
+            self.tooltip = ToolTip(
+                self.img_container, f"Click to unfavorite {self.postTitle}", bootstyle=(DANGER, INVERSE))
         else:
-            self.tooltip = ToolTip(self.img_container, f"Click to favorite {self.postTitle}", bootstyle=(INFO, INVERSE))
+            self.tooltip = ToolTip(
+                self.img_container, f"Click to favorite {self.postTitle}", bootstyle=(INFO, INVERSE))
 
     def next_frame(self):
         self.img_container.configure(image=next(self.image_cycle))
@@ -2313,12 +2134,14 @@ class AnimatedStarBtn(Frame):
             self.animation_status.set("forward")
             if self.isFavorited:
                 self.tooltip.hide_tip()
-                self.tooltip = ToolTip(self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
+                self.tooltip = ToolTip(
+                    self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
                 self.tooltip.show_tip()
                 self.callUnfavoritePost(userId=self.userId, postId=self.postId)
             else:
                 self.tooltip.hide_tip()
-                self.tooltip = ToolTip(self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
+                self.tooltip = ToolTip(
+                    self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
                 self.tooltip.show_tip()
                 self.callUpdateUser(userId=self.userId, postId=self.postId)
         if self.animation_status.get() == "end":
@@ -2326,17 +2149,20 @@ class AnimatedStarBtn(Frame):
             self.animation_status.set("backward")
             if self.isFavorited:
                 self.tooltip.hide_tip()
-                self.tooltip = ToolTip(self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
+                self.tooltip = ToolTip(
+                    self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
                 self.tooltip.show_tip()
                 self.callUpdateUser(userId=self.userId, postId=self.postId)
             else:
                 self.tooltip.hide_tip()
-                self.tooltip = ToolTip(self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
+                self.tooltip = ToolTip(
+                    self.img_container, f"Please wait as the server handles your request.", bootstyle=(INFO, INVERSE))
                 self.tooltip.show_tip()
                 self.callUnfavoritePost(userId=self.userId, postId=self.postId)
 
     def callUpdateUser(self, userId=None, postId=None):
         prisma = self.prisma
+
         def updateuser():
             toast = ToastNotification(
                 title="Please be patient...",
@@ -2368,13 +2194,16 @@ class AnimatedStarBtn(Frame):
             )
             newtoast.show_toast()
             self.tooltip.hide_tip()
-            self.tooltip = ToolTip(self.img_container, f"Click to unfavorite post {self.postTitle}", bootstyle=(DANGER, INVERSE))
+            self.tooltip = ToolTip(
+                self.img_container, f"Click to unfavorite post {self.postTitle}", bootstyle=(DANGER, INVERSE))
             self.tooltip.show_tip()
 
         t = threading.Thread(target=updateuser)
         t.start()
+
     def callUnfavoritePost(self, userId=None, postId=None):
         prisma = self.prisma
+
         def updateuser():
             toast = ToastNotification(
                 title="Please be patient...",
@@ -2405,10 +2234,12 @@ class AnimatedStarBtn(Frame):
             )
             newtoast.show_toast()
             self.tooltip.hide_tip()
-            self.tooltip = ToolTip(self.img_container, f"Click to favorite {self.postTitle}", bootstyle=(INFO, INVERSE))
+            self.tooltip = ToolTip(
+                self.img_container, f"Click to favorite {self.postTitle}", bootstyle=(INFO, INVERSE))
             self.tooltip.show_tip()
         t = threading.Thread(target=updateuser)
         t.start()
+
     def animate(self, *args):
         if self.animation_status.get() == "forward":
             self.frame_index += 1
@@ -2426,20 +2257,6 @@ class AnimatedStarBtn(Frame):
                 self.after(20, self.animate)
             else:
                 self.animation_status.set("start")
-    
-    def favoritePost(self, prisma:Prisma, postId, userId):
-        prisma.modulepost.update(
-            where={
-                "id": postId
-            },
-            data={
-                "favoritedBy": {
-                    "connect": {
-                        "id": userId
-                    }
-                }
-            }
-        )
 
 
 class DiscussionsView(Canvas):
@@ -2668,7 +2485,7 @@ class DiscussionsView(Canvas):
             author = tupleofcontent[3]
             email = tupleofcontent[4]
             createdat = tupleofcontent[5]
-            updatedat = tupleofcontent[6]
+            posteditedAt = tupleofcontent[6]
             repliesList = tupleofcontent[7]
             authorId = tupleofcontent[8]
             favoritedPostIds = tupleofcontent[9]
@@ -2702,7 +2519,7 @@ class DiscussionsView(Canvas):
                     framewidth=40, frameheight=40, classname=f"post{postId}favoritestar",
                     imagexpos=0, imageypos=0, isPlaced=True,
                     prisma=self.prisma, postId=postId, userId=self.userId,
-                    postTitle = discussiontitle,
+                    postTitle=discussiontitle,
                 )
             initialcoordinates = (
                 initialcoordinates[0], initialcoordinates[1] + 100)
@@ -2719,7 +2536,7 @@ class DiscussionsView(Canvas):
         author = tupleofcontent[3]
         email = tupleofcontent[4]
         createdat = tupleofcontent[5]
-        updatedat = tupleofcontent[6]
+        posteditedAt = tupleofcontent[6]
         repliesList = tupleofcontent[7]
         authorId = tupleofcontent[8]
         # print(author, authorId)
@@ -2789,11 +2606,11 @@ class DiscussionsView(Canvas):
         # AUTHOR AND DATE
         timestrfmt = r'%A, %B %d %Y at %I:%M %p'
         datetimestr = datetime.now().strftime(timestrfmt)
-        if updatedat == createdat:
+        if posteditedAt == createdat:
             authoranddatetext = f"{author} posted on {createdat}"
         else:
             timedelta = datetime.strptime(
-                datetimestr, timestrfmt) - datetime.strptime(updatedat, timestrfmt)
+                datetimestr, timestrfmt) - datetime.strptime(posteditedAt, timestrfmt)
             if timedelta.days > 0:
                 timedelta = f"{timedelta.days} days"
             elif timedelta.seconds//3600 > 0:
@@ -2862,7 +2679,7 @@ class DiscussionsView(Canvas):
                 participants.append(replyAuthor)
             repAuthorEmail = replies[2]
             repCreatedAt = replies[3]
-            repUpdatedAt = replies[4]
+            repEditedAt = replies[4]
             replyId = replies[5]
             repAuthorId = replies[6]
             authorCoordinates = (
@@ -2877,11 +2694,11 @@ class DiscussionsView(Canvas):
             )
             timestrfmt = r'%A, %B %d %Y at %I:%M %p'
             datetimestr = datetime.now().strftime(timestrfmt)
-            if repUpdatedAt == repCreatedAt:
+            if repEditedAt == repCreatedAt:
                 repAuthorDate = f"{replyAuthor} replied on {repCreatedAt}"
             else:
                 timedelta = datetime.strptime(
-                    datetimestr, timestrfmt) - datetime.strptime(repUpdatedAt, timestrfmt)
+                    datetimestr, timestrfmt) - datetime.strptime(repEditedAt, timestrfmt)
                 if timedelta.days > 0:
                     timedelta = f"{timedelta.days} days"
                 elif timedelta.seconds//3600 > 0:
@@ -3232,10 +3049,15 @@ class DiscussionsView(Canvas):
         newtext = self.replytextwidget.get("1.0", 'end-1c')
         toast.show_toast()
         prisma = self.prisma
+        utc = timezone('UTC')
+        kualalumpur = timezone('Asia/Kuala_Lumpur')
+        time = kualalumpur.convert(datetime.now())
+        newtime = utc.convert(time)
         if isPost:
             reply = prisma.modulepost.update(
                 data={
                     "content": newtext,
+                    "editedAt": newtime
                 },
                 where={
                     "id": postId
@@ -3247,6 +3069,7 @@ class DiscussionsView(Canvas):
             reply = prisma.reply.update(
                 data={
                     "content": newtext,
+                    "editedAt": newtime
                 },
                 where={
                     "replyId": replyId
@@ -3349,19 +3172,19 @@ class DiscussionsView(Canvas):
                 post.id, post.title, post.content, post.author.fullName, post.author.email,
                 kualalumpur.convert(post.createdAt).strftime(
                     r'%A, %B %d %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
-                kualalumpur.convert(post.updatedAt).strftime(
+                kualalumpur.convert(post.editedAt).strftime(
                     r'%A, %B %d %Y at %I:%M %p'),
                 [
                     [
                         reply.content, reply.author.fullName, reply.author.email,
                         kualalumpur.convert(reply.createdAt).strftime(
                             r'%A, %B %d %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
-                        kualalumpur.convert(reply.updatedAt).strftime(
+                        kualalumpur.convert(reply.editedAt).strftime(
                             r'%A, %B %d %Y at %I:%M %p'),
                         reply.replyId, reply.authorId,
                     ] for reply in post.replies
                 ],
-                post.authorId, 
+                post.authorId,
                 favoritedPostIds
             ) for post in posts
         ]
@@ -3699,8 +3522,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    # runGui()
-    try:
-        runGuiThreaded()
-    except Exception as e:
-        print("sorry")
+    runGui()
+    # try:
+    #     runGuiThreaded()
+    # except Exception as e:
+    #     print("sorry")
