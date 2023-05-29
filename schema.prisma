@@ -44,19 +44,24 @@ model Lecturer {
 }
 
 model Appointment {
-  id          Int       @id @default(autoincrement())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  isAccepted  Boolean   @default(false)
-  isCompleted Boolean   @default(false)
-  location    String?
-  startTime   DateTime?
-  endTime     DateTime?
-  date        DateTime?
-  studentId   String
-  lecturerId  String
-  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  lecturer    Lecturer  @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+  id           Int       @id @default(autoincrement())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  editedAt     DateTime? @default(now())
+  // To identify who accepted the appointment
+  studAccept   Boolean   @default(false)
+  lectAccept   Boolean   @default(false)
+  studAcceptAt DateTime?
+  lectAcceptAt DateTime?
+  isCompleted  Boolean   @default(false)
+  completedAt  DateTime?
+  location     String
+  startTime    DateTime
+  endTime      DateTime
+  studentId    String
+  lecturerId   String
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lecturer     Lecturer  @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([lecturerId])
@@ -101,8 +106,8 @@ model ModuleEnrollment {
   enrollmentGrade Int?
   studentId       String
   moduleId        String
-  student         Student  @relation(fields: [studentId], references: [id])
-  module          Module   @relation(fields: [moduleId], references: [id])
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  module          Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@id([studentId, moduleId])
   @@index([studentId])

@@ -55,7 +55,9 @@ class Window(ttk.Window):
         self.imageDict = {}
         self.imagePathDict = {}
         self.initializeWindow()
-
+        self.frames = {}
+        self.canvasInDashboard = {}
+        
         self.labelSettingsParentFrame = [
             (r"Assets\LandingPage\BackgroundImage.png",
              0, 0, "Background Image", self.parentFrame),
@@ -87,10 +89,10 @@ class Window(ttk.Window):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                 self.loadSignIn(),
-                 #  self.show_frame(Dashboard),
-                 #  self.show_canvas(DashboardCanvas),
-                 #  self.get_page(Dashboard).loadSpecificAssets("student"),
+                #  self.loadSignIn(),
+                  self.show_frame(Dashboard),
+                  self.show_canvas(DashboardCanvas),
+                  self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -99,8 +101,7 @@ class Window(ttk.Window):
 
         self.openDevWindow()
         self.bind("<Configure>", self.resizeEvent)
-        self.frames = {}
-        self.canvasInDashboard = {}
+
         for F in (Dashboard, ):
             frame = F(parent=self.parentFrame, controller=self)
             self.frames[F] = frame
@@ -108,7 +109,7 @@ class Window(ttk.Window):
             frame.grid_propagate(False)
             self.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas",
                                bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
-            # self.updateWidgetsDict(frame)
+            self.updateWidgetsDict(frame)
             frame.grid_remove()
         for FRAME in (DashboardCanvas, SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, FavoritesView, AppointmentsView):
             canvas = FRAME(parent=self.widgetsDict["maincanvas"], controller=self)
@@ -117,13 +118,13 @@ class Window(ttk.Window):
             canvas.grid(row=0, column=0, columnspan=96, rowspan=46, sticky=NSEW)
             canvas.grid_propagate(False)
             canvas.grid_remove()
-        self.loadSignInPage()
         self.postSelectFrame.tkraise()
+        self.loadSignInPage()
         ref = self.widgetsDict["postselectframebg"]
         ref.configure(image=self.loadedImgs[2])
         self.widgetsDict["backbutton"].grid_remove()
-        self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
-        self.show_canvas(DashboardCanvas)
+        # self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
+
         self.bind("<F11>", lambda e: self.togglethewindowbar())
 
     def initializeWindow(self):
@@ -149,25 +150,26 @@ class Window(ttk.Window):
         self.postSelectFrame.grid(
             row=0, column=0, rowspan=54, columnspan=96, sticky=NSEW)
         gridGenerator(self.postSelectFrame, 96, 54, WHITE)
-        self.postSelectFrame.tkraise()
 
     def signUpPage(self, student=False, teacher=False):
         ref = self.widgetsDict["postselectframebg"]
-        # self.widgetsDict["backbutton"].grid()
+        self.widgetsDict["gofullscreenbtn"].grid_remove()
+        self.widgetsDict["backbutton"].grid()
         self.widgetsDict["skipbutton"].grid()
         if student:
             ref.configure(image=self.loadedImgs[0])
             self.studentform = UserForms(
                 self.postSelectFrame, self, "studentreg")
-            self.studentform.userReg()
+            # self.studentform.userReg()
             self.studentform.loadStudentReg()
         elif teacher:
             ref.configure(image=self.loadedImgs[1])
             self.teacherform = UserForms(
                 self.postSelectFrame, self, "teacherreg")
-            self.teacherform.userReg()
+            # self.teacherform.userReg()
             self.teacherform.loadLecturerReg()
-        self.postSelectFrame.grid(), self.postSelectFrame.tkraise()
+        self.postSelectFrame.grid()
+        self.postSelectFrame.tkraise()
 
     def loadSignIn(self):
         ref = self.widgetsDict["postselectframebg"]
@@ -188,7 +190,6 @@ class Window(ttk.Window):
             pass
 
         def reloadForm():
-
             try:
                 if self.studentform:
                     self.studentform.grid()
@@ -211,6 +212,7 @@ class Window(ttk.Window):
                     self.postSelectFrame.grid_remove(),
                 ])
             self.widgetsDict["skipbutton"].grid()
+            self.widgetsDict["gofullscreenbtn"].grid_remove()
             # self.widgetsDict["skipbutton"].configure(
             #     command=lambda: [
             #         self.loadSignIn(),
@@ -226,6 +228,7 @@ class Window(ttk.Window):
                 self.loadSignIn(),
             ]
         )
+        self.widgetsDict["gofullscreenbtn"].grid()
 
     def loadSignInPage(self):
         self.frameCreator(
@@ -261,6 +264,7 @@ class Window(ttk.Window):
         t = threading.Thread(target=self.signIn)
         t.daemon = True
         t.start()
+        
 
     def validatePassword(self, password: str, encrypted: str) -> str:
         return bcrypt.checkpw(password.encode("utf-8"), encrypted.encode("utf-8"))
@@ -273,11 +277,11 @@ class Window(ttk.Window):
                 bootstyle=INFO,
             )
             toast.show_toast()
-            prisma = Prisma()
-            prisma.connect()
+            self.prisma = Prisma()
+            self.prisma.connect()
             emailtext = self.widgetsDict["signinemail"].get()
             entrytext = self.widgetsDict["signinpassent"].get()
-            user = prisma.userprofile.find_first(
+            user = self.prisma.userprofile.find_first(
                 where={
                     "email": emailtext
                 },
@@ -308,7 +312,7 @@ class Window(ttk.Window):
             print("Is teacher? ", isTeacher, "or is Student?", isStudent)
             if isStudent:
                 student, moduleenrollments = self.setUserContext(
-                    userId=user.id, role="student", prisma=prisma)
+                    userId=user.id, role="student", prisma=self.prisma)
                 modulesOfStudent = []
                 lecturerinfo = []
                 for i in range(len(moduleenrollments)):
@@ -336,7 +340,7 @@ class Window(ttk.Window):
                 }
             elif isTeacher:
                 lecturer, modules = self.setUserContext(
-                    userId=user.id, role="lecturer", prisma=prisma)
+                    userId=user.id, role="lecturer", prisma=self.prisma)
                 modulesOfLecturer = []
                 studentinfo = []
                 for mod in modules:
@@ -374,9 +378,9 @@ class Window(ttk.Window):
             courseview = self.widgetsDict["courseview"]
             courseview.postLogin(data)
             discussionsview = self.widgetsDict["discussionsview"]
-            discussionsview.postLogin(data, prisma)
+            discussionsview.postLogin(data, self.prisma)
             appointmentsview = self.widgetsDict["appointmentsview"]
-            appointmentsview.postLogin(data, prisma)
+            appointmentsview.postLogin(data, self.prisma)
         # prisma.disconnect()
         except Exception as e:
             print(e)
@@ -545,13 +549,12 @@ class Window(ttk.Window):
         frame = self.frames[cont]
         frame.grid()
         frame.tkraise()
-        # ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
 
     def show_canvas(self, cont):
         canvas = self.canvasInDashboard[cont]
         canvas.grid()
         canvas.tk.call("raise", canvas._w)
-        # ctypes.windll.user32.SetForegroundWindow(ctypes.windll.kernel32.GetConsoleWindow())
+        canvas.focus_set()
 
     def get_page(self, classname):
         return self.frames[classname]
@@ -826,86 +829,6 @@ class Window(ttk.Window):
         self.widgetsDict[classname] = entry
         self.updateWidgetsDict(root=root)
 
-    def webview2creator(self, xpos=None, ypos=None, framewidth=None, frameheight=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Avenir Next", 16), url=None):
-        columnarg = int(xpos / 20)
-        rowarg = int(ypos / 20)
-        widthspan = int(framewidth / 20)
-        heightspan = int(frameheight / 20)
-        classname = classname.lower().replace(" ", "")
-        navigationbar = Frame(root, width=1, height=1,
-                              bg=bgcolor, relief=FLAT, name=f"{classname}navbar")
-        gridGenerator(navigationbar, widthspan, 3, WHITE)
-        navigationbar.grid(row=rowarg-3, column=columnarg,
-                           rowspan=3, columnspan=widthspan, sticky=NSEW)
-        frame = WebView2(parent=root, width=1, height=1,
-                         url=url, name=classname, bg=bgcolor)
-        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan,
-                   columnspan=widthspan, sticky=NSEW)
-        # binding a callback button to go back in javascript
-
-        def goBack():
-            frame.evaluate_js("window.history.back();")
-            defocus()
-        # binding a callback button to go forward in javascript
-
-        def goForward():
-            frame.evaluate_js("window.history.forward();")
-            defocus()
-
-        def getUrlandGo():
-            try:
-                url = self.widgetsDict[f"{classname}urlentry"].get()
-                frame.load_url(url)
-            except:
-                url = f"https://www.google.com/search?q={self.widgetsDict[f'{classname}urlentry'].get()}"
-                frame.load_url(url)
-            defocus()
-            ctypes.windll.user32.SetForegroundWindow(
-                ctypes.windll.kernel32.GetConsoleWindow())
-
-        def gotoGoogle():
-            self.widgetsDict[f"{classname}urlentry"].focus_set()
-            frame.load_url("https://www.google.com/")
-            defocus()
-            ctypes.windll.user32.SetForegroundWindow(
-                ctypes.windll.kernel32.GetConsoleWindow())
-
-        def toggleFullscreen():
-            frame.evaluate_js(
-                "document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();")
-            defocus()
-            self.widgetsDict[f"{classname}urlentry"].focus_set()
-
-        def defocus():
-            # getting the current window using the window handle, then simulating a refocusing
-            # frame.evaluate_js("document.activeElement.blur();")
-            ctypes.windll.user32.SetForegroundWindow(
-                ctypes.windll.kernel32.GetConsoleWindow())
-            self.widgetsDict[f"{classname}urlentry"].focus_set()
-            self.focus_set()
-
-        self.buttonCreator(r"Assets\Chatbot\Backbutton.png", 0, 0, classname=f"{classname}backbutton",
-                           buttonFunction=lambda: goBack(),
-                           root=navigationbar)
-        self.buttonCreator(r"Assets\Chatbot\Forwardbutton.png", 80, 0, classname=f"{classname}forwardbutton",
-                           buttonFunction=lambda: goForward(),
-                           root=navigationbar)
-        self.entryCreator(160, 0, 760, 60, navigationbar, classname=f"{classname}urlentry",
-                          bg=bgcolor)
-        self.widgetsDict[f"{classname}urlentry"].insert(0, url)
-        self.widgetsDict[f"{classname}urlentry"].bind(
-            "<Return>", lambda event: getUrlandGo())
-        self.buttonCreator(r"Assets\Chatbot\EnterAndGoButton.png", 920, 0, classname=f"{classname}enterandgobutton",
-                           buttonFunction=lambda: getUrlandGo(),
-                           root=navigationbar)
-        self.buttonCreator(r"Assets\Chatbot\GoogleButton.png", 1060, 0, classname=f"{classname}googlebutton",
-                           buttonFunction=lambda: gotoGoogle(),
-                           root=navigationbar)
-        self.buttonCreator(r"Assets\Chatbot\Togglefullscreen.png", 1120, 0, classname=f"{classname}fullscreenbutton",
-                           buttonFunction=lambda: toggleFullscreen(),
-                           root=navigationbar)
-
-        self.updateWidgetsDict(root=root)
 
     def hex_to_rgb(self, hexstring):
         # Convert hexstring to integer
@@ -1118,10 +1041,6 @@ class UserForms(Frame):
              f"{self.name}contactnumber", "isContactNo"),
             (420, 500, 340, 40, self.frameref, f"{self.name}captcha"),
         ]
-        self.controller.buttonCreator(
-            r"Assets\Login Page with Captcha\BackButtonComponent.png", 0, 40, classname="Back Button",
-            root=self.parent,
-            buttonFunction=lambda: self.parent.grid_remove())
 
     def loadLecturerReg(self):
         self.userReg()
@@ -1334,7 +1253,6 @@ class UserForms(Frame):
     def prismaFormSubmit(self,  data: dict):
         # LECTURER OR STUDENT
         prisma = Prisma()
-        prisma.connect()
         try:
             if data["role"] == "STUDENT":
                 school = prisma.school.find_first(
@@ -1422,15 +1340,14 @@ class UserForms(Frame):
                             "modules": True,
                         }
                     )
-                user = print(f"Created Student: {update.json(indent=2)}")
+                welcomemessage = f"Welcome, {update.userProfile.fullName}!"
                 toast = ToastNotification(
                     title="Success",
-                    message=f"{user}",
+                    message=welcomemessage,
                     duration=3000
                 )
                 toast.show_toast()
                 self.gif.grid_forget()
-                messagebox.showinfo("success", f"{user}")
             elif data["role"] == "LECTURER":
                 school = prisma.school.find_first(
                     where={
@@ -1555,7 +1472,6 @@ class UserForms(Frame):
             toast.show_toast()
             print(e)
         self.controller.loadSignIn()
-        prisma.disconnect()
 
     def send_data(self, data: dict):
         t = threading.Thread(target=self.prismaFormSubmit, args=(data,))
@@ -1870,10 +1786,92 @@ class Chatbot(Canvas):
         self.staticImgLabels = [
             (r"Assets\Chatbot\ChatbotBg.png", 0, 0, "ChatbotBgLabel", self),
         ]
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        self.controller.webview2creator(xpos=60, ypos=160, framewidth=1200, frameheight=740,
-                                        root=self, classname="chatbotwebview2", url="http://localhost:5555/")
 
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.webview2creator(xpos=60, ypos=140, framewidth=1800, frameheight=700,
+                                        root=self, classname="chatbotwebview2", url="http://localhost:5555/")
+        
+    def webview2creator(self, xpos=None, ypos=None, framewidth=None, frameheight=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Avenir Next", 16), url=None):
+        columnarg = int(xpos / 20)
+        rowarg = int(ypos / 20)
+        widthspan = int(framewidth / 20)
+        heightspan = int(frameheight / 20)
+        classname = classname.lower().replace(" ", "")
+        navigationbar = Frame(root, width=1, height=1,
+                              bg=bgcolor, relief=FLAT, name=f"{classname}navbar")
+        gridGenerator(navigationbar, widthspan, 3, WHITE)
+        navigationbar.grid(row=rowarg-3, column=columnarg,
+                           rowspan=3, columnspan=widthspan, sticky=NSEW)
+        frame = WebView2(parent=root, width=1, height=1,
+                         url=url, name=classname, bg=bgcolor)
+        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan,
+                   columnspan=widthspan, sticky=NSEW)
+        # binding a callback button to go back in javascript
+
+        def goBack():
+            frame.evaluate_js("window.history.back();")
+            defocus()
+        # binding a callback button to go forward in javascript
+
+        def goForward():
+            print(frame.get_url())
+            frame.evaluate_js("window.history.forward();")
+            defocus()
+
+        def getUrlandGo():
+            try:
+                url = self.controller.widgetsDict[f"{classname}urlentry"].get()
+                frame.load_url(url)
+            except:
+                url = f"https://www.google.com/search?q={self.controller.widgetsDict[f'{classname}urlentry'].get()}"
+                frame.load_url(url)
+            defocus()
+            ctypes.windll.user32.SetForegroundWindow(
+                ctypes.windll.kernel32.GetConsoleWindow())
+
+        def gotoGoogle():
+            self.controller.widgetsDict[f"{classname}urlentry"].focus_set()
+            frame.load_url("https://www.google.com/")
+            defocus()
+            ctypes.windll.user32.SetForegroundWindow(
+                ctypes.windll.kernel32.GetConsoleWindow())
+
+        def toggleFullscreen():
+            frame.evaluate_js(
+                "document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();")
+            defocus()
+            self.controller.widgetsDict[f"{classname}urlentry"].focus_set()
+
+        def defocus():
+            # getting the current window using the window handle, then simulating a refocusing
+            # frame.evaluate_js("document.activeElement.blur();")
+            ctypes.windll.user32.SetForegroundWindow(
+                ctypes.windll.kernel32.GetConsoleWindow())
+            self.controller.widgetsDict[f"{classname}urlentry"].focus_set()
+            self.controller.focus_set()
+
+        self.controller.buttonCreator(r"Assets\Chatbot\Backbutton.png", 0, 0, classname=f"{classname}backbutton",
+                           buttonFunction=lambda: goBack(),
+                           root=navigationbar)
+        self.controller.buttonCreator(r"Assets\Chatbot\Forwardbutton.png", 80, 0, classname=f"{classname}forwardbutton",
+                           buttonFunction=lambda: goForward(),
+                           root=navigationbar)
+        self.controller.entryCreator(160, 0, 760, 60, navigationbar, classname=f"{classname}urlentry",
+                          bg=bgcolor)
+        self.controller.widgetsDict[f"{classname}urlentry"].insert(0, url)
+        self.controller.widgetsDict[f"{classname}urlentry"].bind(
+            "<Return>", lambda event: getUrlandGo())
+        self.controller.buttonCreator(r"Assets\Chatbot\EnterAndGoButton.png", 920, 0, classname=f"{classname}enterandgobutton",
+                           buttonFunction=lambda: getUrlandGo(),
+                           root=navigationbar)
+        self.controller.buttonCreator(r"Assets\Chatbot\GoogleButton.png", 1060, 0, classname=f"{classname}googlebutton",
+                           buttonFunction=lambda: gotoGoogle(),
+                           root=navigationbar)
+        self.controller.buttonCreator(r"Assets\Chatbot\Togglefullscreen.png", 1120, 0, classname=f"{classname}fullscreenbutton",
+                           buttonFunction=lambda: toggleFullscreen(),
+                           root=navigationbar)
+
+        self.controller.updateWidgetsDict(root=root)
 
 class LearningHub(Canvas):
     def __init__(self, parent, controller: Window):
@@ -2199,6 +2197,7 @@ class AnimatedStarBtn(Frame):
             self.tooltip.show_tip()
 
         t = threading.Thread(target=updateuser)
+        t.daemon = True
         t.start()
 
     def callUnfavoritePost(self, userId=None, postId=None):
@@ -2238,6 +2237,7 @@ class AnimatedStarBtn(Frame):
                 self.img_container, f"Click to favorite {self.postTitle}", bootstyle=(INFO, INVERSE))
             self.tooltip.show_tip()
         t = threading.Thread(target=updateuser)
+        t.daemon = True
         t.start()
 
     def animate(self, *args):
@@ -2433,8 +2433,7 @@ class DiscussionsView(Canvas):
 
     def createPost(self):
         # ~~~~ BACKEND FUNCTIONALITY ~~~~
-        prisma = Prisma()
-        prisma.connect()
+        prisma = self.controller.prisma
         title = self.controller.widgetsDict["posttitleent"].get()
         content = self.postcontenttext.get("1.0", 'end-1c')
         findmodule = prisma.module.find_first(
@@ -2598,13 +2597,13 @@ class DiscussionsView(Canvas):
             gridGenerator(self.scrolledframe, int(
                 1100/20), int(660/20), "#acbcff")
         # POST BG
-        self.controller.buttonCreator(
+        self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\exampleofapost.png", xpos=0, ypos=0,
             classname="exampleofapost", root=self.scrolledframe, isPlaced=True,
             # buttonFunction=lambda: print(f"{tupleofcontent} was clicked")
         )
         # AUTHOR AND DATE
-        timestrfmt = r'%A, %B %d %Y at %I:%M %p'
+        timestrfmt = r'%A, %B %d %Y at %I:%M:%S %p'
         datetimestr = datetime.now().strftime(timestrfmt)
         if posteditedAt == createdat:
             authoranddatetext = f"{author} posted on {createdat}"
@@ -2619,7 +2618,7 @@ class DiscussionsView(Canvas):
                 timedelta = f"{timedelta.seconds//60} minutes"
             elif timedelta.seconds < 60:
                 timedelta = f"{timedelta.seconds} seconds"
-            authoranddatetext = f"{author} posted on {createdat} (updated {timedelta} ago)"
+            authoranddatetext = f"{author} posted on {createdat} (edited {timedelta} ago)"
         self.controller.textElement(
             imagepath=r"Assets\DiscussionsView\fullnamepostedon.png", xpos=20, ypos=20,
             classname="fullnamepostedon", root=self.scrolledframe, isPlaced=True,
@@ -2692,7 +2691,7 @@ class DiscussionsView(Canvas):
                 classname=f"exampleofareply{replycounter}", root=self.scrolledframe, isPlaced=True,
                 buttonFunction=lambda rep=replies: print(f"{rep} was clicked")
             )
-            timestrfmt = r'%A, %B %d %Y at %I:%M %p'
+            timestrfmt = r'%A, %B %d %Y at %I:%M:%S %p'
             datetimestr = datetime.now().strftime(timestrfmt)
             if repEditedAt == repCreatedAt:
                 repAuthorDate = f"{replyAuthor} replied on {repCreatedAt}"
@@ -2707,7 +2706,7 @@ class DiscussionsView(Canvas):
                     timedelta = f"{timedelta.seconds//60} minutes"
                 elif timedelta.seconds < 60:
                     timedelta = f"{timedelta.seconds} seconds"
-                repAuthorDate = f"{replyAuthor} replied on {repCreatedAt} (updated {timedelta} ago)"
+                repAuthorDate = f"{replyAuthor} replied on {repCreatedAt} (edited {timedelta} ago)"
             # reply author and date
             self.controller.textElement(
                 imagepath=r"Assets\DiscussionsView\fullnamepostedon.png", xpos=authorCoordinates[0], ypos=authorCoordinates[1],
@@ -2764,7 +2763,7 @@ class DiscussionsView(Canvas):
                 imagepath=r"Assets\DiscussionsView\viewparticipants.png", xpos=partiCoords[0], ypos=partiCoords[1],
                 classname=f"{partiCounter}inpost", root=self.postviewframe,
                 text=f"{partiCounter}. {p.upper()}", fg=BLACK, size=24, xoffset=-1,
-                buttonFunction=lambda: print(f"{p} was clicked")
+                buttonFunction=lambda p=p: print(f"{p} was clicked")
             )
             partiCoords = (partiCoords[0], partiCoords[1] + 40)
             partiCounter += 1
@@ -3167,20 +3166,21 @@ class DiscussionsView(Canvas):
         # prisma's datetime fields are saved automatically in UTC
         # converting to local timezone:
         kualalumpur = timezone("Asia/Kuala_Lumpur")
+        timestrfmt = r'%A, %B %d %Y at %I:%M:%S %p'
         postContentList = [
             (
                 post.id, post.title, post.content, post.author.fullName, post.author.email,
                 kualalumpur.convert(post.createdAt).strftime(
-                    r'%A, %B %d %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
+                    timestrfmt),  # '%A %d %B %Y %H:%M:%S'
                 kualalumpur.convert(post.editedAt).strftime(
-                    r'%A, %B %d %Y at %I:%M %p'),
+                    timestrfmt),
                 [
                     [
                         reply.content, reply.author.fullName, reply.author.email,
                         kualalumpur.convert(reply.createdAt).strftime(
-                            r'%A, %B %d %Y at %I:%M %p'),  # '%A %d %B %Y %H:%M:%S'
+                            timestrfmt),  # '%A %d %B %Y %H:%M:%S'
                         kualalumpur.convert(reply.editedAt).strftime(
-                            r'%A, %B %d %Y at %I:%M %p'),
+                            timestrfmt),
                         reply.replyId, reply.authorId,
                     ] for reply in post.replies
                 ],
@@ -3273,33 +3273,26 @@ class AppointmentsView(Canvas):
         )
         self.dateentry.grid(row=ypos, column=xpos,
                             columnspan=columnspan, rowspan=rowspan, sticky=NSEW)
+        print(self.dateentry.entry.get())
         self.scrolledframe = ScrolledFrame(
             self, width=1, height=1, name="appointmentscrolledframe", autohide=True, padding=0
         )
-        # self.scrolledframe.grid(
-        #     row=int(180/20), column=int(1420/20), columnspan=int(460/20), rowspan=int(700/20), sticky=NSEW
-        # )
+        self.scrolledframe.grid(
+            row=int(180/20), column=int(1420/20), columnspan=int(460/20), rowspan=int(680/20), sticky=NSEW
+        )
         self.scrolledframe.grid_propagate(False)
-        # gridGenerator(self.scrolledframe, int(460/20), int(960/20), DARKBLUE)
-        self.controller.frameCreator(
-            xpos=1420, ypos=180, framewidth=460, frameheight=680, root=self,
-            classname="appcanvasframe",
-        )
-        self.appcanvasframe = self.controller.widgetsDict["appcanvasframe"]
-        self.controller.canvasCreator(
-            xpos=0, ypos=0, width=460, height=960, root=self.appcanvasframe,
-            classname="appdisplaycanvas",
-            # xpos=0, ypos=0, framewidth=460, frameheight=960, root=self,
-            # classname="appdisplayframe",
-        )
-        self.appdisplayframe = self.controller.widgetsDict["appdisplaycanvas"]
-        self.scrollbar = Scrollbar(
-            self.appdisplayframe, orient=VERTICAL, command=self.appdisplayframe.yview
-        )
-        self.appdisplayframe.configure(yscrollcommand=self.scrollbar.set)
-        self.scrollbar.place(x=440, y=0, width=20, height=960)
-        self.appdisplayframe.configure(
-            scrollregion=self.appdisplayframe.bbox("all"))
+        gridGenerator(self.scrolledframe, int(460/20), int(920/20), DARKBLUE)
+        # self.controller.frameCreator(
+        #     xpos=1420, ypos=180, framewidth=460, frameheight=680, root=self,
+        #     classname="appcanvasframe",
+        # )
+        # self.appcanvasframe = self.controller.widgetsDict["appcanvasframe"]
+        # self.controller.canvasCreator(
+        #     xpos=0, ypos=0, width=460, height=960, root=self.appcanvasframe,
+        #     classname="appdisplaycanvas",
+        #     # xpos=0, ypos=0, framewidth=460, frameheight=960, root=self,
+        #     # classname="appdisplayframe",
+        # )
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print("Current Time =", current_time)
@@ -3314,116 +3307,18 @@ class AppointmentsView(Canvas):
         for i in range(24):
             self.controller.textElement(
                 r"Assets\AppointmentsView\timehours.png", xpos=0,
-                ypos=initialypos, root=self.appdisplayframe, size=30, classname=f"hour{i}",
+                ypos=initialypos, root=self.scrolledframe, size=30, classname=f"hour{i}",
                 text=hours[i], isPlaced=True
             )
             self.controller.textElement(
                 r"Assets\AppointmentsView\eventdetails.png", xpos=100,
-                ypos=initialypos, root=self.appdisplayframe, size=30, classname=f"event{i}",
+                ypos=initialypos, root=self.scrolledframe, size=30, classname=f"event{i}",
                 text=f"Placeholder event {i}", buttonFunction=lambda i=i: print(f"event {i} clicked"), isPlaced=True,
             )
             initialypos += 40
         self.creationframe.grid_remove()
         self.viewFrame.grid_remove()
-
-    def createElements(self):
-        self.staticImgLabels = [
-            (r"Assets\AppointmentsView\appointmentsdashboard.png",
-             0, 0, "AppointmentsBG", self),
-            (r"Assets\AppointmentsView\TitleLabel.png",
-             0, 0, "AppointmentsHeader", self),
-            (r"Assets\AppointmentsView\appointmentcreationbg.png",
-             0, 0, "appcreationbg", self.creationframe),
-        ]
-        self.staticBtns = [
-            (r"Assets\AppointmentsView\Create Appointment.png", 40, 600, "createappointmentbtn", self,
-             lambda: self.loadAppCreation()),
-            (r"Assets\AppointmentsView\manageappointments.png", 600, 600, "manageappointmentsbtn", self,
-             lambda: self.loadAppView()),
-            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appcreateexitbtn", self.creationframe,
-             lambda: self.unloadAppCreation()),
-            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appviewexitbtn", self.viewFrame,
-             lambda: self.unloadAppView()),
-        ]
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        self.controller.settingsUnpacker(self.staticBtns, "button")
-
-    def createFrames(self):
-        self.controller.frameCreator(
-            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
-            classname="appointmentscreation",
-        )
-        self.controller.frameCreator(
-            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
-            classname="appointmentsmanage",
-        )
-
-    def postLogin(self, data: dict = None, prisma: Prisma = None):
-        self.prisma = prisma
-        self.userId = data["id"]
-        self.data = data
-        appContentList = self.loadLatestAppointments(
-            prisma=self.prisma, userId=self.userId)
-        print(appContentList)
-
-    def loadLatestAppointments(self, prisma: Prisma = None, userId: str = None):
-        appointments = prisma.appointment.find_many(
-            include={
-                "lecturer": {
-                    "include": {
-                        "userProfile": True
-                    }
-                },
-                "student": {
-                    "include": {
-                        "userProfile": True
-                    }
-                }
-            },
-            where={
-                "student": {
-                    "is": {
-                        "userId": userId
-                    }
-                }
-            }
-        )
-        kualalumpur = timezone("Asia/Kuala_Lumpur")
-        appContentList = [
-            (
-                app.id,
-                (app.startTime.date(), app.startTime.day, app.startTime.month,
-                 app.startTime.year, app.startTime.hour, app.startTime.minute),
-                (app.endTime, app.endTime.month, app.endTime.year,
-                 app.endTime.hour, app.endTime.minute),
-                app.date, app.location,
-                app.student.userProfile.fullName,
-                app.lecturer.userProfile.fullName,
-                app.isAccepted, app.isCompleted,
-                kualalumpur.convert(app.createdAt).strftime(
-                    r"%A, %B %e %Y at %I:%M %p"),
-                kualalumpur.convert(app.updatedAt).strftime(
-                    r"%A, %B %e %Y at %I:%M %p"),
-            ) for app in appointments
-        ]
-        return appContentList
-
-    def loadAppCreation(self):
-        self.creationframe.grid()
-        self.creationframe.tkraise()
-
-    def unloadAppCreation(self):
-        self.creationframe.grid_remove()
-
-    def loadAppView(self):
-        self.viewFrame.grid()
-        self.viewFrame.tkraise()
-
-    def unloadAppView(self):
-        self.viewFrame.grid_remove()
-        # for app in appointments:
-        #     print(app)
-    #     self.controller.frameCreator(
+    # self.controller.frameCreator(
     #         xpos=120, ypos=580,
     #         framewidth=1160, frameheight=180,
     #         root=self, classname="appointmentsmenuframe", bg="#F6F5D7",
@@ -3507,6 +3402,141 @@ class AppointmentsView(Canvas):
     #     )
     #     prisma.disconnect()
 
+    def createFrames(self):
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="appointmentscreation",
+        )
+        self.controller.frameCreator(
+            root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            classname="appointmentsmanage",
+        )
+
+    def createElements(self):
+        self.staticImgLabels = [
+            (r"Assets\AppointmentsView\appointmentsdashboard.png",
+             0, 0, "AppointmentsBG", self),
+            (r"Assets\AppointmentsView\TitleLabel.png",
+             0, 0, "AppointmentsHeader", self),
+            (r"Assets\AppointmentsView\appointmentcreationbg.png",
+             0, 0, "appcreationbg", self.creationframe),
+        ]
+        self.staticBtns = [
+            (r"Assets\AppointmentsView\Create Appointment.png", 80, 600, "createappointmentbtn", self,
+             lambda: self.loadAppCreation()),
+            (r"Assets\AppointmentsView\manageappointments.png", 780, 600, "manageappointmentsbtn", self,
+             lambda: self.loadAppView()),
+            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appcreateexitbtn", self.creationframe,
+             lambda: self.unloadAppCreation()),
+            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appviewexitbtn", self.viewFrame,
+             lambda: self.unloadAppView()),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.controller.settingsUnpacker(self.staticBtns, "button")
+
+    def postLogin(self, data: dict = None, prisma: Prisma = None):
+        self.prisma = prisma
+        self.userId = data["id"]
+        self.data = data
+        appContentList = self.loadLatestAppointments(
+            prisma=self.prisma, userId=self.userId)
+        print(f"In appointments view, {self.userId} ")
+        print(appContentList)
+
+    def loadLatestAppointments(self, prisma: Prisma = None, userId: str = None):
+        appointments = prisma.appointment.find_many(
+            include={
+                "lecturer": {
+                    "include": {
+                        "userProfile": True
+                    }
+                },
+                "student": {
+                    "include": {
+                        "userProfile": True
+                    }
+                }
+            },
+            where={
+                "student": {
+                    "is": {
+                        "userId": userId
+                    }
+                }
+            }
+        )
+
+        kualalumpur = timezone("Asia/Kuala_Lumpur")
+        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
+        humandate = r"%A, %B %d %Y"
+        for app in appointments:
+            appContentList = [
+                    app.id,
+                    kualalumpur.convert(app.startTime).strftime(humanreadable),
+                    kualalumpur.convert(app.endTime).strftime(humanreadable),
+                    kualalumpur.convert(app.startTime).strftime(humandate),
+                    kualalumpur.convert(app.endTime).strftime(humandate),
+                    app.location,
+                    app.student.userProfile.fullName,
+                    app.lecturer.userProfile.fullName,
+                    app.isCompleted,
+                    kualalumpur.convert(app.createdAt).strftime(
+                        humanreadable),
+                    kualalumpur.convert(app.updatedAt).strftime(
+                        humanreadable),
+                    app.studAccept, app.lectAccept
+            ]
+            try:
+                appContentList.append(
+                    app.studAcceptAt.strftime(humanreadable)
+                )
+                appContentList.append(
+                    app.lectAcceptAt.strftime(humanreadable)
+                )
+            except:
+                appContentList.append(
+                    "Not accepted yet by student"
+                )
+                appContentList.append(
+                    "Not accepted yet by lecturer"
+                )
+        # appContentList = [
+        #     (
+        #         app.id,
+        #         kualalumpur.convert(app.startTime).strftime(humanreadable), 
+        #         kualalumpur.convert(app.endTime).strftime(humanreadable),
+        #         kualalumpur.convert(app.startTime).strftime(humandate),
+        #         kualalumpur.convert(app.endTime).strftime(humandate),
+        #         app.location,
+        #         app.student.userProfile.fullName,
+        #         app.lecturer.userProfile.fullName,
+        #         app.studAccept, app.lectAccept,
+        #         app.isCompleted,
+        #         kualalumpur.convert(app.createdAt).strftime(
+        #             r"%A, %B %e %Y at %I:%M %p"),
+        #         kualalumpur.convert(app.updatedAt).strftime(
+        #             r"%A, %B %e %Y at %I:%M %p"),
+        #     ) for app in appointments
+        # ]
+        return appContentList
+
+    def loadAppCreation(self):
+        self.creationframe.grid()
+        self.creationframe.tkraise()
+
+    def unloadAppCreation(self):
+        self.creationframe.grid_remove()
+
+    def loadAppView(self):
+        self.viewFrame.grid()
+        self.viewFrame.tkraise()
+
+    def unloadAppView(self):
+        self.viewFrame.grid_remove()
+        # for app in appointments:
+        #     print(app)
+    
+
 
 def runGui():
     window = Window()
@@ -3522,8 +3552,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     runGuiThreaded()
-    # except Exception as e:
-    #     print("sorry")
+    # runGui()
+    try:
+        runGuiThreaded()
+    except Exception as e:
+        print("sorry")

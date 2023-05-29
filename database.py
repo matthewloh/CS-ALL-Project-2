@@ -918,9 +918,8 @@ def createAppointment():
             "location": "Zoom",
             # human readable to datetime today it's 18/05/2023
             # a meeting from 18/05/2023 10:00AM to 18/05/2023 11:00AM
-            "startTime": datetime.now(),
-            "endTime": datetime.now(),
-            "date": datetime.today(),
+            "startTime": datetime.utcnow(),
+            "endTime": datetime.utcnow() + timedelta(hours=1),
         },
         include={
             "lecturer": {
@@ -935,53 +934,54 @@ def createAppointment():
             }
         }
     )
-    appointment2 = prisma.appointment.create(
-        data={
-            "lecturerId": prisma.lecturer.find_first(
-                where={
-                    "userProfile": {
-                        "is": {
-                            "email": "weijian.teng@newinti.edu.my"
-                        }
-                    }
-                }
-            ).id,
-            "studentId": prisma.student.find_first(
-                where={
-                    "userProfile": {
-                        "is": {
-                            "email": "p21013568@student.newinti.edu.my"
-                        }
-                    }
-                }
-            ).id,
-            "startTime": datetime.now(timezone.utc).astimezone(),
-            "endTime": datetime.now() + timedelta(hours=1),
-            "date": datetime.now(),
-            "location": "Teams"
-        },
-        include={
-            "lecturer": {
-                "include": {
-                    "userProfile": True
-                }
-            },
-            "student": {
-                "include": {
-                    "userProfile": True
-                }
-            }
-        }
-    )
+    utctime = datetime.utcnow()
+    # appointment2 = prisma.appointment.create(
+    #     data={
+    #         "lecturerId": prisma.lecturer.find_first(
+    #             where={
+    #                 "userProfile": {
+    #                     "is": {
+    #                         "email": "weijian.teng@newinti.edu.my"
+    #                     }
+    #                 }
+    #             }
+    #         ).id,
+    #         "studentId": prisma.student.find_first(
+    #             where={
+    #                 "userProfile": {
+    #                     "is": {
+    #                         "email": "p21013568@student.newinti.edu.my"
+    #                     }
+    #                 }
+    #             }
+    #         ).id,
+    #         "startTime": datetime.utcnow(),
+    #         "endTime": datetime.utcnow() + timedelta(hours=1),
+    #         "date": datetime.now(),
+    #         "location": "Teams"
+    #     },
+    #     include={
+    #         "lecturer": {
+    #             "include": {
+    #                 "userProfile": True
+    #             }
+    #         },
+    #         "student": {
+    #             "include": {
+    #                 "userProfile": True
+    #             }
+    #         }
+    #     }
+    # )
     print(f"Appointment:\n{appointment.json(indent=2)}\n")
-    print(f"Appointment:\n{appointment2.json(indent=2)}\n")
-    print(appointment.startTime, appointment.endTime, appointment.date)
+    # print(f"Appointment:\n{appointment2.json(indent=2)}\n")
+    # print(appointment.startTime, appointment.endTime, appointment.date)
     # 2023-05-18 10:00:00+00:00 2023-05-18 11:00:00+00:00 2023-05-18 00:00:00+00:00
     # converting to days, month, year
-    print(appointment.startTime.day, appointment.startTime.month, appointment.startTime.year)
+    # print(appointment.startTime.day, appointment.startTime.month, appointment.startTime.year)
     # converting to Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday
-    print(appointment.startTime.strftime(r"%A %d %B %Y %H:%M:%S %z"))
-    print(appointment.endTime.strftime("%A %d %B %Y %H:%M:%S %z"))
+    # print(appointment.startTime.strftime(r"%A %d %B %Y %H:%M:%S %z"))
+    # print(appointment.endTime.strftime("%A %d %B %Y %H:%M:%S %z"))
     # print(appointment.json(indent=2))
 
 def createModulePost():
@@ -1213,7 +1213,7 @@ if __name__ == "__main__":
     # usingpartialTypes()
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
-    # createAppointment()
+    createAppointment()
     # createModulePost()
-    queryPosts()
+    # queryPosts()
     # queryModules()
