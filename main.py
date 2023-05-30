@@ -26,7 +26,7 @@ from datetime import datetime, timedelta, timezone
 from nonstandardimports import *
 import pendulum
 from pendulum import timezone
-
+from chatbot import Chatbot
 load_dotenv()
 
 # https://stackoverflow.com/a/68621773
@@ -1776,102 +1776,7 @@ class SearchPage(Canvas):
                        rowspan=5, sticky="nsew")
 
 
-class Chatbot(Canvas):
-    def __init__(self, parent, controller: Window):
-        Canvas.__init__(self, parent, width=1, height=1,
-                        bg=WHITE, name="chatbot", autostyle=False)
-        self.controller = controller
-        self.parent = parent
-        gridGenerator(self, 96, 46, WHITE)
-        self.staticImgLabels = [
-            (r"Assets\Chatbot\ChatbotBg.png", 0, 0, "ChatbotBgLabel", self),
-        ]
 
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        self.webview2creator(xpos=60, ypos=140, framewidth=1800, frameheight=700,
-                                        root=self, classname="chatbotwebview2", url="http://localhost:5555/")
-        
-    def webview2creator(self, xpos=None, ypos=None, framewidth=None, frameheight=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Avenir Next", 16), url=None):
-        columnarg = int(xpos / 20)
-        rowarg = int(ypos / 20)
-        widthspan = int(framewidth / 20)
-        heightspan = int(frameheight / 20)
-        classname = classname.lower().replace(" ", "")
-        navigationbar = Frame(root, width=1, height=1,
-                              bg=bgcolor, relief=FLAT, name=f"{classname}navbar")
-        gridGenerator(navigationbar, widthspan, 3, WHITE)
-        navigationbar.grid(row=rowarg-3, column=columnarg,
-                           rowspan=3, columnspan=widthspan, sticky=NSEW)
-        frame = WebView2(parent=root, width=1, height=1,
-                         url=url, name=classname, bg=bgcolor)
-        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan,
-                   columnspan=widthspan, sticky=NSEW)
-        # binding a callback button to go back in javascript
-
-        def goBack():
-            frame.evaluate_js("window.history.back();")
-            defocus()
-        # binding a callback button to go forward in javascript
-
-        def goForward():
-            print(frame.get_url())
-            frame.evaluate_js("window.history.forward();")
-            defocus()
-
-        def getUrlandGo():
-            try:
-                url = self.controller.widgetsDict[f"{classname}urlentry"].get()
-                frame.load_url(url)
-            except:
-                url = f"https://www.google.com/search?q={self.controller.widgetsDict[f'{classname}urlentry'].get()}"
-                frame.load_url(url)
-            defocus()
-            ctypes.windll.user32.SetForegroundWindow(
-                ctypes.windll.kernel32.GetConsoleWindow())
-
-        def gotoGoogle():
-            self.controller.widgetsDict[f"{classname}urlentry"].focus_set()
-            frame.load_url("https://www.google.com/")
-            defocus()
-            ctypes.windll.user32.SetForegroundWindow(
-                ctypes.windll.kernel32.GetConsoleWindow())
-
-        def toggleFullscreen():
-            frame.evaluate_js(
-                "document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();")
-            defocus()
-            self.controller.widgetsDict[f"{classname}urlentry"].focus_set()
-
-        def defocus():
-            # getting the current window using the window handle, then simulating a refocusing
-            # frame.evaluate_js("document.activeElement.blur();")
-            ctypes.windll.user32.SetForegroundWindow(
-                ctypes.windll.kernel32.GetConsoleWindow())
-            self.controller.widgetsDict[f"{classname}urlentry"].focus_set()
-            self.controller.focus_set()
-
-        self.controller.buttonCreator(r"Assets\Chatbot\Backbutton.png", 0, 0, classname=f"{classname}backbutton",
-                           buttonFunction=lambda: goBack(),
-                           root=navigationbar)
-        self.controller.buttonCreator(r"Assets\Chatbot\Forwardbutton.png", 80, 0, classname=f"{classname}forwardbutton",
-                           buttonFunction=lambda: goForward(),
-                           root=navigationbar)
-        self.controller.entryCreator(160, 0, 760, 60, navigationbar, classname=f"{classname}urlentry",
-                          bg=bgcolor)
-        self.controller.widgetsDict[f"{classname}urlentry"].insert(0, url)
-        self.controller.widgetsDict[f"{classname}urlentry"].bind(
-            "<Return>", lambda event: getUrlandGo())
-        self.controller.buttonCreator(r"Assets\Chatbot\EnterAndGoButton.png", 920, 0, classname=f"{classname}enterandgobutton",
-                           buttonFunction=lambda: getUrlandGo(),
-                           root=navigationbar)
-        self.controller.buttonCreator(r"Assets\Chatbot\GoogleButton.png", 1060, 0, classname=f"{classname}googlebutton",
-                           buttonFunction=lambda: gotoGoogle(),
-                           root=navigationbar)
-        self.controller.buttonCreator(r"Assets\Chatbot\Togglefullscreen.png", 1120, 0, classname=f"{classname}fullscreenbutton",
-                           buttonFunction=lambda: toggleFullscreen(),
-                           root=navigationbar)
-
-        self.controller.updateWidgetsDict(root=root)
 
 class LearningHub(Canvas):
     def __init__(self, parent, controller: Window):
