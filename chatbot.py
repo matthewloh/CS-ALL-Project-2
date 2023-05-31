@@ -54,31 +54,85 @@ class Chatbot(Canvas):
         # focus inputbox
         # welcome message of chatbot
         message = "Hello, I am a chatbot. I am here to help you with your queries. Please type your query in the box below."
-        fr = self.scrolledFrameCreator(
-            xpos=120, ypos=100, width=1680, height=680,
-            root=self, classname="conversationframe",
-        )
-        self.controller.labelCreator(
-            imagepath=r"Assets\Chatbot\internalbg.png", xpos=0, ypos=0,
-            classname="internalbgofchatbot", root=fr,
-        )
-        ne = self.scrolledTextCreator(
-            xpos=60, ypos=20, width=720, height=200,
-            root=fr, classname="exampleofchatbotreply",
-            bootstyle=SUCCESS, msg=message
-        )
-        two = self.scrolledTextCreator(
-            xpos=900, ypos=240, width=720, height=200,
-            root=fr, classname="exampleofuserreply",
-            bootstyle=SECONDARY
-        )
-        ne.tk.call("raise", ne._w)
-        two.tk.call("raise", two._w)
+        # fr = self.scrolledFrameCreator(
+        #     xpos=120, ypos=100, width=1680, height=680,
+        #     root=self, classname="conversationframe",
+        # )
+        # self.controller.labelCreator(
+        #     imagepath=r"Assets\Chatbot\internalbg.png",
+        #     xpos=0, ypos=0, root=fr, classname="testofbg"
+        # )
+        # ne = self.scrolledTextCreator(
+        #     xpos=60, ypos=20, width=720, height=160,
+        #     root=fr, classname="exampleofchatbotreply",
+        #     bootstyle=SUCCESS, msg=message
+        # )
+        # two = self.scrolledTextCreator(
+        #     xpos=900, ypos=240, width=720, height=160,
+        #     root=fr, classname="exampleofuserreply",
+        #     bootstyle=SECONDARY
+        # )
+        convoNum = 2
+        heightIndex = convoNum * 380 + 180 # 380 is total pixels of one chatbot reply and one user reply
+        newHeight = int(heightIndex / 20)
+        # fr.grid(rowspan=newHeight, sticky=NSEW)
+        # gridGenerator(fr.container, int(1680/20), newHeight, "#56cc9d")
+        # ne.tk.call("raise", ne._w)
+        # two.tk.call("raise", two._w)
         # using a for loop to emulate a conversation between the user and the chatbot
         self.controller.ttkEntryCreator(
             xpos=540, ypos=800, width=840, height=80,
             root=self, classname="chatbotinputboxentry"
         )
+        inputentry = self.controller.widgetsDict["chatbotinputboxentry"]
+        self.staticBtns = [
+            (r"Assets\Chatbot\sendmessage.png", 1420, 800, "sendChatBtn", 
+            self, lambda: self.testFrontEnd(int(inputentry.get()))),
+        ]
+        self.controller.settingsUnpacker(self.staticBtns, "button")
+    def testFrontEnd(self, input:int):
+        # REPLIES
+        yposBotMsg = 20
+        yposUserMsg = 200
+        heightOfFrame = input * 380
+        if heightOfFrame < 680:
+            rowspanFrame = int(680 / 20)
+        else:
+            rowspanFrame = int(heightOfFrame / 20)
+        print(heightOfFrame)
+        self.mainScrolledFrame = ScrolledFrame(
+            self, width=1, height=1, name="conversationframe",
+            autohide=True,
+        )
+        cont = self.mainScrolledFrame.container
+        gridGenerator(self.mainScrolledFrame, int(1680/21), rowspanFrame, ORANGE)
+        # gridGenerator(cont, int(1680/20), rowspanFrame, LIGHTPURPLE)
+        self.mainScrolledFrame.place(x=120, y=100, width=1680, height=680)
+        fr = self.mainScrolledFrame
+        for i in range(0, input):
+            st1 = self.scrolledTextCreator(
+                xpos = 60, ypos = yposBotMsg, width = 720, height = 160,
+                root = fr, classname = f"exampleofchatbotreply{i}", isPlaced= True,
+            )
+            st2 = self.scrolledTextCreator(
+                xpos = 900, ypos = yposUserMsg, width = 720, height = 160,
+                root = fr, classname = f"exampleofuserreply{i}", isPlaced= True,
+            )
+            st1.text.insert("end", f"Chatbot reply {i+1}")
+            st2.text.insert("end", f"User reply {i+1}")
+            yposBotMsg += 380
+            yposUserMsg += 380
+
+        # convoNum = input
+        # heightIndex = convoNum * 380 + 180 # 380 is total pixels of one chatbot reply and one user reply
+        # newHeight = int(heightIndex / 20)
+        # fr.grid(rowspan=newHeight, sticky=NSEW)
+        # gridGenerator(fr.container, int(1680/20), newHeight, "#56cc9d")
+        # inputentry = self.controller.widgetsDict["chatbotinputboxentry"]
+        # inputentry.delete(0, END)
+        # inputentry.insert(0, "")
+        # inputentry.tk.call("focus", inputentry._w)
+
 
     def api_call(engine, history):
         # https://platform.openai.com/docs/api-reference/models
@@ -86,7 +140,7 @@ class Chatbot(Canvas):
             model=engine,
 
         )
-    def scrolledFrameCreator(self, xpos=0, ypos=0, width=0, height=0, root=None, classname=None):
+    def scrolledFrameCreator(self, xpos=0, ypos=0, width=0, height=0, root=None, classname=None, isPlaced=False):
         classname = classname.replace(" ", "").lower()
         widthspan = int(width / 20)
         heightspan = int(height / 20)
@@ -96,23 +150,26 @@ class Chatbot(Canvas):
             master=root, name=classname, bootstyle=SUCCESS,
             autohide=True,
         )
-        scrolledFrame.grid(
-            row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
-        )
+        if isPlaced:
+            scrolledFrame.place(x=xpos, y=ypos, width=width, height=height)
+        else:
+            scrolledFrame.grid(
+                row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
+            )
         scrolledFrame.grid_propagate(False)
         inside = scrolledFrame.container
         # # inside.config(width=1, height=1)
-        # inside.grid(rowspan=heightspan, columnspan=widthspan,
-        #             sticky=NSEW)
+        inside.grid(rowspan=heightspan, columnspan=widthspan,
+                    sticky=NSEW)
         inside.grid_propagate(False)
         gridGenerator(scrolledFrame, widthspan, heightspan, NICEBLUE)
-        gridGenerator(inside, widthspan, heightspan, "#ff9d9d")
+        gridGenerator(inside, widthspan, heightspan, "#56cc9d")
         return scrolledFrame
 
     def scrolledTextCreator(self,
                             xpos=0, ypos=0, width=0, height=0,
                             root=None, classname=None, bootstyle=SUCCESS,
-                            msg=None):
+                            msg=None, isPlaced=False):
         classname = classname.replace(" ", "").lower()
         widthspan = int(width / 20)
         heightspan = int(height / 20)
@@ -129,10 +186,13 @@ class Chatbot(Canvas):
         if msg:
             internaltext.insert(END, msg)
         # scrolledText.text.insert("end", msg)
-        scrolledText.grid(
-            row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
-        )
-        scrolledText.grid_propagate(False)
+        if isPlaced:
+            scrolledText.place(x=xpos, y=ypos, width=width, height=height)
+        else:
+            scrolledText.grid(
+                row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW
+            )
+            scrolledText.grid_propagate(False)
         return scrolledText
 
     def send_message(self):

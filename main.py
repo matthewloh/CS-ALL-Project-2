@@ -2483,6 +2483,7 @@ class DiscussionsView(Canvas):
         )
         totalheight = (1 + len(repliesList)) * 280
         numberofverticalsquares = int(totalheight/21)
+        print(totalheight)
         if totalheight > 660:
             gridGenerator(self.scrolledframe, int(int(1100/20)),
                           numberofverticalsquares, "#acbcff")
@@ -2500,7 +2501,7 @@ class DiscussionsView(Canvas):
             )
         else:
             gridGenerator(self.scrolledframe, int(
-                1100/20), int(660/20), "#acbcff")
+                1100/20), int(620/20), "#acbcff")
         # POST BG
         self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\exampleofapost.png", xpos=0, ypos=0,
@@ -3457,8 +3458,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    # runGui()
-    try:
-        runGuiThreaded()
-    except Exception as e:
-        print("sorry")
+    runGui()
+    # try:
+    #     runGuiThreaded()
+    # except Exception as e:
+    #     print("sorry")
