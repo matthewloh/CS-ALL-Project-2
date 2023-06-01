@@ -99,7 +99,6 @@ class Chatbot(Canvas):
             rowspanFrame = int(680 / 20)
         else:
             rowspanFrame = int(heightOfFrame / 20)
-        print(heightOfFrame)
         self.mainScrolledFrame = ScrolledFrame(
             self, width=1, height=1, name="conversationframe",
             autohide=True,
