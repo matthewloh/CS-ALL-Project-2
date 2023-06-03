@@ -1731,8 +1731,11 @@ class CourseView(Canvas):
                         bg="#F6F5D7", name="courseview", autostyle=False)
         self.controller = controller
         self.parent = parent
-
         gridGenerator(self, 96, 46, WHITE)
+        self.createFrames()
+        self.canvas = self.controller.widgetsDict["coursescanvas"]
+
+    def createFrames(self):
         self.controller.frameCreator(root=self,
                                      xpos=0, ypos=0,
                                      framewidth=1920, frameheight=920, classname="singlecourseviewframe"
@@ -1748,8 +1751,6 @@ class CourseView(Canvas):
                                       classname="coursescanvas", bgcolor="#F6F5D7",
                                       isTransparent=True, transparentcolor="#efefef"
                                       )
-        self.canvas = self.controller.widgetsDict["coursescanvas"]
-        self.loadcoursebuttons()
 
     def loadCourses(self, coursecode: str):
         self.canvas.grid_remove()
@@ -1761,6 +1762,8 @@ class CourseView(Canvas):
             [self.exitMainFrame()]
         )
         coursecode = coursecode.lower()
+        staticBtns = ["checkschedule", "gotolearninghub",
+                      "viewcoursefiles", "exitbutton"]
         for widgetname, widget in self.mainframe.children.items():
             if isinstance(widget, Label) and not widgetname.startswith("!la"):
                 if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("loadedcoursebg"):
@@ -1770,7 +1773,7 @@ class CourseView(Canvas):
                     # print("Getting loaded", widgetname)
                     widget.grid()
             if isinstance(widget, Button):
-                if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("exitbutton"):
+                if not widgetname.startswith(f"{coursecode}") and widgetname not in staticBtns:
                     # print("Getting removed", widgetname)
                     widget.grid_remove()
                 if widgetname.startswith(f"{coursecode}"):
@@ -1779,9 +1782,10 @@ class CourseView(Canvas):
 
     def postLogin(self, data: dict, prisma: Prisma = None):
         modules = data["modules"]
-        role = data["role"]
-        if role == "student":
+        self.role = data["role"]
+        if self.role == "student":
             lecturerinfo = data["lecturerinfo"]
+            modulecodes = []
             for i in range(3):
                 modulecode = modules[i][0]
                 moduletitle = modules[i][1]
@@ -1791,50 +1795,58 @@ class CourseView(Canvas):
                 lecturerphone = lecturerinfo[i][2]
                 self.detailsCreator(modulecode, moduletitle, moduledesc,
                                     lecturername, lectureremail, lecturerphone)
-        elif role == "lecturer":
+                modulecodes.append(modulecode.lower())
+            self.loadcoursebuttons(modulecodes)
+        elif self.role == "lecturer":
             studentinfo = data["studentinfo"]
+            modulecodes = []
             for i in range(len(modules)):
                 modulecode = modules[i][0]
                 moduletitle = modules[i][1]
                 moduledesc = modules[i][2]
-                # print(modulecode, moduletitle, moduledesc)
+                print(modulecode, moduletitle, moduledesc)
+                modulecodes.append(modulecode.lower())
             for i in range(len(studentinfo)):
                 studentname = studentinfo[i][0]
                 studentemail = studentinfo[i][1]
                 studentphone = studentinfo[i][2]
                 print(studentname, studentemail, studentphone)
-        self.loadcoursebuttons()
+            self.loadcoursebuttons(modulecodes)
 
     def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
         tupleofinfo = (modulecode, moduletitle, moduledesc,
                        lecturername, lectureremail, lecturerphone)
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\coursetitlebg.png", xpos=20, ypos=20,
-            classname=f"{modulecode}_title", root=self.mainframe, text=moduletitle, size=60, xoffset=-4,
-        )
-        # lecturerfields
-        # name
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=240,
-            classname=f"{modulecode}_lecname", root=self.mainframe, text=lecturername, size=32, xoffset=-1
-        )
-        # email
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=300,
-            classname=f"{modulecode}_lecemail", root=self.mainframe, text=lectureremail, size=26, xoffset=-1,
-        )
-        # phone
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=360,
-            classname=f"{modulecode}_lecphone", root=self.mainframe, text=lecturerphone, size=28, xoffset=-1,
-        )
-        self.controller.buttonCreator(
-            imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
-            classname=f"{modulecode}_discussions", root=self.mainframe,
-            buttonFunction=lambda: self.loadDiscussionsView(modulecode)
-        )
+        positions = [
+            (f"{modulecode}_title", moduletitle, 60, -4, 20,
+             20, r"Assets\My Courses\coursetitlebg.png"),
+            (f"{modulecode}_lecname", lecturername, 32, -1, 220,
+             240, r"Assets\My Courses\whitebgtextfield.png"),
+            (f"{modulecode}_lecemail", lectureremail, 26, -1,
+             220, 300, r"Assets\My Courses\whitebgtextfield.png"),
+            (f"{modulecode}_lecphone", lecturerphone, 28, -1,
+             220, 360, r"Assets\My Courses\whitebgtextfield.png")
+        ]
+        for classname, text, size, xoffset, xpos, ypos, imagepath in positions:
+            self.controller.textElement(imagepath=imagepath, xpos=xpos, ypos=ypos,
+                                        classname=classname, root=self.mainframe, text=text, size=size, xoffset=xoffset)
 
-    def loadDiscussionsView(self, modulecode):
+        buttons = [
+            (f"{modulecode}checkschedule", r"Assets\My Courses\checklecschedule.png", 1060, 280,
+             lambda m=tupleofinfo: print(f"Check Schedule {m}")),
+            (f"{modulecode}_gotolearninghub", r"Assets\My Courses\gotolearninghub.png", 1340, 280,
+             lambda m=tupleofinfo: print(f"Go to Learning Hub {m}")),
+            (f"{modulecode}_viewcoursefiles", r"Assets\My Courses\loadcoursefiles.png", 1620, 280,
+             lambda m=tupleofinfo: print(f"View Course Files {m}")),
+            (f"{modulecode}_discussions", r"Assets\My Courses\go_to_discussions.png", 700, 780,
+             lambda: self.loadDiscussionsView(modulecode, moduletitle)),
+        ]
+        for classname, imagepath, xpos, ypos, buttonFunction in buttons:
+            self.controller.buttonCreator(imagepath=imagepath, xpos=xpos, ypos=ypos,
+                                          classname=classname, root=self.mainframe, buttonFunction=buttonFunction)
+        self.controller.buttonCreator(imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
+                                      classname=f"{modulecode}_discussions", root=self.mainframe, buttonFunction=lambda: self.loadDiscussionsView(modulecode, moduletitle))
+
+    def loadDiscussionsView(self, modulecode, moduletitle):
         toast = ToastNotification(
             title=f"Loading Discussions for {modulecode}",
             message="Please wait while we load the discussions for this module",
@@ -1853,7 +1865,7 @@ class CourseView(Canvas):
         discview.creationframe.grid_remove()
         discview.postviewframe.grid_remove()
         discview.modulecodevar.set(modulecode)
-        discview.menubutton.configure(text=modulecode)
+        discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
         toast2.show_toast()
         self.controller.show_canvas(DiscussionsView)
 
@@ -1861,16 +1873,37 @@ class CourseView(Canvas):
         self.mainframe.grid_remove()
         self.canvas.grid()
 
-    def loadcoursebuttons(self):
-        self.buttonImgLabels = [
-            (r"Assets\My Courses\CompArch.png", 40, 0,
-             "INT4004CEM", self.canvas, lambda: self.loadCourses("INT4004CEM")),
-            (r"Assets\My Courses\MathForCS.png", 40, 300,
-             "INT4068CEM", self.canvas, lambda: self.loadCourses("INT4068CEM")),
-            (r"Assets\My Courses\ObjectOP.png", 1040, 0,
-             "INT4003CEM", self.canvas, lambda: self.loadCourses("INT4003CEM")),
-        ]
-        self.controller.settingsUnpacker(self.buttonImgLabels, "button")
+    def loadcoursebuttons(self, modulecodes: list = None):
+        print(f"The modulecodes list is {modulecodes}")
+        btnDict = {
+            "int4004cem": (r"Assets\My Courses\CompArch.png", 40, 0,
+                           "int4004cem", self.canvas, lambda: self.loadCourses("INT4004CEM")),
+            "int4068cem": (r"Assets\My Courses\MathForCS.png", 40, 0,
+                           "int4068cem", self.canvas, lambda: self.loadCourses("INT4068CEM")),
+            "int4003cem": (r"Assets\My Courses\ObjectOP.png", 40, 0,
+                            "int4003cem", self.canvas, lambda: self.loadCourses("INT4003CEM")), 
+        }
+        c = self.controller
+        btnCount = 0
+        yCount = 0
+        for code in modulecodes:
+            yCount += 1 if btnCount == 2 else 0 # increment yCount if btnCount reaches 2
+            btnCount = btnCount if btnCount < 2 else 0
+            c.buttonCreator(
+                imagepath=btnDict[code][0],
+                xpos=btnDict[code][1] + (btnCount * 1000),
+                ypos=btnDict[code][2] + (yCount * 300),
+                classname=btnDict[code][3],
+                root=btnDict[code][4],
+                buttonFunction=btnDict[code][5]
+                )
+            btnCount += 1
+        try:
+            for i in ["int4004cem", "int4068cem", "int4003cem"]:
+                if i not in modulecodes:
+                    c.widgetsDict[i].grid_remove()
+        except:
+            pass
 
 
 class AnimatedStarBtn(Frame):
@@ -2223,20 +2256,27 @@ class DiscussionsView(Canvas):
         self.modulecodevar = StringVar()
         modules = prisma.module.find_many()
         listofvalues = []
+        self.valueDict = {}
         for module in modules:
             if module.moduleCode == "INT4007CEM/INT4009CEM":
                 continue
+            self.valueDict[f"{module.moduleCode}"] = f"{module.moduleCode} - {module.moduleTitle}"
             listofvalues.append(module.moduleCode)
         for value in listofvalues:
+            _text = self.valueDict[f"{value}"]
             self.menubuttonmenu.add_radiobutton(
-                label=value, variable=self.modulecodevar, value=value,
+                label=_text,
+                variable=self.modulecodevar,
+                value=value,
                 command=lambda: [
-                    self.menubutton.config(text=self.modulecodevar.get()),
+                    self.menubutton.config(
+                        text=self.valueDict[self.modulecodevar.get()]),
                     self.callLoadLatestPosts(self.modulecodevar.get()),
                 ]
             )
         self.modulecodevar.set("INT4004CEM")
         self.menubutton["menu"] = self.menubuttonmenu
+        self.menubutton.config(text=self.valueDict[self.modulecodevar.get()])
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
