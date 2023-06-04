@@ -1220,11 +1220,65 @@ def queryModules():
     # print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
 def uploadFiles():
     prisma.connect()
-    uploadedfile = prisma.moduleupload.create(
-        data={
-            
+    module = prisma.module.find_first(
+        where={
+            "moduleCode": "INT4004CEM"
         }
     )
+    uploader = prisma.lecturer.find_first(
+        where={
+            "userProfile": {
+                "is": {
+                    "email": "vaithegy.doraisamy@newinti.edu.my"
+                }
+            }
+        },
+        include={
+            "userProfile": True
+        }
+    )
+    # prisma.moduleupload.delete_many()
+    # data={ 
+    #         "module": {
+    #             "connect": {
+    #                 "id": module.id
+    #             }
+    #         },
+    #         "uploader": {
+    #             "connect": {
+    #                 "id": uploader.id
+    #             }
+    #         },
+    #         "title": "Example of a video",
+    #         "description": "Example of a video",
+    #         "url": "https://streamin.one/v/89c58b96",
+    #         "uploadType": "VIDEO"
+    #     }
+    # uploadedfile = prisma.moduleupload.create(
+    #     data={
+    #         "module": {
+    #             "connect": {
+    #                 "id": module.id
+    #             }
+    #         },
+    #         "uploader": {
+    #             "connect": {
+    #                 "id": uploader.id
+    #             }
+    #         },
+    #         "title": "Uploaded Video",
+    #         "description": "Video Upload",
+    #         "url": "https://streamin.one/v/89c58b96",
+    #         "uploadType": "VIDEO"
+    #     },
+    #     include={
+    #         "uploader": True,
+    #         "module": True
+    #     }
+    # )
+    uploadedfile = prisma.moduleupload.find_many()
+    for u in uploadedfile:
+        print(f"Uploaded File:\n{u.json(indent=2)}\n")
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~

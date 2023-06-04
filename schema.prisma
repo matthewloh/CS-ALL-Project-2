@@ -164,8 +164,8 @@ model ModulePost {
 }
 
 enum UploadTypes {
-  IMGFILE
-  VIDEOFILE
+  IMG
+  VIDEO
   PDF
   LINK
 }

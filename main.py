@@ -614,6 +614,7 @@ class Window(ttk.Window):
                         rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         self.widgetsDict[classname].grid_propagate(False)
+        return self.widgetsDict[classname]
 
     def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False):
         """
@@ -1777,7 +1778,40 @@ class CourseView(Canvas):
             # lecturer specific functions here like show student info
             # and upload course files and upload schedule
             self.loadcoursebuttons(modulecodes)
-
+    
+    def loadcoursebuttons(self, modulecodes: list = None):
+        print(f"The modulecodes list is {modulecodes}")
+        btnDict = {
+            "int4004cem": (r"Assets\My Courses\CompArch.png", 40, 0,
+                           "int4004cem", self.canvas, lambda: self.loadCourses("INT4004CEM")),
+            "int4068cem": (r"Assets\My Courses\MathForCS.png", 40, 0,
+                           "int4068cem", self.canvas, lambda: self.loadCourses("INT4068CEM")),
+            "int4003cem": (r"Assets\My Courses\ObjectOP.png", 40, 0,
+                           "int4003cem", self.canvas, lambda: self.loadCourses("INT4003CEM")),
+            "int4009cem": (r"Assets\My Courses\ALL2.png", 40, 0,
+                           "int4009cem", self.canvas, lambda: self.loadCourses("INT4009CEM")),
+        }
+        c = self.controller
+        btnCount = 0
+        yCount = 0
+        for code in modulecodes:
+            yCount += 1 if btnCount == 2 else 0  # increment yCount if btnCount reaches 2
+            btnCount = btnCount if btnCount < 2 else 0
+            c.buttonCreator(
+                imagepath=btnDict[code][0],
+                xpos=btnDict[code][1] + (btnCount * 1000),
+                ypos=btnDict[code][2] + (yCount * 300),
+                classname=btnDict[code][3],
+                root=btnDict[code][4],
+                buttonFunction=btnDict[code][5]
+            )
+            btnCount += 1
+        try:
+            for i in ["int4004cem", "int4068cem", "int4003cem", "int4009cem"]:
+                if i not in modulecodes:
+                    c.widgetsDict[i].grid_remove()
+        except:
+            pass
     def createFrames(self):
         self.controller.frameCreator(root=self,
                                      xpos=0, ypos=0,
@@ -1785,7 +1819,7 @@ class CourseView(Canvas):
                                      )
         self.mainframe = self.controller.widgetsDict["singlecourseviewframe"]
         self.controller.frameCreator(
-            xpos = 0, ypos = 120, framewidth=1920, frameheight=800,
+            xpos=0, ypos=120, framewidth=1920, frameheight=800,
             root=self.mainframe, classname="viewuploadsframe"
         )
         self.viewUploadsFrame = self.controller.widgetsDict["viewuploadsframe"]
@@ -1793,7 +1827,8 @@ class CourseView(Canvas):
             (r"Assets\My Courses\CoursesBG.png", 0, 0, "courseviewbg", self),
             (r"Assets\My Courses\loadedcoursebg.png",
              0, 0, "loadedcoursebg", self.mainframe),
-            (r"Assets\My Courses\moduleuploadsbg.png", 0, 0, "moduleuploadsbg", self.viewUploadsFrame),
+            (r"Assets\My Courses\moduleuploadsbg.png", 0,
+             0, "moduleuploadsbg", self.viewUploadsFrame),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.canvasCreator(0, 100, 1920, 820, root=self,
@@ -1808,13 +1843,13 @@ class CourseView(Canvas):
         self.mainframe.tkraise()
         buttonsList = [
             (r"Assets\My Courses\exitbutton.png", 1820, 20, "exitbutton",
-            self.mainframe, lambda:[
-                self.exitMainFrame(),
-                self.focus_force()]),
+             self.mainframe, lambda:[
+                 self.exitMainFrame(),
+                 self.focus_force()]),
             (r"Assets\My Courses\exituploadsview.png", 1780, 20, "exituploadsview",
-            self.viewUploadsFrame, lambda:[
-                self.exitUploadsView(),
-                self.focus_force()]),
+             self.viewUploadsFrame, lambda:[
+                 self.exitUploadsView(),
+                 self.focus_force()]),
         ]
 
         self.controller.settingsUnpacker(buttonsList, "button")
@@ -1837,7 +1872,7 @@ class CourseView(Canvas):
                 if widgetname.startswith(f"{coursecode}"):
                     # print("Getting loaded", widgetname)
                     widget.grid()
-    
+
     def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
         tupleofinfo = (modulecode, moduletitle, moduledesc,
                        lecturername, lectureremail, lecturerphone)
@@ -1870,91 +1905,185 @@ class CourseView(Canvas):
                                           classname=classname, root=self.mainframe, buttonFunction=buttonFunction)
         self.controller.buttonCreator(imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
                                       classname=f"{modulecode}_discussions", root=self.mainframe, buttonFunction=lambda: self.loadDiscussionsView(modulecode, moduletitle))
+        
+        self.defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
+        self.urlbar = self.controller.entryCreator(
+            xpos=820, ypos=120, width=980, height=40,
+            root=self.viewUploadsFrame, classname=f"uploadssearchbar",
+        )
+        self.urlbar.delete(0, END)
+        self.urlbar.insert(0, f"{self.defaulturl}")
 
     def exitMainFrame(self):
         self.mainframe.grid_remove()
+        self.exitUploadsView()
         self.canvas.grid()
 
-    def loadcoursebuttons(self, modulecodes: list = None):
-        print(f"The modulecodes list is {modulecodes}")
-        btnDict = {
-            "int4004cem": (r"Assets\My Courses\CompArch.png", 40, 0,
-                           "int4004cem", self.canvas, lambda: self.loadCourses("INT4004CEM")),
-            "int4068cem": (r"Assets\My Courses\MathForCS.png", 40, 0,
-                           "int4068cem", self.canvas, lambda: self.loadCourses("INT4068CEM")),
-            "int4003cem": (r"Assets\My Courses\ObjectOP.png", 40, 0,
-                           "int4003cem", self.canvas, lambda: self.loadCourses("INT4003CEM")),
-            "int4009cem": (r"Assets\My Courses\ALL2.png", 40, 0,
-                    "int4009cem", self.canvas, lambda: self.loadCourses("INT4009CEM")),
-        }
-        c = self.controller
-        btnCount = 0
-        yCount = 0
-        for code in modulecodes:
-            yCount += 1 if btnCount == 2 else 0  # increment yCount if btnCount reaches 2
-            btnCount = btnCount if btnCount < 2 else 0
-            c.buttonCreator(
-                imagepath=btnDict[code][0],
-                xpos=btnDict[code][1] + (btnCount * 1000),
-                ypos=btnDict[code][2] + (yCount * 300),
-                classname=btnDict[code][3],
-                root=btnDict[code][4],
-                buttonFunction=btnDict[code][5]
-            )
-            btnCount += 1
-        try:
-            for i in ["int4004cem", "int4068cem", "int4003cem", "int4009cem"]:
-                if i not in modulecodes:
-                    c.widgetsDict[i].grid_remove()
-        except:
-            pass
-    def exitUploadsView(self):
-        self.viewUploadsFrame.grid_remove()
-        self.webview.grid_remove()
-    def loadModuleUploadsView(self, modulecode):
-        self.viewUploadsFrame.grid()
-        self.viewUploadsFrame.tkraise()
+    def initializeWebView(self):
         col = int(820/20)
         row = int(180/20)
         w = int(1060/20)
         h = int(580/20)
-        defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
+        
         self.webview = WebView2(parent=self.viewUploadsFrame, width=1, height=1,
-            url=defaulturl)
-        self.webview.grid(row=row, column=col, rowspan=h, columnspan=w, sticky=NSEW)
-        print(f"Loading uploads for {modulecode}")
-        urlbar = self.controller.entryCreator(
-            xpos=820, ypos=120, width=980, height=40,
-            root=self.viewUploadsFrame, classname=f"uploadssearchbar",
-        )
-        urlbar.insert(0, f"{defaulturl}")
+                                url=self.defaulturl)
+        self.webview.grid(row=row, column=col, rowspan=h,
+                          columnspan=w, sticky=NSEW)
 
+    def exitUploadsView(self):
+        self.viewUploadsFrame.grid_remove()
+        try:
+            self.webview.destroy()
+            del self.webview
+            self.urlbar.delete(0, END)
+            self.urlbar.insert(0, f"{self.defaulturl}")
+            self.viewUploadsFrame.focus_set()
+        except:
+            pass
+    def loadModuleUploadsView(self, modulecode):
+        self.viewUploadsFrame.grid()
+        self.viewUploadsFrame.tkraise()
+        self.urlbar.delete(0, END)
+        self.urlbar.insert(0, f"{self.defaulturl}")
+        self.initializeWebView()
+        self.viewUploadsFrame.bind("<Enter>", lambda e: toggleRegainFocus(True))
+        self.viewUploadsFrame.bind("<Leave>", lambda e: toggleRegainFocus(False))
+        self.inFrame = StringVar()
+        self.inFrame.set("in")
+        # this is to check if the user is in the frame or not, and toggles the regainFocus, so that 
+        # the user can tab out of the app, and the app WONT regain focus
+        self.inFrame.trace("w", lambda *args: toggleRegainFocus(True))
+        
         toast = ToastNotification(
-            title="Focus was automatically regained",
-            message="The focus was automatically regained to the search bar",
-            duration=5000,
+            title="Focus automatically regained",
+            message="The focus was automatically regained to the window, to stop this, please exit the window manually.",
+            duration=1000,
             bootstyle=INFO
         )
-        # timer to reload the urlbar
+        # timer to reload the self.urlbar
+        def toggleRegainFocus(bool, *args):
+            if bool:
+                self.inFrame.set("in")
+            else:
+                self.inFrame.set("out")
         def regainFocus():
-            if self.controller.focus_get() == None:
-                urlbar.focus_force()
+            if self.inFrame.get() == "in" and self.controller.focus_get() == None:
+                self.focus_force()
                 toast.show_toast()
-            self.viewUploadsFrame.after(15000, regainFocus)
+            self.webview.after(5000, regainFocus)
+        self.currenturl = self.defaulturl
+
+        #     if self.controller.focus_get() == None:
+        #         self.focus_force()
+        #         toast.show_toast()
+        #     self.webview.after(10000, regainFocus)
+        # self.currenturl = self.defaulturl
+
         def updateUrlbar():
-            if self.webview.get_url() != urlbar.get():
-                urlbar.delete(0, END)
-                urlbar.insert(0, f"{self.webview.get_url()}")
-            self.viewUploadsFrame.after(100, updateUrlbar)
+            if self.webview.get_url() == None:
+                self.urlbar.delete(0, END)
+                self.urlbar.insert(0, f"{self.defaulturl}")
+                self.currenturl = self.defaulturl
+            elif self.webview.get_url() == self.currenturl:
+                pass
+            else:
+                self.urlbar.delete(0, END)
+                self.urlbar.insert(0, f"{self.webview.get_url()}")
+                self.currenturl = self.webview.get_url()
+            self.webview.after(1, updateUrlbar)
+        
         updateUrlbar()
         regainFocus()
-        # nvm this freezes the app lol
-        # while True:
-        #     urlbar.delete(0, END)
-        #     urlbar.insert(0, f"{self.webview.get_url()}")
-        #     time.sleep(0.5)
-        
+        t = threading.Thread(target=self.loadModuleUploads, args=(modulecode,))
+        t.daemon = True
+        t.start()
+    def loadModuleUploads(self, modulecode):
+        prisma = self.controller.prisma
+        uploads = prisma.moduleupload.find_many(
+            where={
+                "module": {
+                    "is": {
+                        "moduleCode": modulecode
+                    }
+                }
+            },
+            include={
+                "uploader": {
+                    "include": {
+                        "userProfile": True
+                    }
+                }
+            }
+        )
+        h = len(uploads) * 100 + 40
+        if h <= 640:
+            rspan = int(640/20)
+        else:
+            rspan = int(h/20)
 
+        self.upframe = ScrolledFrame(
+            self.viewUploadsFrame, width = 740, height= h, autohide=True, 
+        )
+        gridGenerator(self.upframe, int(740/20), rspan, WHITE)
+        self.upframe.grid_propagate(False)
+        self.upframe.place(x=40, y=120, width=740, height=640)
+        startx = 20
+        starty = 40
+        kl = timezone("Asia/Kuala_Lumpur")
+        for u in uploads:
+            createdAt = kl.convert(u.createdAt)
+            editedAt = kl.convert(u.editedAt)
+            self.renderModuleUploads(
+                u.uploadType, u.id, u.title, u.description, u.url, createdAt, editedAt,
+                startx, starty
+            )
+            starty += 100
+
+    def renderModuleUploads(self, filetype, id, title, description, url, createdat, editedat, x, y):
+        btnImgDict = {
+            "PDF": r"Assets\My Courses\pdfbtn.png",
+            "VIDEO": r"Assets\My Courses\videobtn.png",
+            "IMG": r"Assets\My Courses\imgbtn.png",
+            "LINK": r"Assets\My Courses\linkbtn.png",
+        }
+        textBgDict = {
+            "PDF": r"Assets\My Courses\pdftxtbg.png",
+            "VIDEO": r"Assets\My Courses\videotxtbg.png",
+            "IMG": r"Assets\My Courses\imgtxtbg.png",
+            "LINK": r"Assets\My Courses\linktxtbg.png",
+        }
+        c = self.controller
+        tiptext = f"Click me to load {title}, a {filetype.title()} file.\nDescription: {description}\nUrl: {url}"
+        b = c.buttonCreator(
+            imagepath=btnImgDict[filetype], xpos=x, ypos=y,
+            classname=f"{id}btn", root=self.upframe,
+            isPlaced=True,
+            buttonFunction=lambda: self.webview.load_url(url),
+        )
+        ToolTip(b, text=tiptext, bootstyle=(INFO, INVERSE))
+        t1 = c.textElement(
+            imagepath=textBgDict[filetype], xpos=x+20, ypos=y,
+            classname=f"{id}title", root=self.upframe,
+            text=title, fg=BLACK, size=20, isPlaced=True,
+            font=INTERBOLD,
+            buttonFunction=lambda: self.webview.load_url(url),  
+        )
+        ToolTip(t1, text=tiptext, bootstyle=(INFO, INVERSE))
+        fCreatedAt = createdat.strftime(r"%d/%m/%y - %I:%M %p")
+        fEditedAt = editedat.strftime(r"%d/%m/%y - %I:%M %p")
+        if fCreatedAt == fEditedAt:
+            strTime = f"Created: {fCreatedAt}"
+        else:
+            strTime = f"Created: {fCreatedAt} | Edited: {fEditedAt}"
+        t2 = c.textElement(
+            imagepath=textBgDict[filetype], xpos=x+20, ypos=y+40,
+            classname=f"{id}time", root=self.upframe,
+            text=strTime, fg=BLACK, size=16, isPlaced=True,
+            font=INTER,
+            buttonFunction=lambda: self.webview.load_url(url),
+        )
+        ToolTip(t2, text=tiptext, bootstyle=(INFO, INVERSE))
+    # FUNCTIONS THAT NAVIGATE OUT OF COURSEVIEW
     def loadDiscussionsView(self, modulecode, moduletitle):
         toast = ToastNotification(
             title=f"Loading Discussions for {modulecode}",
@@ -1977,6 +2106,8 @@ class CourseView(Canvas):
         discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
         toast2.show_toast()
         self.controller.show_canvas(DiscussionsView)
+
+
 class AnimatedStarBtn(Frame):
     def __init__(self,
                  parent=None, controller: Window = None,
