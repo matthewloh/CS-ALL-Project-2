@@ -1,3 +1,4 @@
+import time
 from static import *
 import ctypes
 from ctypes import windll
@@ -57,7 +58,7 @@ class Window(ttk.Window):
         self.initializeWindow()
         self.frames = {}
         self.canvasInDashboard = {}
-        
+
         self.labelSettingsParentFrame = [
             (r"Assets\LandingPage\BackgroundImage.png",
              0, 0, "Background Image", self.parentFrame),
@@ -89,10 +90,10 @@ class Window(ttk.Window):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                #  self.loadSignIn(),
-                  self.show_frame(Dashboard),
-                  self.show_canvas(DashboardCanvas),
-                  self.get_page(Dashboard).loadSpecificAssets("student"),
+                 #  self.loadSignIn(),
+                 self.show_frame(Dashboard),
+                 self.show_canvas(DashboardCanvas),
+                 self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -112,10 +113,12 @@ class Window(ttk.Window):
             self.updateWidgetsDict(frame)
             frame.grid_remove()
         for FRAME in (DashboardCanvas, SearchPage, Chatbot, LearningHub, CourseView, DiscussionsView, FavoritesView, AppointmentsView):
-            canvas = FRAME(parent=self.widgetsDict["maincanvas"], controller=self)
+            canvas = FRAME(
+                parent=self.widgetsDict["maincanvas"], controller=self)
             self.canvasInDashboard[FRAME] = canvas
             self.updateWidgetsDict(canvas)
-            canvas.grid(row=0, column=0, columnspan=96, rowspan=46, sticky=NSEW)
+            canvas.grid(row=0, column=0, columnspan=96,
+                        rowspan=46, sticky=NSEW)
             canvas.grid_propagate(False)
             canvas.grid_remove()
         self.postSelectFrame.tkraise()
@@ -264,7 +267,6 @@ class Window(ttk.Window):
         t = threading.Thread(target=self.signIn)
         t.daemon = True
         t.start()
-        
 
     def validatePassword(self, password: str, encrypted: str) -> str:
         return bcrypt.checkpw(password.encode("utf-8"), encrypted.encode("utf-8"))
@@ -356,6 +358,7 @@ class Window(ttk.Window):
                     "id": lecturer.userProfile.id,
                     "fullName": lecturer.userProfile.fullName,
                     "email": lecturer.userProfile.email,
+                    "phone": lecturer.userProfile.contactNo,
                     "modules": modulesOfLecturer,
                     "studentinfo": studentinfo,
                     "role": "lecturer",
@@ -370,8 +373,6 @@ class Window(ttk.Window):
             toast.show_toast()
             self.show_frame(Dashboard)
             self.show_canvas(DashboardCanvas)
-            # for page in ["dashboard", "courseview", "discussionsview", "appointmentsview"]:
-            #     self.widgetsDict[page].postLogin(data, prisma)
             dashboard = self.widgetsDict["dashboard"]
             dashboard.loadSpecificAssets(data["role"])
             dashboard.postLogin(data)
@@ -381,7 +382,6 @@ class Window(ttk.Window):
             discussionsview.postLogin(data, self.prisma)
             appointmentsview = self.widgetsDict["appointmentsview"]
             appointmentsview.postLogin(data, self.prisma)
-        # prisma.disconnect()
         except Exception as e:
             print(e)
 
@@ -555,6 +555,7 @@ class Window(ttk.Window):
         canvas.grid()
         canvas.tk.call("raise", canvas._w)
         canvas.focus_set()
+        canvas.focus_force()
 
     def get_page(self, classname):
         return self.frames[classname]
@@ -613,6 +614,7 @@ class Window(ttk.Window):
                         rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         self.widgetsDict[classname].grid_propagate(False)
+        return self.widgetsDict[classname]
 
     def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False):
         """
@@ -688,6 +690,7 @@ class Window(ttk.Window):
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
+        return self.widgetsDict[classname]
 
     def canvasCreator(self, xpos, ypos, width, height, root, classname=None, bgcolor=WHITE, imgSettings=None, relief=FLAT, isTransparent=False, transparentcolor=TRANSPARENTGREEN):
         classname = classname.lower().replace(" ", "")
@@ -828,7 +831,6 @@ class Window(ttk.Window):
 
         self.widgetsDict[classname] = entry
         self.updateWidgetsDict(root=root)
-
 
     def hex_to_rgb(self, hexstring):
         # Convert hexstring to integer
@@ -979,7 +981,6 @@ class AnimatedGif(Frame):
             sequence = ImageSequence.Iterator(im)
             images = [ImageTk.PhotoImage(s) for s in sequence]
             self.image_cycle = cycle(images)
-
             # length of each frame
             self.framerate = im.info["duration"]
         # getting the width and height of the image
@@ -1044,8 +1045,10 @@ class UserForms(Frame):
 
     def loadLecturerReg(self):
         self.userReg()
-        self.imgLabels.append((r"Assets\Login Page with Captcha\LecturerForm.png",
-                              0, 600, f"{self.name}lecturer", self.frameref))
+        self.imgLabels.append(
+            (r"Assets\Login Page with Captcha\LecturerForm.png",
+             0, 600, f"{self.name}lecturer", self.frameref)
+        )
         self.controller.settingsUnpacker(self.imgLabels, "label")
         for i in self.userRegEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
@@ -1099,27 +1102,9 @@ class UserForms(Frame):
             "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
         }
 
-        def foo():
-            mainwindowcorners = self.controller.winfo_geometry().split("+")
-            xval = int(mainwindowcorners[1])
-            yval = int(mainwindowcorners[2])
-            print(xval, yval)
-            self.controller.mainwindowcorners = (xval, yval, "se")
-            return self.controller.mainwindowcorners
-
-        def foo_bar():
-            details = []
-            for name, entry in entries.items():
-                details.append(entry.get())
-            detailstoast = ToastNotification(
-                title="Submission details",
-                message=f"Full Name: {details[0]}\nEmail: {details[1]}\nPassword: {details[2]}\nContact Number: {details[4]}\nInstitution: {vars['institution'].get()}\nSchool: {vars['school'].get()}\nTenure: {vars['tenure'].get()}\nProgramme: {vars['programme'].get()}\nCourse 1: {vars['course1'].get()}\nCourse 2: {vars['course2'].get()}\nCourse 3: {vars['course3'].get()}",
-                duration=3000,
-                position=foo()
-            )
-            detailstoast.show_toast()
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
-                                      buttonFunction=lambda: [foo_bar()],
+                                      buttonFunction=lambda: [
+                                          print("validate")],
                                       pady=5)
 
         self.controller.buttonCreator(
@@ -1202,27 +1187,9 @@ class UserForms(Frame):
             "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
         }
 
-        def foo():
-            mainwindowcorners = self.controller.winfo_geometry().split("+")
-            xval = int(mainwindowcorners[1])
-            yval = int(mainwindowcorners[2])
-            print(xval, yval)
-            self.controller.mainwindowcorners = (xval, yval, "se")
-            return self.controller.mainwindowcorners
-
-        def foo_bar():
-            details = []
-            for name, entry in entries.items():
-                details.append(entry.get())
-            detailstoast = ToastNotification(
-                title="Submission details",
-                message=f"Full Name: {details[0]}\nEmail: {details[1]}\nPassword: {details[2]}\nConfirm Password: {details[3]}\nContact Number: {details[4]}\nInstitution: {vars['institution'].get()}\nSchool: {vars['school'].get()}\nSession: {vars['session'].get()}\nProgramme: {vars['programme'].get()}\nCourse 1: {vars['course1'].get()}\nCourse 2: {vars['course2'].get()}\nCourse 3: {vars['course3'].get()}",
-                duration=3000,
-                position=foo()
-            )
-            detailstoast.show_toast()
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
-                                      buttonFunction=lambda: [foo_bar()],
+                                      buttonFunction=lambda: [
+                                          print("validate")],
                                       pady=5)
         self.controller.buttonCreator(
             r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
@@ -1262,26 +1229,10 @@ class UserForms(Frame):
                 )
                 prisma.moduleenrollment.delete_many(
                     where={
-                        "student": {
-                            "is": {
-                                "userProfile": {
-                                    "is": {
-                                        "email": data["email"]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                )
+                        "student": {"is": {"userProfile": {"is": {"email": data["email"]}}}}})
                 prisma.student.delete_many(
                     where={
-                        "userProfile": {
-                            "is": {
-                                "email": data["email"]
-                            }
-                        }
-                    }
-                )
+                        "userProfile": {"is": {"email": data["email"]}}})
                 prisma.userprofile.delete_many(
                     where={
                         "email": data["email"]
@@ -1380,15 +1331,6 @@ class UserForms(Frame):
                             }
                         }
                     )
-                prisma.lecturer.delete_many(
-                    where={
-                        "userProfile": {
-                            "is": {
-                                "email": data["email"]
-                            }
-                        }
-                    }
-                )
                 prisma.userprofile.delete_many(
                     where={
                         "email": data["email"]
@@ -1470,7 +1412,6 @@ class UserForms(Frame):
                 duration=3000
             )
             toast.show_toast()
-            print(e)
         self.controller.loadSignIn()
 
     def send_data(self, data: dict):
@@ -1603,7 +1544,6 @@ class Dashboard(Frame):
         )
         self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas",
                                       bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
-        # self.staticImgLabels = []
         self.maincanvasref = self.controller.widgetsDict["maincanvas"]
         self.controller.canvasCreator(0, 0, 1920, 920, root=self.maincanvasref, classname="dashboardcanvas",
                                       bgcolor=NICEBLUE, isTransparent=True, transparentcolor=LIGHTYELLOW)
@@ -1619,11 +1559,11 @@ class Dashboard(Frame):
         elif role == "lecturer":
             self.controller.labelCreator(r"Assets\Dashboard\TeacherDashboard.png", 0, 0,
                                          classname="TeacherDashboardLabel", root=self.dashboardcanvasref)
-        self.gif = AnimatedGif(
-            parent=self.controller.widgetsDict["dashboardcanvas"], controller=self.controller,
-            xpos=180, ypos=460, bg="#344557",
-            framewidth=400, frameheight=300, classname="cutebunny",
-            imagepath=r"Assets\bunnygifresized400x300.gif", imagexpos=0, imageypos=0)
+        # self.gif = AnimatedGif(
+        #     parent=self.controller.widgetsDict["dashboardcanvas"], controller=self.controller,
+        #     xpos=180, ypos=460, bg="#344557",
+        #     framewidth=400, frameheight=300, classname="cutebunny",
+        #     imagepath=r"Assets\bunnygifresized400x300.gif", imagexpos=0, imageypos=0)
 
     def postLogin(self, data: dict, prisma: Prisma = None):
         role = data["role"]
@@ -1776,8 +1716,6 @@ class SearchPage(Canvas):
                        rowspan=5, sticky="nsew")
 
 
-
-
 class LearningHub(Canvas):
     def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
@@ -1785,10 +1723,6 @@ class LearningHub(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="Learning Hub",
-                          font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96,
-                       rowspan=5, sticky="nsew")
         self.staticImgLabels = [
             # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
             (r"Assets\LearningHub\LearningHubBG.png", 0, 0, "LearningHubBG", self),
@@ -1802,37 +1736,128 @@ class CourseView(Canvas):
                         bg="#F6F5D7", name="courseview", autostyle=False)
         self.controller = controller
         self.parent = parent
-
         gridGenerator(self, 96, 46, WHITE)
+        self.createFrames()
+        self.canvas = self.controller.widgetsDict["coursescanvas"]
+
+    def postLogin(self, data: dict, prisma: Prisma = None):
+        modules = data["modules"]
+        self.role = data["role"]
+        if self.role == "student":
+            lecturerinfo = data["lecturerinfo"]
+            modulecodes = []
+            for i in range(len(modules)):
+                modulecode = modules[i][0]
+                moduletitle = modules[i][1]
+                moduledesc = modules[i][2]
+                lecturername = lecturerinfo[i][0]
+                lectureremail = lecturerinfo[i][1]
+                lecturerphone = lecturerinfo[i][2]
+                self.detailsCreator(modulecode, moduletitle, moduledesc,
+                                    lecturername, lectureremail, lecturerphone)
+                modulecodes.append(modulecode.lower())
+            self.loadcoursebuttons(modulecodes)
+        elif self.role == "lecturer":
+            studentinfo = data["studentinfo"]
+            modulecodes = []
+            lecturername = data["fullName"]
+            lectureremail = data["email"]
+            lecturerphone = data["phone"]
+            for i in range(len(modules)):
+                modulecode = modules[i][0]
+                moduletitle = modules[i][1]
+                moduledesc = modules[i][2]
+                modulecodes.append(modulecode.lower())
+                self.detailsCreator(modulecode, moduletitle, moduledesc,
+                                    lecturername, lectureremail, lecturerphone)
+            for i in range(len(studentinfo)):
+                studentname = studentinfo[i][0]
+                studentemail = studentinfo[i][1]
+                studentphone = studentinfo[i][2]
+                print(studentname, studentemail, studentphone)
+            # lecturer specific functions here like show student info
+            # and upload course files and upload schedule
+            self.loadcoursebuttons(modulecodes)
+
+    def loadcoursebuttons(self, modulecodes: list = None):
+        print(f"The modulecodes list is {modulecodes}")
+        btnDict = {
+            "int4004cem": (r"Assets\My Courses\CompArch.png", 40, 0,
+                           "int4004cem", self.canvas, lambda: self.loadCourses("INT4004CEM")),
+            "int4068cem": (r"Assets\My Courses\MathForCS.png", 40, 0,
+                           "int4068cem", self.canvas, lambda: self.loadCourses("INT4068CEM")),
+            "int4003cem": (r"Assets\My Courses\ObjectOP.png", 40, 0,
+                           "int4003cem", self.canvas, lambda: self.loadCourses("INT4003CEM")),
+            "int4009cem": (r"Assets\My Courses\ALL2.png", 40, 0,
+                           "int4009cem", self.canvas, lambda: self.loadCourses("INT4009CEM")),
+        }
+        c = self.controller
+        btnCount = 0
+        yCount = 0
+        for code in modulecodes:
+            yCount += 1 if btnCount == 2 else 0  # increment yCount if btnCount reaches 2
+            btnCount = btnCount if btnCount < 2 else 0
+            c.buttonCreator(
+                imagepath=btnDict[code][0],
+                xpos=btnDict[code][1] + (btnCount * 1000),
+                ypos=btnDict[code][2] + (yCount * 300),
+                classname=btnDict[code][3],
+                root=btnDict[code][4],
+                buttonFunction=btnDict[code][5]
+            )
+            btnCount += 1
+        try:
+            for i in ["int4004cem", "int4068cem", "int4003cem", "int4009cem"]:
+                if i not in modulecodes:
+                    c.widgetsDict[i].grid_remove()
+        except:
+            pass
+
+    def createFrames(self):
         self.controller.frameCreator(root=self,
                                      xpos=0, ypos=0,
                                      framewidth=1920, frameheight=920, classname="singlecourseviewframe"
                                      )
         self.mainframe = self.controller.widgetsDict["singlecourseviewframe"]
+        self.controller.frameCreator(
+            xpos=0, ypos=120, framewidth=1920, frameheight=800,
+            root=self.mainframe, classname="viewuploadsframe"
+        )
+        self.viewUploadsFrame = self.controller.widgetsDict["viewuploadsframe"]
         self.staticImgLabels = [
             (r"Assets\My Courses\CoursesBG.png", 0, 0, "courseviewbg", self),
             (r"Assets\My Courses\loadedcoursebg.png",
              0, 0, "loadedcoursebg", self.mainframe),
+            (r"Assets\My Courses\moduleuploadsbg.png", 0,
+             0, "moduleuploadsbg", self.viewUploadsFrame),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.canvasCreator(0, 100, 1920, 820, root=self,
                                       classname="coursescanvas", bgcolor="#F6F5D7",
                                       isTransparent=True, transparentcolor="#efefef"
                                       )
-        self.canvas = self.controller.widgetsDict["coursescanvas"]
-        self.loadcoursebuttons()
+        self.viewUploadsFrame.grid_remove()
 
     def loadCourses(self, coursecode: str):
         self.canvas.grid_remove()
         self.mainframe.grid()
         self.mainframe.tkraise()
-        self.controller.buttonCreator(
-            imagepath=r"Assets\My Courses\exitbutton.png", xpos=1820, ypos=20,
-            root=self.mainframe, classname="exitbutton", buttonFunction=lambda:
-            [self.exitMainFrame()]
-        )
+        buttonsList = [
+            (r"Assets\My Courses\exitbutton.png", 1820, 20, "exitbutton",
+             self.mainframe, lambda:[
+                 self.exitMainFrame(),
+                 self.focus_force()]),
+            (r"Assets\My Courses\exituploadsview.png", 1780, 20, "exituploadsview",
+             self.viewUploadsFrame, lambda:[
+                 self.exitUploadsView(),
+                 self.focus_force()]),
+        ]
+
+        self.controller.settingsUnpacker(buttonsList, "button")
         coursecode = coursecode.lower()
-        print(coursecode)
+        staticBtns = ["checkschedule", "gotolearninghub",
+                      "viewcoursefiles", "exitbutton"]
+        self.viewUploadsFrame.grid_remove()
         for widgetname, widget in self.mainframe.children.items():
             if isinstance(widget, Label) and not widgetname.startswith("!la"):
                 if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("loadedcoursebg"):
@@ -1842,71 +1867,232 @@ class CourseView(Canvas):
                     # print("Getting loaded", widgetname)
                     widget.grid()
             if isinstance(widget, Button):
-                if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("exitbutton"):
+                if not widgetname.startswith(f"{coursecode}") and widgetname not in staticBtns:
                     # print("Getting removed", widgetname)
                     widget.grid_remove()
                 if widgetname.startswith(f"{coursecode}"):
                     # print("Getting loaded", widgetname)
                     widget.grid()
 
-    def postLogin(self, data: dict, prisma: Prisma = None):
-        modules = data["modules"]
-        role = data["role"]
-        if role == "student":
-            lecturerinfo = data["lecturerinfo"]
-            for i in range(3):
-                modulecode = modules[i][0]
-                moduletitle = modules[i][1]
-                moduledesc = modules[i][2]
-                lecturername = lecturerinfo[i][0]
-                lectureremail = lecturerinfo[i][1]
-                lecturerphone = lecturerinfo[i][2]
-                self.detailsCreator(modulecode, moduletitle, moduledesc,
-                                    lecturername, lectureremail, lecturerphone)
-        elif role == "lecturer":
-            studentinfo = data["studentinfo"]
-            for i in range(len(modules)):
-                modulecode = modules[i][0]
-                moduletitle = modules[i][1]
-                moduledesc = modules[i][2]
-                # print(modulecode, moduletitle, moduledesc)
-            for i in range(len(studentinfo)):
-                studentname = studentinfo[i][0]
-                studentemail = studentinfo[i][1]
-                studentphone = studentinfo[i][2]
-                print(studentname, studentemail, studentphone)
-        self.loadcoursebuttons()
-
     def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
         tupleofinfo = (modulecode, moduletitle, moduledesc,
                        lecturername, lectureremail, lecturerphone)
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\coursetitlebg.png", xpos=20, ypos=20,
-            classname=f"{modulecode}_title", root=self.mainframe, text=moduletitle, size=60, xoffset=-4,
-        )
-        # lecturerfields
-        # name
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=240,
-            classname=f"{modulecode}_lecname", root=self.mainframe, text=lecturername, size=32, xoffset=-1
-        )
-        # email
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=300,
-            classname=f"{modulecode}_lecemail", root=self.mainframe, text=lectureremail, size=26, xoffset=-1,
-        )
-        # phone
-        self.controller.textElement(
-            imagepath=r"Assets\My Courses\whitebgtextfield.png", xpos=220, ypos=360,
-            classname=f"{modulecode}_lecphone", root=self.mainframe, text=lecturerphone, size=28, xoffset=-1,
-        )
-        self.controller.buttonCreator(
-            imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
-            classname=f"{modulecode}_discussions", root=self.mainframe,
-            buttonFunction=lambda: self.loadDiscussionsView(modulecode)
-        )
+        positions = [
+            (f"{modulecode}_title", moduletitle, 60, -4, 20,
+             20, r"Assets\My Courses\coursetitlebg.png"),
+            (f"{modulecode}_lecname", lecturername, 32, -1, 220,
+             240, r"Assets\My Courses\whitebgtextfield.png"),
+            (f"{modulecode}_lecemail", lectureremail, 26, -1,
+             220, 300, r"Assets\My Courses\whitebgtextfield.png"),
+            (f"{modulecode}_lecphone", lecturerphone, 28, -1,
+             220, 360, r"Assets\My Courses\whitebgtextfield.png")
+        ]
+        for classname, text, size, xoffset, xpos, ypos, imagepath in positions:
+            self.controller.textElement(imagepath=imagepath, xpos=xpos, ypos=ypos,
+                                        classname=classname, root=self.mainframe, text=text, size=size, xoffset=xoffset)
 
-    def loadDiscussionsView(self, modulecode):
+        buttons = [
+            (f"{modulecode}checkschedule", r"Assets\My Courses\checklecschedule.png", 1060, 280,
+             lambda m=(lectureremail): print(f"Check Schedule {m}")),
+            (f"{modulecode}_gotolearninghub", r"Assets\My Courses\gotolearninghub.png", 1340, 280,
+             lambda m=(modulecode): print(f"Go to Learning Hub {m}")),
+            (f"{modulecode}_viewcoursefiles", r"Assets\My Courses\loadcoursefiles.png", 1620, 280,
+             lambda m=(modulecode): self.loadModuleUploadsView(m)),
+            (f"{modulecode}_discussions", r"Assets\My Courses\go_to_discussions.png", 700, 780,
+             lambda: self.loadDiscussionsView(modulecode, moduletitle)),
+        ]
+        for classname, imagepath, xpos, ypos, buttonFunction in buttons:
+            self.controller.buttonCreator(imagepath=imagepath, xpos=xpos, ypos=ypos,
+                                          classname=classname, root=self.mainframe, buttonFunction=buttonFunction)
+        self.controller.buttonCreator(imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
+                                      classname=f"{modulecode}_discussions", root=self.mainframe, buttonFunction=lambda: self.loadDiscussionsView(modulecode, moduletitle))
+
+        self.defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
+        self.urlbar = self.controller.entryCreator(
+            xpos=820, ypos=120, width=980, height=40,
+            root=self.viewUploadsFrame, classname=f"uploadssearchbar",
+        )
+        self.urlbar.delete(0, END)
+        self.urlbar.insert(0, f"{self.defaulturl}")
+
+    def exitMainFrame(self):
+        self.mainframe.grid_remove()
+        self.exitUploadsView()
+        self.canvas.grid()
+
+    def initializeWebView(self):
+        col = int(820/20)
+        row = int(180/20)
+        w = int(1060/20)
+        h = int(580/20)
+
+        self.webview = WebView2(parent=self.viewUploadsFrame, width=1, height=1,
+                                url=self.defaulturl)
+        self.webview.grid(row=row, column=col, rowspan=h,
+                          columnspan=w, sticky=NSEW)
+
+    def exitUploadsView(self):
+        self.viewUploadsFrame.grid_remove()
+        try:
+            self.webview.destroy()
+            del self.webview
+            self.urlbar.delete(0, END)
+            self.urlbar.insert(0, f"{self.defaulturl}")
+            self.viewUploadsFrame.focus_set()
+        except:
+            pass
+
+    def loadModuleUploadsView(self, modulecode):
+        self.viewUploadsFrame.grid()
+        self.viewUploadsFrame.tkraise()
+        self.urlbar.delete(0, END)
+        self.urlbar.insert(0, f"{self.defaulturl}")
+        self.initializeWebView()
+        self.viewUploadsFrame.bind(
+            "<Enter>", lambda e: toggleRegainFocus(True))
+        self.viewUploadsFrame.bind(
+            "<Leave>", lambda e: toggleRegainFocus(False))
+        self.inFrame = StringVar()
+        self.inFrame.set("in")
+        # this is to check if the user is in the frame or not, and toggles the regainFocus, so that
+        # the user can tab out of the app, and the app WONT regain focus
+        self.inFrame.trace("w", lambda *args: toggleRegainFocus(True))
+
+        toast = ToastNotification(
+            title="Focus automatically regained",
+            message="The focus was automatically regained to the window, to stop this, please exit the window manually.",
+            duration=1000,
+            bootstyle=INFO
+        )
+        # timer to reload the self.urlbar
+
+        def toggleRegainFocus(bool, *args):
+            if bool:
+                self.inFrame.set("in")
+            else:
+                self.inFrame.set("out")
+
+        def regainFocus():
+            if self.inFrame.get() == "in" and self.controller.focus_get() == None:
+                self.focus_force()
+                toast.show_toast()
+            self.webview.after(5000, regainFocus)
+        self.currenturl = self.defaulturl
+
+        #     if self.controller.focus_get() == None:
+        #         self.focus_force()
+        #         toast.show_toast()
+        #     self.webview.after(10000, regainFocus)
+        # self.currenturl = self.defaulturl
+
+        def updateUrlbar():
+            if self.webview.get_url() == None:
+                self.urlbar.delete(0, END)
+                self.urlbar.insert(0, f"{self.defaulturl}")
+                self.currenturl = self.defaulturl
+            elif self.webview.get_url() == self.currenturl:
+                pass
+            else:
+                self.urlbar.delete(0, END)
+                self.urlbar.insert(0, f"{self.webview.get_url()}")
+                self.currenturl = self.webview.get_url()
+            self.webview.after(1, updateUrlbar)
+
+        updateUrlbar()
+        regainFocus()
+        t = threading.Thread(target=self.loadModuleUploads, args=(modulecode,))
+        t.daemon = True
+        t.start()
+
+    def loadModuleUploads(self, modulecode):
+        prisma = self.controller.prisma
+        uploads = prisma.moduleupload.find_many(
+            where={
+                "module": {
+                    "is": {
+                        "moduleCode": modulecode
+                    }
+                }
+            },
+            include={
+                "uploader": {
+                    "include": {
+                        "userProfile": True
+                    }
+                }
+            }
+        )
+        h = len(uploads) * 100 + 40
+        if h <= 640:
+            rspan = int(640/20)
+        else:
+            rspan = int(h/20)
+
+        self.upframe = ScrolledFrame(
+            self.viewUploadsFrame, width=740, height=h, autohide=True,
+        )
+        gridGenerator(self.upframe, int(740/20), rspan, WHITE)
+        self.upframe.grid_propagate(False)
+        self.upframe.place(x=40, y=120, width=740, height=640)
+        startx = 20
+        starty = 40
+        kl = timezone("Asia/Kuala_Lumpur")
+        for u in uploads:
+            createdAt = kl.convert(u.createdAt)
+            editedAt = kl.convert(u.editedAt)
+            self.renderModuleUploads(
+                u.uploadType, u.id, u.title, u.description, u.url, createdAt, editedAt,
+                startx, starty, u.uploader.userProfile.fullName, u.uploader.userProfile.email
+            )
+            starty += 100
+
+    def renderModuleUploads(self, filetype, id, title, description, url, createdat, editedat, x, y, uploadername, uploaderemail):
+        btnImgDict = {
+            "PDF": r"Assets\My Courses\pdfbtn.png",
+            "VIDEO": r"Assets\My Courses\videobtn.png",
+            "IMG": r"Assets\My Courses\imgbtn.png",
+            "LINK": r"Assets\My Courses\linkbtn.png",
+        }
+        textBgDict = {
+            "PDF": r"Assets\My Courses\pdftxtbg.png",
+            "VIDEO": r"Assets\My Courses\videotxtbg.png",
+            "IMG": r"Assets\My Courses\imgtxtbg.png",
+            "LINK": r"Assets\My Courses\linktxtbg.png",
+        }
+        c = self.controller
+        tiptext = f"""Click me to load {title}, a {filetype.title()} file.\nDescription: {description}\nUrl: {url},\nUploaded by: {uploadername} ({uploaderemail})"""
+        b = c.buttonCreator(
+            imagepath=btnImgDict[filetype], xpos=x, ypos=y,
+            classname=f"{id}btn", root=self.upframe,
+            isPlaced=True,
+            buttonFunction=lambda: self.webview.load_url(url),
+        )
+        ToolTip(b, text=tiptext, bootstyle=(INFO, INVERSE))
+        t1 = c.textElement(
+            imagepath=textBgDict[filetype], xpos=x+20, ypos=y,
+            classname=f"{id}title", root=self.upframe,
+            text=title, fg=BLACK, size=20, isPlaced=True,
+            font=INTERBOLD,
+            buttonFunction=lambda: self.webview.load_url(url),
+        )
+        ToolTip(t1, text=tiptext, bootstyle=(INFO, INVERSE))
+        fCreatedAt = createdat.strftime(r"%d/%m/%y - %I:%M %p")
+        fEditedAt = editedat.strftime(r"%d/%m/%y - %I:%M %p")
+        if fCreatedAt == fEditedAt:
+            strTime = f"Created: {fCreatedAt}"
+        else:
+            strTime = f"Created: {fCreatedAt} | Edited: {fEditedAt}"
+        t2 = c.textElement(
+            imagepath=textBgDict[filetype], xpos=x+20, ypos=y+40,
+            classname=f"{id}time", root=self.upframe,
+            text=strTime, fg=BLACK, size=16, isPlaced=True,
+            font=INTER,
+            buttonFunction=lambda: self.webview.load_url(url),
+        )
+        ToolTip(t2, text=tiptext, bootstyle=(INFO, INVERSE))
+    # FUNCTIONS THAT NAVIGATE OUT OF COURSEVIEW
+
+    def loadDiscussionsView(self, modulecode, moduletitle):
         toast = ToastNotification(
             title=f"Loading Discussions for {modulecode}",
             message="Please wait while we load the discussions for this module",
@@ -1925,24 +2111,9 @@ class CourseView(Canvas):
         discview.creationframe.grid_remove()
         discview.postviewframe.grid_remove()
         discview.modulecodevar.set(modulecode)
-        discview.menubutton.configure(text=modulecode)
+        discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
         toast2.show_toast()
         self.controller.show_canvas(DiscussionsView)
-
-    def exitMainFrame(self):
-        self.mainframe.grid_remove()
-        self.canvas.grid()
-
-    def loadcoursebuttons(self):
-        self.buttonImgLabels = [
-            (r"Assets\My Courses\CompArch.png", 40, 0,
-             "INT4004CEM", self.canvas, lambda: self.loadCourses("INT4004CEM")),
-            (r"Assets\My Courses\MathForCS.png", 40, 300,
-             "INT4068CEM", self.canvas, lambda: self.loadCourses("INT4068CEM")),
-            (r"Assets\My Courses\ObjectOP.png", 1040, 0,
-             "INT4003CEM", self.canvas, lambda: self.loadCourses("INT4003CEM")),
-        ]
-        self.controller.settingsUnpacker(self.buttonImgLabels, "button")
 
 
 class AnimatedStarBtn(Frame):
@@ -2295,20 +2466,25 @@ class DiscussionsView(Canvas):
         self.modulecodevar = StringVar()
         modules = prisma.module.find_many()
         listofvalues = []
+        self.valueDict = {}
         for module in modules:
-            if module.moduleCode == "INT4007CEM/INT4009CEM":
-                continue
+            self.valueDict[f"{module.moduleCode}"] = f"{module.moduleCode} - {module.moduleTitle}"
             listofvalues.append(module.moduleCode)
         for value in listofvalues:
+            _text = self.valueDict[f"{value}"]
             self.menubuttonmenu.add_radiobutton(
-                label=value, variable=self.modulecodevar, value=value,
+                label=_text,
+                variable=self.modulecodevar,
+                value=value,
                 command=lambda: [
-                    self.menubutton.config(text=self.modulecodevar.get()),
+                    self.menubutton.config(
+                        text=self.valueDict[self.modulecodevar.get()]),
                     self.callLoadLatestPosts(self.modulecodevar.get()),
                 ]
             )
         self.modulecodevar.set("INT4004CEM")
         self.menubutton["menu"] = self.menubuttonmenu
+        self.menubutton.config(text=self.valueDict[self.modulecodevar.get()])
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
@@ -2393,9 +2569,6 @@ class DiscussionsView(Canvas):
             repliesList = tupleofcontent[7]
             authorId = tupleofcontent[8]
             favoritedPostIds = tupleofcontent[9]
-            # if authorId == self.userId:
-            #     print(discussiontitle, authorId)
-            # using tuple comprehension to get of them in one line
             imagepath = r"Assets\DiscussionsView\discussionstitlecomponentbg.png"
             xpos = initialcoordinates[0]
             ypos = initialcoordinates[1]
@@ -2443,7 +2616,7 @@ class DiscussionsView(Canvas):
         posteditedAt = tupleofcontent[6]
         repliesList = tupleofcontent[7]
         authorId = tupleofcontent[8]
-        # print(author, authorId)
+
         self.controller.frameCreator(
             root=self.postviewframe, framewidth=1100, frameheight=660,
             classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
@@ -2483,7 +2656,6 @@ class DiscussionsView(Canvas):
         )
         totalheight = (1 + len(repliesList)) * 280
         numberofverticalsquares = int(totalheight/21)
-        print(totalheight)
         if totalheight > 660:
             gridGenerator(self.scrolledframe, int(int(1100/20)),
                           numberofverticalsquares, "#acbcff")
@@ -2501,7 +2673,7 @@ class DiscussionsView(Canvas):
             )
         else:
             gridGenerator(self.scrolledframe, int(
-                1100/20), int(620/20), "#acbcff")
+                1100/20), int(640/20), "#acbcff")
         # POST BG
         self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\exampleofapost.png", xpos=0, ypos=0,
@@ -2733,22 +2905,23 @@ class DiscussionsView(Canvas):
             classname="participantstotal", root=self.postviewframe, font=INTERBOLD,
             text=f"From {len(participants)} participants.", fg="#d2564e", size=28,
         )
+        wDict = self.controller.widgetsDict
         self.replyWidgets = [
-            self.controller.widgetsDict["cancelreply"],
-            self.controller.widgetsDict["addreply"],
+            wDict["cancelreply"],
+            wDict["addreply"],
         ]
         self.replyDeleteWidgets = [
-            self.controller.widgetsDict["canceldelete"],
-            self.controller.widgetsDict["confirmdelete"],
-            self.controller.widgetsDict["deletewarninglabel"]
+            wDict["canceldelete"],
+            wDict["confirmdelete"],
+            wDict["deletewarninglabel"]
         ]
         self.replyDeletePostOnly = [
-            self.controller.widgetsDict["replytotal"],
-            self.controller.widgetsDict["participantstotal"]
+            wDict["replytotal"],
+            wDict["participantstotal"]
         ]
         self.replyEditWidgets = [
-            self.controller.widgetsDict["cancelreplyedit"],
-            self.controller.widgetsDict["editreply"]
+            wDict["cancelreplyedit"],
+            wDict["editreply"]
         ]
         for widget in self.replyDeletePostOnly:
             widget.grid_remove()
@@ -2766,11 +2939,12 @@ class DiscussionsView(Canvas):
         t.start()
 
     def deleteReplyorPost(self, postId, replyId, moduleCode: str = "INT4004CEM", isPost: bool = False):
-        addreplybtn = self.controller.widgetsDict["addreply"]
-        editreplybtn = self.controller.widgetsDict["editreply"]
-        canceldeletebtn = self.controller.widgetsDict["canceldelete"]
-        confirmdeletebtn = self.controller.widgetsDict["confirmdelete"]
-        deletewarninglabel = self.controller.widgetsDict["deletewarninglabel"]
+        wDict = self.controller.widgetsDict
+        addreplybtn = wDict["addreply"]
+        editreplybtn = wDict["editreply"]
+        canceldeletebtn = wDict["canceldelete"]
+        confirmdeletebtn = wDict["confirmdelete"]
+        deletewarninglabel = wDict["deletewarninglabel"]
         [widget.grid_remove() for widget in self.replyWidgets]
         [widget.grid_remove() for widget in self.replyEditWidgets]
         [widget.grid() for widget in self.replyDeleteWidgets]
@@ -3344,53 +3518,77 @@ class AppointmentsView(Canvas):
         self.prisma = prisma
         self.userId = data["id"]
         self.data = data
+        self.role = data["role"]
         appContentList = self.loadLatestAppointments(
             prisma=self.prisma, userId=self.userId)
         print(f"In appointments view, {self.userId} ")
         print(appContentList)
 
     def loadLatestAppointments(self, prisma: Prisma = None, userId: str = None):
-        appointments = prisma.appointment.find_many(
-            include={
-                "lecturer": {
-                    "include": {
-                        "userProfile": True
+        if self.role == "lecturer":
+            appointments = prisma.appointment.find_many(
+                include={
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                    "student": {
+                        "include": {
+                            "userProfile": True
+                        }
                     }
                 },
-                "student": {
-                    "include": {
-                        "userProfile": True
+                where={
+                    "lecturer": {
+                        "is": {
+                            "userId": userId
+                        }
                     }
                 }
-            },
-            where={
-                "student": {
-                    "is": {
-                        "userId": userId
+            )
+        elif self.role == "student":
+            appointments = prisma.appointment.find_many(
+                include={
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                    "student": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    }
+                },
+                where={
+                    "student": {
+                        "is": {
+                            "userId": userId
+                        }
                     }
                 }
-            }
-        )
+            )
 
         kualalumpur = timezone("Asia/Kuala_Lumpur")
         humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
         humandate = r"%A, %B %d %Y"
         for app in appointments:
             appContentList = [
-                    app.id,
-                    kualalumpur.convert(app.startTime).strftime(humanreadable),
-                    kualalumpur.convert(app.endTime).strftime(humanreadable),
-                    kualalumpur.convert(app.startTime).strftime(humandate),
-                    kualalumpur.convert(app.endTime).strftime(humandate),
-                    app.location,
-                    app.student.userProfile.fullName,
-                    app.lecturer.userProfile.fullName,
-                    app.isCompleted,
-                    kualalumpur.convert(app.createdAt).strftime(
-                        humanreadable),
-                    kualalumpur.convert(app.updatedAt).strftime(
-                        humanreadable),
-                    app.studAccept, app.lectAccept
+                app.id,
+                kualalumpur.convert(app.startTime).strftime(humanreadable),
+                kualalumpur.convert(app.endTime).strftime(humanreadable),
+                kualalumpur.convert(app.startTime).strftime(humandate),
+                kualalumpur.convert(app.endTime).strftime(humandate),
+                app.location,
+                app.student.userProfile.fullName,
+                app.lecturer.userProfile.fullName,
+                app.isCompleted,
+                kualalumpur.convert(app.createdAt).strftime(
+                    humanreadable),
+                kualalumpur.convert(app.updatedAt).strftime(
+                    humanreadable),
+                app.studAccept, app.lectAccept
             ]
             try:
                 appContentList.append(
@@ -3409,7 +3607,7 @@ class AppointmentsView(Canvas):
         # appContentList = [
         #     (
         #         app.id,
-        #         kualalumpur.convert(app.startTime).strftime(humanreadable), 
+        #         kualalumpur.convert(app.startTime).strftime(humanreadable),
         #         kualalumpur.convert(app.endTime).strftime(humanreadable),
         #         kualalumpur.convert(app.startTime).strftime(humandate),
         #         kualalumpur.convert(app.endTime).strftime(humandate),
@@ -3441,7 +3639,6 @@ class AppointmentsView(Canvas):
         self.viewFrame.grid_remove()
         # for app in appointments:
         #     print(app)
-    
 
 
 def runGui():
@@ -3458,8 +3655,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     runGuiThreaded()
-    # except Exception as e:
-    #     print("sorry")
+    # runGui()
+    try:
+        runGuiThreaded()
+    except Exception as e:
+        print("sorry")

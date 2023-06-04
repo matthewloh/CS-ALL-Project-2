@@ -30,14 +30,15 @@ model UserProfile {
 }
 
 model Lecturer {
-  id           String        @id @default(cuid())
-  tenure       Tenure        @default(FULLTIME)
+  id           String         @id @default(cuid())
+  tenure       Tenure         @default(FULLTIME)
   userId       String
   schoolId     String
-  userProfile  UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProfile  UserProfile    @relation(fields: [userId], references: [id], onDelete: Cascade)
   modules      Module[]
-  school       School        @relation(fields: [schoolId], references: [id])
+  school       School         @relation(fields: [schoolId], references: [id])
   appointments Appointment[]
+  uploads      ModuleUpload[]
 
   @@index([schoolId])
   @@index([userId])
@@ -137,6 +138,7 @@ model Module {
   lecturer          Lecturer?          @relation(fields: [lecturerId], references: [id])
   moduleEnrollments ModuleEnrollment[]
   modulePosts       ModulePost[]
+  moduleUploads     ModuleUpload[]
 
   @@index([programmeId])
   @@index([lecturerId])
@@ -159,6 +161,31 @@ model ModulePost {
 
   @@index([moduleId])
   @@index([authorId])
+}
+
+enum UploadTypes {
+  IMG
+  VIDEO
+  PDF
+  LINK
+}
+
+model ModuleUpload {
+  id          Int         @id @default(autoincrement())
+  title       String
+  description String?
+  url         String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  editedAt    DateTime?   @default(now())
+  uploadType  UploadTypes @default(LINK)
+  moduleId    String
+  module      Module      @relation(fields: [moduleId], references: [id])
+  uploaderId  String
+  uploader    Lecturer    @relation(fields: [uploaderId], references: [id])
+
+  @@index([moduleId])
+  @@index([uploaderId])
 }
 
 model Reply {
