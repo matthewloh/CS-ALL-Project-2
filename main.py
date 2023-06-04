@@ -1778,7 +1778,7 @@ class CourseView(Canvas):
             # lecturer specific functions here like show student info
             # and upload course files and upload schedule
             self.loadcoursebuttons(modulecodes)
-    
+
     def loadcoursebuttons(self, modulecodes: list = None):
         print(f"The modulecodes list is {modulecodes}")
         btnDict = {
@@ -1812,6 +1812,7 @@ class CourseView(Canvas):
                     c.widgetsDict[i].grid_remove()
         except:
             pass
+
     def createFrames(self):
         self.controller.frameCreator(root=self,
                                      xpos=0, ypos=0,
@@ -1905,7 +1906,7 @@ class CourseView(Canvas):
                                           classname=classname, root=self.mainframe, buttonFunction=buttonFunction)
         self.controller.buttonCreator(imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
                                       classname=f"{modulecode}_discussions", root=self.mainframe, buttonFunction=lambda: self.loadDiscussionsView(modulecode, moduletitle))
-        
+
         self.defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
         self.urlbar = self.controller.entryCreator(
             xpos=820, ypos=120, width=980, height=40,
@@ -1924,7 +1925,7 @@ class CourseView(Canvas):
         row = int(180/20)
         w = int(1060/20)
         h = int(580/20)
-        
+
         self.webview = WebView2(parent=self.viewUploadsFrame, width=1, height=1,
                                 url=self.defaulturl)
         self.webview.grid(row=row, column=col, rowspan=h,
@@ -1940,20 +1941,23 @@ class CourseView(Canvas):
             self.viewUploadsFrame.focus_set()
         except:
             pass
+
     def loadModuleUploadsView(self, modulecode):
         self.viewUploadsFrame.grid()
         self.viewUploadsFrame.tkraise()
         self.urlbar.delete(0, END)
         self.urlbar.insert(0, f"{self.defaulturl}")
         self.initializeWebView()
-        self.viewUploadsFrame.bind("<Enter>", lambda e: toggleRegainFocus(True))
-        self.viewUploadsFrame.bind("<Leave>", lambda e: toggleRegainFocus(False))
+        self.viewUploadsFrame.bind(
+            "<Enter>", lambda e: toggleRegainFocus(True))
+        self.viewUploadsFrame.bind(
+            "<Leave>", lambda e: toggleRegainFocus(False))
         self.inFrame = StringVar()
         self.inFrame.set("in")
-        # this is to check if the user is in the frame or not, and toggles the regainFocus, so that 
+        # this is to check if the user is in the frame or not, and toggles the regainFocus, so that
         # the user can tab out of the app, and the app WONT regain focus
         self.inFrame.trace("w", lambda *args: toggleRegainFocus(True))
-        
+
         toast = ToastNotification(
             title="Focus automatically regained",
             message="The focus was automatically regained to the window, to stop this, please exit the window manually.",
@@ -1961,11 +1965,13 @@ class CourseView(Canvas):
             bootstyle=INFO
         )
         # timer to reload the self.urlbar
+
         def toggleRegainFocus(bool, *args):
             if bool:
                 self.inFrame.set("in")
             else:
                 self.inFrame.set("out")
+
         def regainFocus():
             if self.inFrame.get() == "in" and self.controller.focus_get() == None:
                 self.focus_force()
@@ -1991,12 +1997,13 @@ class CourseView(Canvas):
                 self.urlbar.insert(0, f"{self.webview.get_url()}")
                 self.currenturl = self.webview.get_url()
             self.webview.after(1, updateUrlbar)
-        
+
         updateUrlbar()
         regainFocus()
         t = threading.Thread(target=self.loadModuleUploads, args=(modulecode,))
         t.daemon = True
         t.start()
+
     def loadModuleUploads(self, modulecode):
         prisma = self.controller.prisma
         uploads = prisma.moduleupload.find_many(
@@ -2022,7 +2029,7 @@ class CourseView(Canvas):
             rspan = int(h/20)
 
         self.upframe = ScrolledFrame(
-            self.viewUploadsFrame, width = 740, height= h, autohide=True, 
+            self.viewUploadsFrame, width=740, height=h, autohide=True,
         )
         gridGenerator(self.upframe, int(740/20), rspan, WHITE)
         self.upframe.grid_propagate(False)
@@ -2035,11 +2042,11 @@ class CourseView(Canvas):
             editedAt = kl.convert(u.editedAt)
             self.renderModuleUploads(
                 u.uploadType, u.id, u.title, u.description, u.url, createdAt, editedAt,
-                startx, starty
+                startx, starty, u.uploader.userProfile.fullName, u.uploader.userProfile.email
             )
             starty += 100
 
-    def renderModuleUploads(self, filetype, id, title, description, url, createdat, editedat, x, y):
+    def renderModuleUploads(self, filetype, id, title, description, url, createdat, editedat, x, y, uploadername, uploaderemail):
         btnImgDict = {
             "PDF": r"Assets\My Courses\pdfbtn.png",
             "VIDEO": r"Assets\My Courses\videobtn.png",
@@ -2053,7 +2060,7 @@ class CourseView(Canvas):
             "LINK": r"Assets\My Courses\linktxtbg.png",
         }
         c = self.controller
-        tiptext = f"Click me to load {title}, a {filetype.title()} file.\nDescription: {description}\nUrl: {url}"
+        tiptext = f"""Click me to load {title}, a {filetype.title()} file.\nDescription: {description}\nUrl: {url},\nUploaded by: {uploadername} ({uploaderemail})"""
         b = c.buttonCreator(
             imagepath=btnImgDict[filetype], xpos=x, ypos=y,
             classname=f"{id}btn", root=self.upframe,
@@ -2066,7 +2073,7 @@ class CourseView(Canvas):
             classname=f"{id}title", root=self.upframe,
             text=title, fg=BLACK, size=20, isPlaced=True,
             font=INTERBOLD,
-            buttonFunction=lambda: self.webview.load_url(url),  
+            buttonFunction=lambda: self.webview.load_url(url),
         )
         ToolTip(t1, text=tiptext, bootstyle=(INFO, INVERSE))
         fCreatedAt = createdat.strftime(r"%d/%m/%y - %I:%M %p")
@@ -2084,6 +2091,7 @@ class CourseView(Canvas):
         )
         ToolTip(t2, text=tiptext, bootstyle=(INFO, INVERSE))
     # FUNCTIONS THAT NAVIGATE OUT OF COURSEVIEW
+
     def loadDiscussionsView(self, modulecode, moduletitle):
         toast = ToastNotification(
             title=f"Loading Discussions for {modulecode}",
