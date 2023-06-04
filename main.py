@@ -1,3 +1,4 @@
+import time
 from static import *
 import ctypes
 from ctypes import windll
@@ -357,6 +358,7 @@ class Window(ttk.Window):
                     "id": lecturer.userProfile.id,
                     "fullName": lecturer.userProfile.fullName,
                     "email": lecturer.userProfile.email,
+                    "phone": lecturer.userProfile.contactNo,
                     "modules": modulesOfLecturer,
                     "studentinfo": studentinfo,
                     "role": "lecturer",
@@ -686,6 +688,7 @@ class Window(ttk.Window):
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
+        return self.widgetsDict[classname]
 
     def canvasCreator(self, xpos, ypos, width, height, root, classname=None, bgcolor=WHITE, imgSettings=None, relief=FLAT, isTransparent=False, transparentcolor=TRANSPARENTGREEN):
         classname = classname.lower().replace(" ", "")
@@ -1735,35 +1738,85 @@ class CourseView(Canvas):
         self.createFrames()
         self.canvas = self.controller.widgetsDict["coursescanvas"]
 
+    def postLogin(self, data: dict, prisma: Prisma = None):
+        modules = data["modules"]
+        self.role = data["role"]
+        if self.role == "student":
+            lecturerinfo = data["lecturerinfo"]
+            modulecodes = []
+            for i in range(len(modules)):
+                modulecode = modules[i][0]
+                moduletitle = modules[i][1]
+                moduledesc = modules[i][2]
+                lecturername = lecturerinfo[i][0]
+                lectureremail = lecturerinfo[i][1]
+                lecturerphone = lecturerinfo[i][2]
+                self.detailsCreator(modulecode, moduletitle, moduledesc,
+                                    lecturername, lectureremail, lecturerphone)
+                modulecodes.append(modulecode.lower())
+            self.loadcoursebuttons(modulecodes)
+        elif self.role == "lecturer":
+            studentinfo = data["studentinfo"]
+            modulecodes = []
+            lecturername = data["fullName"]
+            lectureremail = data["email"]
+            lecturerphone = data["phone"]
+            for i in range(len(modules)):
+                modulecode = modules[i][0]
+                moduletitle = modules[i][1]
+                moduledesc = modules[i][2]
+                modulecodes.append(modulecode.lower())
+                self.detailsCreator(modulecode, moduletitle, moduledesc,
+                                    lecturername, lectureremail, lecturerphone)
+            for i in range(len(studentinfo)):
+                studentname = studentinfo[i][0]
+                studentemail = studentinfo[i][1]
+                studentphone = studentinfo[i][2]
+                print(studentname, studentemail, studentphone)
+            # lecturer specific functions here like show student info
+            # and upload course files and upload schedule
+            self.loadcoursebuttons(modulecodes)
+
     def createFrames(self):
         self.controller.frameCreator(root=self,
                                      xpos=0, ypos=0,
                                      framewidth=1920, frameheight=920, classname="singlecourseviewframe"
                                      )
         self.mainframe = self.controller.widgetsDict["singlecourseviewframe"]
+        self.controller.frameCreator(
+            xpos = 0, ypos = 120, framewidth=1920, frameheight=800,
+            root=self.mainframe, classname="viewuploadsframe"
+        )
+        self.viewUploadsFrame = self.controller.widgetsDict["viewuploadsframe"]
         self.staticImgLabels = [
             (r"Assets\My Courses\CoursesBG.png", 0, 0, "courseviewbg", self),
             (r"Assets\My Courses\loadedcoursebg.png",
              0, 0, "loadedcoursebg", self.mainframe),
+            (r"Assets\My Courses\moduleuploadsbg.png", 0, 0, "moduleuploadsbg", self.viewUploadsFrame),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.canvasCreator(0, 100, 1920, 820, root=self,
                                       classname="coursescanvas", bgcolor="#F6F5D7",
                                       isTransparent=True, transparentcolor="#efefef"
                                       )
+        self.viewUploadsFrame.grid_remove()
 
     def loadCourses(self, coursecode: str):
         self.canvas.grid_remove()
         self.mainframe.grid()
         self.mainframe.tkraise()
-        self.controller.buttonCreator(
-            imagepath=r"Assets\My Courses\exitbutton.png", xpos=1820, ypos=20,
-            root=self.mainframe, classname="exitbutton", buttonFunction=lambda:
-            [self.exitMainFrame()]
-        )
+        buttonsList = [
+            (r"Assets\My Courses\exitbutton.png", 1820, 20, "exitbutton",
+            self.mainframe, lambda:[self.exitMainFrame()]),
+            (r"Assets\My Courses\exituploadsview.png", 1780, 20, "exituploadsview",
+            self.viewUploadsFrame, lambda:[self.exitUploadsView()]),
+        ]
+
+        self.controller.settingsUnpacker(buttonsList, "button")
         coursecode = coursecode.lower()
         staticBtns = ["checkschedule", "gotolearninghub",
                       "viewcoursefiles", "exitbutton"]
+        self.viewUploadsFrame.grid_remove()
         for widgetname, widget in self.mainframe.children.items():
             if isinstance(widget, Label) and not widgetname.startswith("!la"):
                 if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("loadedcoursebg"):
@@ -1779,40 +1832,7 @@ class CourseView(Canvas):
                 if widgetname.startswith(f"{coursecode}"):
                     # print("Getting loaded", widgetname)
                     widget.grid()
-
-    def postLogin(self, data: dict, prisma: Prisma = None):
-        modules = data["modules"]
-        self.role = data["role"]
-        if self.role == "student":
-            lecturerinfo = data["lecturerinfo"]
-            modulecodes = []
-            for i in range(3):
-                modulecode = modules[i][0]
-                moduletitle = modules[i][1]
-                moduledesc = modules[i][2]
-                lecturername = lecturerinfo[i][0]
-                lectureremail = lecturerinfo[i][1]
-                lecturerphone = lecturerinfo[i][2]
-                self.detailsCreator(modulecode, moduletitle, moduledesc,
-                                    lecturername, lectureremail, lecturerphone)
-                modulecodes.append(modulecode.lower())
-            self.loadcoursebuttons(modulecodes)
-        elif self.role == "lecturer":
-            studentinfo = data["studentinfo"]
-            modulecodes = []
-            for i in range(len(modules)):
-                modulecode = modules[i][0]
-                moduletitle = modules[i][1]
-                moduledesc = modules[i][2]
-                print(modulecode, moduletitle, moduledesc)
-                modulecodes.append(modulecode.lower())
-            for i in range(len(studentinfo)):
-                studentname = studentinfo[i][0]
-                studentemail = studentinfo[i][1]
-                studentphone = studentinfo[i][2]
-                print(studentname, studentemail, studentphone)
-            self.loadcoursebuttons(modulecodes)
-
+    
     def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
         tupleofinfo = (modulecode, moduletitle, moduledesc,
                        lecturername, lectureremail, lecturerphone)
@@ -1832,11 +1852,11 @@ class CourseView(Canvas):
 
         buttons = [
             (f"{modulecode}checkschedule", r"Assets\My Courses\checklecschedule.png", 1060, 280,
-             lambda m=tupleofinfo: print(f"Check Schedule {m}")),
+             lambda m=(lectureremail): print(f"Check Schedule {m}")),
             (f"{modulecode}_gotolearninghub", r"Assets\My Courses\gotolearninghub.png", 1340, 280,
-             lambda m=tupleofinfo: print(f"Go to Learning Hub {m}")),
+             lambda m=(modulecode): print(f"Go to Learning Hub {m}")),
             (f"{modulecode}_viewcoursefiles", r"Assets\My Courses\loadcoursefiles.png", 1620, 280,
-             lambda m=tupleofinfo: print(f"View Course Files {m}")),
+             lambda m=(modulecode): self.loadModuleUploadsView(m)),
             (f"{modulecode}_discussions", r"Assets\My Courses\go_to_discussions.png", 700, 780,
              lambda: self.loadDiscussionsView(modulecode, moduletitle)),
         ]
@@ -1845,6 +1865,77 @@ class CourseView(Canvas):
                                           classname=classname, root=self.mainframe, buttonFunction=buttonFunction)
         self.controller.buttonCreator(imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
                                       classname=f"{modulecode}_discussions", root=self.mainframe, buttonFunction=lambda: self.loadDiscussionsView(modulecode, moduletitle))
+
+    def exitMainFrame(self):
+        self.mainframe.grid_remove()
+        self.canvas.grid()
+
+    def loadcoursebuttons(self, modulecodes: list = None):
+        print(f"The modulecodes list is {modulecodes}")
+        btnDict = {
+            "int4004cem": (r"Assets\My Courses\CompArch.png", 40, 0,
+                           "int4004cem", self.canvas, lambda: self.loadCourses("INT4004CEM")),
+            "int4068cem": (r"Assets\My Courses\MathForCS.png", 40, 0,
+                           "int4068cem", self.canvas, lambda: self.loadCourses("INT4068CEM")),
+            "int4003cem": (r"Assets\My Courses\ObjectOP.png", 40, 0,
+                           "int4003cem", self.canvas, lambda: self.loadCourses("INT4003CEM")),
+            "int4009cem": (r"Assets\My Courses\ALL2.png", 40, 0,
+                    "int4009cem", self.canvas, lambda: self.loadCourses("INT4009CEM")),
+        }
+        c = self.controller
+        btnCount = 0
+        yCount = 0
+        for code in modulecodes:
+            yCount += 1 if btnCount == 2 else 0  # increment yCount if btnCount reaches 2
+            btnCount = btnCount if btnCount < 2 else 0
+            c.buttonCreator(
+                imagepath=btnDict[code][0],
+                xpos=btnDict[code][1] + (btnCount * 1000),
+                ypos=btnDict[code][2] + (yCount * 300),
+                classname=btnDict[code][3],
+                root=btnDict[code][4],
+                buttonFunction=btnDict[code][5]
+            )
+            btnCount += 1
+        try:
+            for i in ["int4004cem", "int4068cem", "int4003cem", "int4009cem"]:
+                if i not in modulecodes:
+                    c.widgetsDict[i].grid_remove()
+        except:
+            pass
+    def exitUploadsView(self):
+        self.viewUploadsFrame.grid_remove()
+        self.webview.grid_remove()
+    def loadModuleUploadsView(self, modulecode):
+        self.viewUploadsFrame.grid()
+        self.viewUploadsFrame.tkraise()
+        col = int(820/20)
+        row = int(180/20)
+        w = int(1060/20)
+        h = int(580/20)
+        defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
+        self.webview = WebView2(parent=self.viewUploadsFrame, width=1, height=1,
+            url=defaulturl)
+        self.webview.grid(row=row, column=col, rowspan=h, columnspan=w, sticky=NSEW)
+        print(f"Loading uploads for {modulecode}")
+        urlbar = self.controller.entryCreator(
+            xpos=820, ypos=120, width=980, height=40,
+            root=self.viewUploadsFrame, classname=f"uploadssearchbar",
+        )
+        urlbar.insert(0, f"{defaulturl}")
+
+        # timer to reload the urlbar
+        def updateUrlbar():
+            urlbar.delete(0, END)
+            urlbar.insert(0, f"{self.webview.get_url()}")
+            self.viewUploadsFrame.after(100, updateUrlbar)
+        updateUrlbar()
+        # nvm this freezes the app lol
+        # while True:
+        #     urlbar.delete(0, END)
+        #     urlbar.insert(0, f"{self.webview.get_url()}")
+        #     time.sleep(0.5)
+        
 
     def loadDiscussionsView(self, modulecode, moduletitle):
         toast = ToastNotification(
@@ -1868,44 +1959,6 @@ class CourseView(Canvas):
         discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
         toast2.show_toast()
         self.controller.show_canvas(DiscussionsView)
-
-    def exitMainFrame(self):
-        self.mainframe.grid_remove()
-        self.canvas.grid()
-
-    def loadcoursebuttons(self, modulecodes: list = None):
-        print(f"The modulecodes list is {modulecodes}")
-        btnDict = {
-            "int4004cem": (r"Assets\My Courses\CompArch.png", 40, 0,
-                           "int4004cem", self.canvas, lambda: self.loadCourses("INT4004CEM")),
-            "int4068cem": (r"Assets\My Courses\MathForCS.png", 40, 0,
-                           "int4068cem", self.canvas, lambda: self.loadCourses("INT4068CEM")),
-            "int4003cem": (r"Assets\My Courses\ObjectOP.png", 40, 0,
-                            "int4003cem", self.canvas, lambda: self.loadCourses("INT4003CEM")), 
-        }
-        c = self.controller
-        btnCount = 0
-        yCount = 0
-        for code in modulecodes:
-            yCount += 1 if btnCount == 2 else 0 # increment yCount if btnCount reaches 2
-            btnCount = btnCount if btnCount < 2 else 0
-            c.buttonCreator(
-                imagepath=btnDict[code][0],
-                xpos=btnDict[code][1] + (btnCount * 1000),
-                ypos=btnDict[code][2] + (yCount * 300),
-                classname=btnDict[code][3],
-                root=btnDict[code][4],
-                buttonFunction=btnDict[code][5]
-                )
-            btnCount += 1
-        try:
-            for i in ["int4004cem", "int4068cem", "int4003cem"]:
-                if i not in modulecodes:
-                    c.widgetsDict[i].grid_remove()
-        except:
-            pass
-
-
 class AnimatedStarBtn(Frame):
     def __init__(self,
                  parent=None, controller: Window = None,
@@ -2258,8 +2311,6 @@ class DiscussionsView(Canvas):
         listofvalues = []
         self.valueDict = {}
         for module in modules:
-            if module.moduleCode == "INT4007CEM/INT4009CEM":
-                continue
             self.valueDict[f"{module.moduleCode}"] = f"{module.moduleCode} - {module.moduleTitle}"
             listofvalues.append(module.moduleCode)
         for value in listofvalues:
@@ -3310,33 +3361,57 @@ class AppointmentsView(Canvas):
         self.prisma = prisma
         self.userId = data["id"]
         self.data = data
+        self.role = data["role"]
         appContentList = self.loadLatestAppointments(
             prisma=self.prisma, userId=self.userId)
         print(f"In appointments view, {self.userId} ")
         print(appContentList)
 
     def loadLatestAppointments(self, prisma: Prisma = None, userId: str = None):
-        appointments = prisma.appointment.find_many(
-            include={
-                "lecturer": {
-                    "include": {
-                        "userProfile": True
+        if self.role == "lecturer":
+            appointments = prisma.appointment.find_many(
+                include={
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                    "student": {
+                        "include": {
+                            "userProfile": True
+                        }
                     }
                 },
-                "student": {
-                    "include": {
-                        "userProfile": True
+                where={
+                    "lecturer": {
+                        "is": {
+                            "userId": userId
+                        }
                     }
                 }
-            },
-            where={
-                "student": {
-                    "is": {
-                        "userId": userId
+            )
+        elif self.role == "student":
+            appointments = prisma.appointment.find_many(
+                include={
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                    "student": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    }
+                },
+                where={
+                    "student": {
+                        "is": {
+                            "userId": userId
+                        }
                     }
                 }
-            }
-        )
+            )
 
         kualalumpur = timezone("Asia/Kuala_Lumpur")
         humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
@@ -3423,8 +3498,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     runGuiThreaded()
-    # except Exception as e:
-    #     print("sorry")
+    # runGui()
+    try:
+        runGuiThreaded()
+    except Exception as e:
+        print("sorry")

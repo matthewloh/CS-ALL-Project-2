@@ -509,11 +509,16 @@ def prisQueryUserProfile():
 
 def prisCreateMultipleModules():
     prisma.connect()
-    # programme = prisma.programme.find_first(
-    #     where={
-    #         "programmeCode": "BCSCU"
-    #     }
-    # )
+    programme = prisma.programme.find_first(
+        where={
+            "programmeCode": "BCSCU"
+        }
+    )
+    module = prisma.module.create(
+        data={
+            "moduleCode": "INT40"
+        }
+    )
     # prisma.module.delete_many(
     #     where={
     #         "moduleTitle": "Mathematics for Computer Science" or "Object Oriented Programming",
@@ -545,34 +550,34 @@ def prisCreateMultipleModules():
     #         }
     #     ],
     # )
-    actualmodules = prisma.module.find_many()
-    counter = 0
-    for m in actualmodules:
-        counter += 1
-        # print(f"Module {counter}:\n{m.json(indent=2)}\n")
-        module = prisma.module.find_first(
-            where={
-                "moduleTitle": m.moduleTitle
-            },
-            include={
-                "lecturer": True,
-                "programme": True,
-                "moduleEnrollments": True,
-            }
-        )
-        print(f"{counter}. {m.moduleTitle}:\n{module.json(indent=2)}\n")
-        for m in module.moduleEnrollments:
-            search = m.studentId
-            student = prisma.student.find_first(
-                where={
-                    "id": search
-                },
-                include={
-                    "userProfile": True,
-                }
-            )
-            print(
-                f"Student {student.userProfile.fullName} in {module.moduleTitle}:\n{student.json(indent=2)}\n")
+    # actualmodules = prisma.module.find_many()
+    # counter = 0
+    # for m in actualmodules:
+    #     counter += 1
+    #     # print(f"Module {counter}:\n{m.json(indent=2)}\n")
+    #     module = prisma.module.find_first(
+    #         where={
+    #             "moduleTitle": m.moduleTitle
+    #         },
+    #         include={
+    #             "lecturer": True,
+    #             "programme": True,
+    #             "moduleEnrollments": True,
+    #         }
+    #     )
+    #     print(f"{counter}. {m.moduleTitle}:\n{module.json(indent=2)}\n")
+    #     for m in module.moduleEnrollments:
+    #         search = m.studentId
+    #         student = prisma.student.find_first(
+    #             where={
+    #                 "id": search
+    #             },
+    #             include={
+    #                 "userProfile": True,
+    #             }
+    #         )
+    #         print(
+    #             f"Student {student.userProfile.fullName} in {module.moduleTitle}:\n{student.json(indent=2)}\n")
 # https://prisma-client-py.readthedocs.io/en/stable/reference/model-actions/
 # https://prisma-client-py.readthedocs.io/en/stable/reference/selecting-fields/#writing-queries
 
@@ -1138,15 +1143,29 @@ def queryPosts():
 
 def queryModules():
     prisma.connect()
-    print(prisma.reply.count(
+    test = prisma.module.update(
         where={
-            "author": {
-                "is": {
-                    "fullName": "Matthew Loh Yet Marn"
-                }
+            "moduleCode": "INT4007CEM/INT4009CEM"
+        },
+        data={
+            "lecturer": {
+                "disconnect": True
             }
+        },
+        include={
+            "lecturer": True
         }
-    ))
+    )
+    print(f"Module:\n{test.json(indent=2)}\n")
+    # print(prisma.reply.count(
+    #     where={
+    #         "author": {
+    #             "is": {
+    #                 "fullName": "Matthew Loh Yet Marn"
+    #             }
+    #         }
+    #     }
+    # ))
 
     # lecturer = prisma.lecturer.find_first(
     #     where={
@@ -1199,6 +1218,13 @@ def queryModules():
         #     for reply in post.replies:
         #         print(f"Reply:\n{reply.json(indent=2)}\n")
     # print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
+def uploadFiles():
+    prisma.connect()
+    uploadedfile = prisma.moduleupload.create(
+        data={
+            
+        }
+    )
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1213,7 +1239,8 @@ if __name__ == "__main__":
     # usingpartialTypes()
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
-    createAppointment()
+    # createAppointment()
     # createModulePost()
     # queryPosts()
     # queryModules()
+    uploadFiles()
