@@ -555,6 +555,7 @@ class Window(ttk.Window):
         canvas.grid()
         canvas.tk.call("raise", canvas._w)
         canvas.focus_set()
+        canvas.focus_force()
 
     def get_page(self, classname):
         return self.frames[classname]
@@ -1807,9 +1808,13 @@ class CourseView(Canvas):
         self.mainframe.tkraise()
         buttonsList = [
             (r"Assets\My Courses\exitbutton.png", 1820, 20, "exitbutton",
-            self.mainframe, lambda:[self.exitMainFrame()]),
+            self.mainframe, lambda:[
+                self.exitMainFrame(),
+                self.focus_force()]),
             (r"Assets\My Courses\exituploadsview.png", 1780, 20, "exituploadsview",
-            self.viewUploadsFrame, lambda:[self.exitUploadsView()]),
+            self.viewUploadsFrame, lambda:[
+                self.exitUploadsView(),
+                self.focus_force()]),
         ]
 
         self.controller.settingsUnpacker(buttonsList, "button")
@@ -1924,12 +1929,25 @@ class CourseView(Canvas):
         )
         urlbar.insert(0, f"{defaulturl}")
 
+        toast = ToastNotification(
+            title="Focus was automatically regained",
+            message="The focus was automatically regained to the search bar",
+            duration=5000,
+            bootstyle=INFO
+        )
         # timer to reload the urlbar
+        def regainFocus():
+            if self.controller.focus_get() == None:
+                urlbar.focus_force()
+                toast.show_toast()
+            self.viewUploadsFrame.after(15000, regainFocus)
         def updateUrlbar():
-            urlbar.delete(0, END)
-            urlbar.insert(0, f"{self.webview.get_url()}")
+            if self.webview.get_url() != urlbar.get():
+                urlbar.delete(0, END)
+                urlbar.insert(0, f"{self.webview.get_url()}")
             self.viewUploadsFrame.after(100, updateUrlbar)
         updateUrlbar()
+        regainFocus()
         # nvm this freezes the app lol
         # while True:
         #     urlbar.delete(0, END)
