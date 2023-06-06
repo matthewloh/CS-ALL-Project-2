@@ -399,33 +399,58 @@ def prismaCreateStudent():
 
 def prismaqueryAll():
     prisma.connect()
-    institution = prisma.institution.find_many(
-        include={"school": True}
+    # institution = prisma.institution.find_many(
+    #     include={"school": True}
+    # )
+    # for i in institution:
+    #     print(f"Institution: {i.json(indent=2)}\n")
+    # school = prisma.school.find_many(
+    #     include={"institution": True, "programme": True,
+    #              "students": True, "lecturer": True}
+    # )
+    # for s in school:
+    #     print(f"School: {s.json(indent=2)}\n")
+    lecturer = prisma.lecturer.find_first(
+        include={
+                "school": True,
+                "modules": True,
+                "userProfile": True
+        }
     )
-    for i in institution:
-        print(f"Institution: {i.json(indent=2)}\n")
-    school = prisma.school.find_many(
-        include={"institution": True, "programme": True,
-                 "students": True, "lecturer": True}
+    print(f"First lecturer:\n{lecturer.json(indent=2)}")
+    # for l in lecturers:
+    #     print(f"Lecturer: {l.json(indent=2)}\n")
+    #     print(f"Lecturer's Name: {l.userProfile.fullName}")
+    # modules = prisma.module.find_many(
+    #     include={"programme": True, "lecturer": True,
+    #              "moduleEnrollments": True}
+    # )
+    # for m in modules:
+    #     print(f"Module: {m.json(indent=2)}\n")
+    # students = prisma.student.find_many(
+    #     include={"school": True, "modules": True}
+    # )
+    # for s in students:
+    #     print(f"Student: {s.json(indent=2)}\n")
+    student = prisma.student.find_first(
+        where={
+            "userProfile": {
+                "is": {
+                    "fullName": "Adnan Irfan Potrik"
+                }
+            }
+        },
+        include={
+            "userProfile": True,
+            "modules": {
+                "include": {
+                    "module": True
+                }
+            },
+            "appointments": True
+        }
     )
-    for s in school:
-        print(f"School: {s.json(indent=2)}\n")
-    lecturers = prisma.lecturer.find_many(
-        include={"school": True, "modules": True}
-    )
-    for l in lecturers:
-        print(f"Lecturer: {l.json(indent=2)}\n")
-    modules = prisma.module.find_many(
-        include={"programme": True, "lecturer": True,
-                 "moduleEnrollments": True}
-    )
-    for m in modules:
-        print(f"Module: {m.json(indent=2)}\n")
-    students = prisma.student.find_many(
-        include={"school": True, "modules": True}
-    )
-    for s in students:
-        print(f"Student: {s.json(indent=2)}\n")
+    print(f"Specific Student:\n{student.json(indent=2)}")
 
 
 def prisQueryModuleEnrollment():
@@ -1286,7 +1311,7 @@ if __name__ == "__main__":
     # prismaCreateProgramme()
     # prismaCreateLecturer()
     # prismaCreateStudent()
-    # prismaqueryAll()
+    prismaqueryAll()
     # prisQueryModuleEnrollment()
     # prisQueryUserProfile()
     # prisCreateMultipleModules()
@@ -1297,4 +1322,4 @@ if __name__ == "__main__":
     # createModulePost()
     # queryPosts()
     # queryModules()
-    uploadFiles()
+    # uploadFiles()
