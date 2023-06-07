@@ -129,7 +129,19 @@ class Window(ttk.Window):
         # self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
 
         self.bind("<F11>", lambda e: self.togglethewindowbar())
+        self.initMainPrisma()
 
+    def startPrisma(self):
+        try:
+            self.mainPrisma = Prisma()
+            self.mainPrisma.connect()
+            print("Successfully connected to Prisma client.")
+        except Exception as e:
+            print(e)
+    def initMainPrisma(self):
+        t = threading.Thread(target=self.startPrisma)
+        t.daemon = True
+        t.start()
     def initializeWindow(self):
         windll.shcore.SetProcessDpiAwareness(1)
         quarterofscreenwidth = int(int(user32.GetSystemMetrics(0) / 2) / 4)
@@ -279,8 +291,7 @@ class Window(ttk.Window):
                 bootstyle=INFO,
             )
             toast.show_toast()
-            self.prisma = Prisma()
-            self.prisma.connect()
+            self.prisma = self.mainPrisma
             emailtext = self.widgetsDict["signinemail"].get()
             entrytext = self.widgetsDict["signinpassent"].get()
             user = self.prisma.userprofile.find_first(
@@ -554,7 +565,6 @@ class Window(ttk.Window):
         canvas = self.canvasInDashboard[cont]
         canvas.grid()
         canvas.tk.call("raise", canvas._w)
-        canvas.focus_set()
         canvas.focus_force()
 
     def get_page(self, classname):
@@ -1043,6 +1053,9 @@ class UserForms(Frame):
             (420, 500, 340, 40, self.frameref, f"{self.name}captcha"),
         ]
 
+    def validation(self):
+        
+        return True
     def loadLecturerReg(self):
         self.userReg()
         self.imgLabels.append(
@@ -1127,7 +1140,24 @@ class UserForms(Frame):
         )
         self.completeregbutton = self.controller.widgetsDict[f"{self.name}completeregbutton"]
         # self.completeregbutton.config(state=DISABLED)
-
+    def dbGetLists(self, role):
+        prisma = self.controller.mainPrisma
+        institution = prisma.institution.find_first(
+            where={
+                "institutionCode": "IICP"
+            }
+        )
+        schools = prisma.school.find_many(
+            where={
+                "institution": {
+                    "is": {
+                        "institutionCode": institution.institutionCode
+                    }
+                }
+            }
+        )
+        lists = {}
+        return lists
     def loadStudentReg(self):
         self.userReg()
         self.imgLabels.append((r"Assets\Login Page with Captcha\StudentForm.png",
@@ -1219,7 +1249,7 @@ class UserForms(Frame):
 
     def prismaFormSubmit(self,  data: dict):
         # LECTURER OR STUDENT
-        prisma = Prisma()
+        prisma = self.controller.mainPrisma
         try:
             if data["role"] == "STUDENT":
                 school = prisma.school.find_first(
