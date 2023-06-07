@@ -450,27 +450,28 @@ class Window(ttk.Window):
                             self.resizeDelay, self.resize)
 
     def updateWidgetsDict(self, root: Frame):
+        widgettypes = (Label, Button, Frame, Canvas, Entry, Text, ScrolledFrame, ScrolledText)
         for widgetname, widget in self.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
+            if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in self.parentFrame.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
+            if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in self.postSelectFrame.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
+            if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in root.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
+            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text, ScrolledFrame, ScrolledText)) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         try:
             for widgetname, widget in self.get_page(Dashboard).children.items():
-                if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
+                if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                     self.widgetsDict[widgetname] = widget
         except:
             pass
         try:
             for widgetname, widget in self.widgetsDict["maincanvas"].children.items():
-                if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text)) and not widgetname.startswith("!la"):
+                if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                     self.widgetsDict[widgetname] = widget
         except:
             pass
@@ -781,7 +782,7 @@ class Window(ttk.Window):
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
 
-    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*", isContactNo=False, isEmail=False):
+    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*"):
         """
         Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
         and places a ttk.Entry inside of it. The ttk.Entry is then returned into the global dict of widgets.\n
@@ -1811,6 +1812,12 @@ class CourseView(Canvas):
 
     def loadcoursebuttons(self, modulecodes: list = None):
         print(f"The modulecodes list is {modulecodes}")
+        c = self.controller
+        coursecanvas = self.controller.widgetsDict["coursescanvas"]
+        for widgetname, widget in coursecanvas.children.items():
+            if widgetname not in modulecodes and widgetname.startswith("int"):
+                widget.grid_forget()
+
         btnDict = {
             "int4004cem": (r"Assets\My Courses\CompArch.png", 40, 0,
                            "int4004cem", self.canvas, lambda: self.loadCourses("INT4004CEM")),
@@ -1821,7 +1828,6 @@ class CourseView(Canvas):
             "int4009cem": (r"Assets\My Courses\ALL2.png", 40, 0,
                            "int4009cem", self.canvas, lambda: self.loadCourses("INT4009CEM")),
         }
-        c = self.controller
         btnCount = 0
         yCount = 0
         for code in modulecodes:
@@ -1836,12 +1842,8 @@ class CourseView(Canvas):
                 buttonFunction=btnDict[code][5]
             )
             btnCount += 1
-        try:
-            for i in ["int4004cem", "int4068cem", "int4003cem", "int4009cem"]:
-                if i not in modulecodes:
-                    c.widgetsDict[i].grid_remove()
-        except:
-            pass
+            print(f"Button {code} created")
+
 
     def createFrames(self):
         self.controller.frameCreator(root=self,
@@ -3603,6 +3605,8 @@ class AppointmentsView(Canvas):
         kualalumpur = timezone("Asia/Kuala_Lumpur")
         humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
         humandate = r"%A, %B %d %Y"
+        if appointments == []:
+            return None
         for app in appointments:
             appContentList = [
                 app.id,
