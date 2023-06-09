@@ -8,3 +8,6 @@ bcrypt
 jwt
 pendulum
 tkcalendar
+boto3
+openai
+tiktoken

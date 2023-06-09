@@ -9,4 +9,3 @@ from System.Threading import Thread,ApartmentState,ThreadStart
 import win32api
 import win32con
 import win32gui
-from PIL import Image, ImageTk, ImageSequence, ImageDraw, ImageFont

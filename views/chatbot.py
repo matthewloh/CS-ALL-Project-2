@@ -12,23 +12,20 @@ from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
 from dotenv import load_dotenv
-from prisma import Prisma
 from elementcreator import gridGenerator
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
-import bcrypt
 from datetime import datetime, timedelta, timezone
 # TODO: please stop formatting my imports you're breaking my code
 # this contains my pywin32 imports, PIL imports, pythonnet
 from nonstandardimports import *
 import pendulum
 from pendulum import timezone
+from basewindow import ElementCreator
 # from main import Window
 
 
 class Chatbot(Canvas):
-    def __init__(self, parent, controller
-                #    : Window
-                 ):
+    def __init__(self, parent, controller: ElementCreator):
         Canvas.__init__(self, parent, width=1, height=1,
                         bg=WHITE, name="chatbot", autostyle=False)
         self.controller = controller
@@ -57,12 +54,12 @@ class Chatbot(Canvas):
         userPromptInfo = "Enter your preprompt, i.e: \"Be helpful\""
 
         self.botwelcome = self.scrolledTextCreator(
-            xpos = 180, ypos = 120, width = 720, height = 200,
-            root = self, classname = f"botwelcome",
+            xpos=180, ypos=120, width=720, height=200,
+            root=self, classname=f"botwelcome",
         )
         self.userInfo = self.scrolledTextCreator(
-            xpos = 1020, ypos = 260, width = 720, height = 200,
-            root = self, classname = f"userprompt",
+            xpos=1020, ypos=260, width=720, height=200,
+            root=self, classname=f"userprompt",
         )
 
         # expand the mainscrolledframe
@@ -74,17 +71,18 @@ class Chatbot(Canvas):
         )
         inputentry = self.controller.widgetsDict["chatbotinputboxentry"]
         self.staticBtns = [
-            (r"Assets\Chatbot\sendmessage.png", 1420, 800, "sendChatBtn", 
-            self, lambda: self.testFrontEnd(int(inputentry.get()))),
+            (r"Assets\Chatbot\sendmessage.png", 1420, 800, "sendChatBtn",
+             self, lambda: self.testFrontEnd(int(inputentry.get()))),
         ]
         self.controller.settingsUnpacker(self.staticBtns, "button")
         self.currentPairs = IntVar()
-        self.currentPairs.set(1) # for the first pair of inputs
-    def testFrontEnd(self, pairsofinputs:int):
+        self.currentPairs.set(1)  # for the first pair of inputs
+
+    def testFrontEnd(self, pairsofinputs: int):
         # REPLIES
         yposBotMsg = 20
         yposUserMsg = 160
-        #a pair of responses 1 from chatbot and 1 from user
+        # a pair of responses 1 from chatbot and 1 from user
         # chatbot on left, user on right
         # the total combined height of the text of the chatbot and user is 340 pixels
         self.currentPairs.set(1)
@@ -109,16 +107,17 @@ class Chatbot(Canvas):
         print(rowspanFrame, "<- rowspanFrame")
         print(self.mainScrolledFrame.winfo_height(), "<- height")
         print(self.currentPairs.get())
-        gridGenerator(self.mainScrolledFrame, int(1680/20), rowspanFrame, WHITE)
+        gridGenerator(self.mainScrolledFrame, int(
+            1680/20), rowspanFrame, WHITE)
         fr = self.mainScrolledFrame
         for i in range(0, pairsofinputs):
             st1 = self.scrolledTextCreator(
-                xpos = 60, ypos = yposBotMsg, width = 720, height = 200,
-                root = fr, classname = f"exampleofchatbotreply{i}", isPlaced= True,
+                xpos=60, ypos=yposBotMsg, width=720, height=200,
+                root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
             )
             st2 = self.scrolledTextCreator(
-                xpos = 900, ypos = yposUserMsg, width = 720, height = 200,
-                root = fr, classname = f"exampleofuserreply{i}", isPlaced= True,
+                xpos=900, ypos=yposUserMsg, width=720, height=200,
+                root=fr, classname=f"exampleofuserreply{i}", isPlaced=True,
             )
             st1.text.insert("end", f"Chatbot reply {i+1}")
             st2.text.insert("end", f"User reply {i+1}")
@@ -136,7 +135,6 @@ class Chatbot(Canvas):
         # inputentry.insert(0, "")
         # inputentry.tk.call("focus", inputentry._w)
 
-
     def api_call(user_response):
         # https://platform.openai.com/docs/api-reference/models
         completion = openai.ChatCompletion.create(
@@ -146,12 +144,13 @@ class Chatbot(Canvas):
                 {"role": "user", "content": user_response},
             ],
             stream=True,
-            max_tokens = 512,
+            max_tokens=512,
         )
         print(completion)
         bot_response = completion.choices[0].message.content
         print(bot_response)
         return bot_response
+
     def scrolledTextCreator(self,
                             xpos=0, ypos=0, width=0, height=0,
                             root=None, classname=None, bootstyle=SUCCESS,
@@ -180,6 +179,7 @@ class Chatbot(Canvas):
             )
             scrolledText.grid_propagate(False)
         return scrolledText
+
     def scrolledFrameCreator(self, xpos=0, ypos=0, width=0, height=0, root=None, classname=None, isPlaced=False):
         classname = classname.replace(" ", "").lower()
         widthspan = int(width / 20)
@@ -205,8 +205,6 @@ class Chatbot(Canvas):
         gridGenerator(scrolledFrame, widthspan, heightspan, NICEBLUE)
         gridGenerator(inside, widthspan, heightspan, "#56cc9d")
         return scrolledFrame
-
-    
 
     def send_message(self):
         # inputcontent = f"{self.inputbox.get('1.0', 'end-1c').strip()}"

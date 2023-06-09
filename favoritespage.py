@@ -26,7 +26,7 @@ import bcrypt
 import pendulum
 from pendulum import timezone
 from nonstandardimports import *
-
+from PIL import Image, ImageTk, ImageSequence, ImageFont, ImageDraw
 load_dotenv()
 
 GetWindowLongPtrW = ctypes.windll.user32.GetWindowLongPtrW
