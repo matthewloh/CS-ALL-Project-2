@@ -29,6 +29,7 @@ class CourseView(Canvas):
         self.canvas = self.controller.widgetsDict["coursescanvas"]
 
     def postLogin(self, data: dict, prisma: Prisma = None):
+        print("The data is", data)
         modules = data["modules"]
         self.role = data["role"]
         if self.role == "student":

@@ -200,13 +200,13 @@ class Window(ElementCreator):
             self.studentform = UserForms(
                 self.postSelectFrame, self, "studentreg")
             # self.studentform.loadAllDetailsForRegistration()
-            self.studentform.loadStudentReg()
+            self.studentform.loadReg("student")
         elif teacher:
             ref.configure(image=self.loadedImgs[1])
             self.teacherform = UserForms(
                 self.postSelectFrame, self, "teacherreg")
             # self.teacherform.loadAllDetailsForRegistration()
-            self.teacherform.loadLecturerReg()
+            self.teacherform.loadReg("teacher")
         self.postSelectFrame.grid()
         self.postSelectFrame.tkraise()
 
@@ -368,12 +368,14 @@ class Window(ElementCreator):
                             f"No lecturer for {module.moduleCode, module.moduleTitle}")
                         lecinfo = ("No lecturer", "No lecturer", "No lecturer")
                     lecturerinfo.append(lecinfo)
+                    programme = module.programme.programmeCode
                 data = {
                     "id": student.userProfile.id,
                     "fullName": student.userProfile.fullName,
                     "email": student.userProfile.email,
                     "modules": modulesOfStudent,
                     "lecturerinfo": lecturerinfo,
+                    "programme": programme,
                     "role": "student",
                 }
             elif isTeacher:
@@ -390,6 +392,7 @@ class Window(ElementCreator):
                              me.student.userProfile.email,
                              me.student.userProfile.contactNo)
                         )
+                    programme = mod.programme.programmeCode
                 data = {
                     "id": lecturer.userProfile.id,
                     "fullName": lecturer.userProfile.fullName,
@@ -397,6 +400,7 @@ class Window(ElementCreator):
                     "phone": lecturer.userProfile.contactNo,
                     "modules": modulesOfLecturer,
                     "studentinfo": studentinfo,
+                    "programme": programme,
                     "role": "lecturer",
                 }
             toast.hide_toast()
@@ -526,7 +530,8 @@ class Window(ElementCreator):
                                 "include": {
                                     "userProfile": True
                                 }
-                            }
+                            },
+                            "programme": True,
                         }
                     }
                 }
@@ -560,6 +565,7 @@ class Window(ElementCreator):
                 }
             )
             for m in modules:
+                m.programme.programmeCode
                 for me in m.moduleEnrollments:
                     me.student.userProfile.fullName
             return lecturer, modules
@@ -637,8 +643,6 @@ class UserForms(Frame):
             xpos=420, ypos=420, classname="imagecaptchachallenge",
             root=self.frameref
         )
-        print(self.captchavar.get())
-
 
     def loadSchoolMenubuttons(self, instCode):
         # remove all widgets and refresh options
@@ -740,9 +744,6 @@ class UserForms(Frame):
         # Check for duplicates
         if selectedCourses.count(checkedcourse) > 1:
             # Will be overriding the one before the current one
-            # print("The pairs of duplicate indexes are,", [(i, x) for i, x in enumerate(selectedCourses, 1) if x == checkedcourse])
-            # print("Out of the duplicate pairs, priortize", f"the var of course{checkedcourseNum}")
-            # print("Therefore, remove the pair which is not checkedcourseNum:", [(i,x) for i, x in enumerate(selectedCourses, 1) if x == checkedcourse and i != int(checkedcourseNum[-1])])
             for i, x in enumerate(selectedCourses, 1):
                 if x == checkedcourse and i != int(checkedcourseNum[-1]):
                     # print("Removing", (i, x))
@@ -756,12 +757,16 @@ class UserForms(Frame):
                             self.checkDuplicateModules(c, vars[c].get(), modules)]
                     )
 
-    def loadLecturerReg(self):
+    def loadReg(self, role):
         self.userReg()
-        self.imgLabels.append(
-            (r"Assets\Login Page with Captcha\LecturerForm.png",
-             0, 600, f"{self.name}lecturer", self.frameref)
-        )
+        lectBgPath = (r"Assets\Login Page with Captcha\LecturerForm.png"
+                      , 0, 600, f"{self.name}Lecturer", self.frameref)
+        studBgPath = (r"Assets\Login Page with Captcha\StudentForm.png",
+                    0, 600, f"{self.name}Student", self.frameref)
+        if role == "teacher":
+            self.imgLabels.append(lectBgPath)
+        elif role == "student":
+            self.imgLabels.append(studBgPath)
         self.controller.settingsUnpacker(self.imgLabels, "label")
         for i in self.userRegEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
@@ -776,7 +781,6 @@ class UserForms(Frame):
         for inst in self.fullInfo:
             schoolsDict = {}
             if inst.school == []:
-                print("No schools found for this institution")
                 self.instDict[f"{inst.institutionCode}"] = {
                     "schools": schoolsDict,
                 }
@@ -784,7 +788,6 @@ class UserForms(Frame):
             for school in inst.school:
                 progDict = {}
                 if school.programme == []:
-                    print("No programmes found for this school")
                     schoolsDict[f"{school.schoolCode}"] = {
                         "programmes": progDict,
                     }
@@ -792,7 +795,6 @@ class UserForms(Frame):
                 for programme in school.programme:
                     modList = []
                     if programme.modules == []:
-                        print("No modules found for this programme")
                         progDict[f"{programme.programmeCode}"] = {
                             "modules": modList,
                         }
@@ -820,14 +822,25 @@ class UserForms(Frame):
         self.course2 = StringVar()
         self.course3 = StringVar()
         self.course4 = StringVar()
+        if role == "teacher":
+            self.tenure = StringVar()
+        elif role == "student":
+            self.session = StringVar()
         vars = {
             "institution": self.institution,
             "tenure": self.tenure,
+        } if role == "teacher" else {
+            "institution": self.institution,
+            "session": self.session,
         }
         positions = {
             "institution": {"x": 160, "y": 660, "width": 240, "height": 40},
             "tenure": {"x": 520, "y": 660, "width": 240, "height": 40},
+        } if role == "teacher" else {
+            "institution": {"x": 160, "y": 660, "width": 240, "height": 40},
+            "session": {"x": 520, "y": 660, "width": 240, "height": 40},
         }
+
         for name, values in lists.items():
             self.controller.menubuttonCreator(
                 xpos=positions[name]["x"], ypos=positions[name]["y"], width=positions[name]["width"], height=positions[name]["height"],
@@ -837,13 +850,22 @@ class UserForms(Frame):
                     self.loadSchoolMenubuttons(vars[name].get())]
             )
         # tenure menu button
-        tenurelist = ["FULLTIME", "PARTTIME"]
+        if role == "teacher":
+            tenurelist = ["FULLTIME", "PARTTIME"]
+            positionKey = positions["tenure"]
+            classname = "tenure"
+            varKey = vars["tenure"]
+        elif role == "student":
+            sessionlist = ["APR2023", "AUG2023", "JAN2024"]
+            positionKey = positions["session"]
+            classname = "session"
+            varKey = vars["session"]
+
         self.controller.menubuttonCreator(
-            xpos=positions["tenure"]["x"], ypos=positions["tenure"]["y"], width=positions[
-                "tenure"]["width"], height=positions["tenure"]["height"],
-            root=self.frameref, classname="tenure", text="Select Tenure", listofvalues=tenurelist,
-            variable=vars["tenure"], font=("Helvetica", 10),
-            command=lambda: [print(f"{vars['tenure'].get()}")]
+            xpos=positionKey["x"], ypos=positionKey["y"], width=positionKey["width"], height=positionKey["height"],
+            root=self.frameref, classname=classname, text=f"Select {classname.title()}", listofvalues=tenurelist if role == "teacher" else sessionlist,
+            variable=varKey, font=("Helvetica", 10),
+            command=lambda: [print(f"{vars[f'{classname}'].get()}")]
         )
         entries = {
             "fullname": self.controller.widgetsDict[f"{self.name}fullname"],
@@ -853,149 +875,68 @@ class UserForms(Frame):
             "contactnumber": self.controller.widgetsDict[f"{self.name}contactnumber"],
             "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
         }
+        def checkCaptchaCorrect():
+            if self.validate_captcha(entries["captcha"].get()):
+                toast = ToastNotification(
+                    title="Captcha Correct",
+                    message="Captcha is correct",
+                    duration=3000,
+                    bootstyle="success"
+                )
+                toast.show_toast()
+            else:
+                pass
+                
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
                                       buttonFunction=lambda: [
-                                          print("validate")],
+                                          checkCaptchaCorrect()],
                                       pady=5)
-
-        self.controller.buttonCreator(
-            r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=lambda: self.send_data(
-                data={
-                    "fullName": entries["fullname"].get(),
-                    "email": entries["email"].get(),
-                    "password": self.encryptPassword(entries["password"].get()),
-                    "confirmPassword": self.encryptPassword(entries["confirmpassword"].get()),
-                    "contactNo": entries["contactnumber"].get(),
-                    "tenure": self.tenure.get(),
-                    "institution": self.institution.get(),
-                    "school": self.school.get(),
-                    "programme": self.programme.get(),
-                    "currentCourses": [self.course1.get(), self.course2.get(), self.course3.get(), self.course4.get()],
-                    "role": "LECTURER"
-                }
-            ),
-            root=self.parent
-        )
+        self.controller.buttonCreator(r"Assets\Login Page with Captcha\regeneratecaptcha.png", 680, 420, 
+                classname="regeneratecaptcha", root=self.frameref,
+                buttonFunction=lambda: self.generateCaptchaChallenge())
+        if role == "teacher":
+            self.controller.buttonCreator(
+                r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
+                classname=f"{self.name}completeregbutton", buttonFunction=lambda: self.send_data(
+                    data={
+                        "fullName": entries["fullname"].get(),
+                        "email": entries["email"].get(),
+                        "password": self.encryptPassword(entries["password"].get()),
+                        "confirmPassword": self.encryptPassword(entries["confirmpassword"].get()),
+                        "contactNo": entries["contactnumber"].get(),
+                        "currentCourses": [self.course1.get(), self.course2.get(), self.course3.get(), self.course4.get()],
+                        "institution": self.institution.get(),
+                        "school":  self.school.get(),
+                        "tenure": self.tenure.get(),
+                        "programme": self.programme.get(),
+                        "role": "LECTURER"
+                    }
+                ),
+                root=self.parent
+            )
+        elif role == "student":
+            self.controller.buttonCreator(
+                r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
+                classname=f"{self.name}completeregbutton", buttonFunction=lambda: self.send_data(
+                    data={
+                        "fullName": entries["fullname"].get(),
+                        "email": entries["email"].get(),
+                        "password": self.encryptPassword(entries["password"].get()),
+                        "confirmPassword": self.encryptPassword(entries["confirmpassword"].get()),
+                        "contactNo": entries["contactnumber"].get(),
+                        "currentCourses": [self.course1.get(), self.course2.get(), self.course3.get(), self.course4.get()],
+                        "institution": self.institution.get(),
+                        "school":  self.school.get(),
+                        "session": self.session.get(),
+                        "programme": self.programme.get(),
+                        "role": "STUDENT"
+                    }
+                ),
+                root=self.parent
+            )
         self.completeregbutton = self.controller.widgetsDict[f"{self.name}completeregbutton"]
 
-    def loadStudentReg(self):
-        self.userReg()
-        self.imgLabels.append((r"Assets\Login Page with Captcha\StudentForm.png",
-                              0, 600, f"{self.name}Student", self.frameref))
-        self.controller.settingsUnpacker(self.imgLabels, "label")
-        for i in self.userRegEntries:
-            self.controller.ttkEntryCreator(**self.tupleToDict(i))
-        self.generateCaptchaChallenge()
-        self.instDict = {}
-        self.fullInfo = self.loadAllDetailsForRegistration()
-        for inst in self.fullInfo:
-            schoolsDict = {}
-            if inst.school == []:
-                print("No schools found for this institution")
-                self.instDict[f"{inst.institutionCode}"] = {
-                    "schools": schoolsDict,
-                }
-                continue
-            for school in inst.school:
-                progDict = {}
-                if school.programme == []:
-                    print("No programmes found for this school")
-                    schoolsDict[f"{school.schoolCode}"] = {
-                        "programmes": progDict,
-                    }
-                    continue
-                for programme in school.programme:
-                    modList = []
-                    if programme.modules == []:
-                        print("No modules found for this programme")
-                        progDict[f"{programme.programmeCode}"] = {
-                            "modules": modList,
-                        }
-                        continue
-                    for module in programme.modules:
-                        modList.append(module.moduleTitle)
-                    progDict[f"{programme.programmeCode}"] = {
-                        "modules": modList,
-                    }
-                schoolsDict[f"{school.schoolCode}"] = {
-                    "programmes": progDict,
-                }
-            self.instDict[f"{inst.institutionCode}"] = {
-                "schools": schoolsDict,
-            }
-        institutionlist = list(self.instDict.keys())
-        lists = {
-            "institution": institutionlist,
-        }
-        self.institution = StringVar()
-        self.school = StringVar()
-        self.session = StringVar()
-        self.programme = StringVar()
-        self.course1 = StringVar()
-        self.course2 = StringVar()
-        self.course3 = StringVar()
-        self.course4 = StringVar()
-        vars = {
-            "institution": self.institution,
-            "session": self.session,
-        }
-        positions = {
-            "institution": {"x": 160, "y": 660, "width": 240, "height": 40},
-            "session": {"x": 520, "y": 660, "width": 240, "height": 40},
-        }
-        for name, values in lists.items():
-            self.controller.menubuttonCreator(
-                xpos=positions[name]["x"], ypos=positions[name]["y"], width=positions[name]["width"], height=positions[name]["height"],
-                root=self.frameref, classname=name, text=f"Select {name}", listofvalues=values,
-                variable=vars[name], font=("Helvetica", 10),
-                command=lambda name=name: [
-                    self.loadSchoolMenubuttons(vars[name].get())]
-            )
-        # session menu button
-        sessionlist = ["APR2023", "AUG2023", "JAN2023"]
-        self.controller.menubuttonCreator(
-            xpos=positions["session"]["x"], ypos=positions["session"]["y"], width=positions[
-                "session"]["width"], height=positions["session"]["height"],
-            root=self.frameref, classname="session", text="Select Session", listofvalues=sessionlist,
-            variable=vars["session"], font=("Helvetica", 10),
-            command=lambda: [print(vars["session"].get())]
-        )
-        # TODO: add absolute positioning for the toast notification
-        entries = {
-            "fullname": self.controller.widgetsDict[f"{self.name}fullname"],
-            "email": self.controller.widgetsDict[f"{self.name}email"],
-            "password": self.controller.widgetsDict[f"{self.name}passent"],
-            "confirmpassword": self.controller.widgetsDict[f"{self.name}confpassent"],
-            "contactnumber": self.controller.widgetsDict[f"{self.name}contactnumber"],
-            "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
-        }
-
-        self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
-                                      buttonFunction=lambda: [
-                                          print("validate")],
-                                      pady=5)
-        self.controller.buttonCreator(
-            r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-            classname=f"{self.name}completeregbutton", buttonFunction=# lambda: messagebox.showinfo("success", f"this is the button for {self.name}"),
-            lambda: self.send_data(
-                data={
-                    "fullName": entries["fullname"].get(),
-                    "email": entries["email"].get(),
-                    "password": self.encryptPassword(entries["password"].get()),
-                    "confirmPassword": self.encryptPassword(entries["confirmpassword"].get()),
-                    "contactNo": entries["contactnumber"].get(),
-                    "currentCourses": [self.course1.get(), self.course2.get(), self.course3.get(), self.course4.get()],
-                    "institution": self.institution.get(),
-                    "school":  self.school.get(),
-                    "session": self.session.get(),
-                    "programme": self.programme.get(),
-                    "role": "STUDENT"
-                }
-            ),
-            root=self.parent
-        )
-
+    
     def encryptPassword(self, password: str) -> str:
         return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -1005,6 +946,21 @@ class UserForms(Frame):
     def prismaFormSubmit(self,  data: dict):
         # LECTURER OR STUDENT
         prisma = self.controller.mainPrisma
+        emailCheck = prisma.userprofile.find_first(
+            where={
+                "email": data["email"]
+            }
+        )
+        if emailCheck:
+            toast = ToastNotification(
+                title="Error",
+                message="Email already exists, please use another email address",
+                bootstyle="danger",
+                duration=5000,
+            )
+            toast.show_toast()
+            self.gif.grid_forget()
+            return 
         try:
             if data["role"] == "STUDENT":
                 school = prisma.school.find_first(
@@ -1012,17 +968,6 @@ class UserForms(Frame):
                         "schoolCode": data["school"]
                     }
                 )
-                prisma.moduleenrollment.delete_many(
-                    where={
-                        "student": {"is": {"userProfile": {"is": {"email": data["email"]}}}}})
-                # prisma.student.delete_many(
-                #     where={
-                #         "userProfile": {"is": {"email": data["email"]}}})
-                # prisma.userprofile.delete_many(
-                #     where={
-                #         "email": data["email"]
-                #     }
-                # )
                 student = prisma.student.create(
                     data={
                         "userProfile": {
@@ -1080,7 +1025,8 @@ class UserForms(Frame):
                 toast = ToastNotification(
                     title="Success",
                     message=welcomemessage,
-                    duration=3000
+                    duration=3000,
+                    bootstyle=SUCCESS
                 )
                 toast.show_toast()
                 self.gif.grid_forget()
@@ -1116,11 +1062,6 @@ class UserForms(Frame):
                             }
                         }
                     )
-                # prisma.userprofile.delete_many(
-                #     where={
-                #         "email": data["email"]
-                #     }
-                # )
                 lecturer = prisma.lecturer.create(
                     data={
                         "userProfile": {
@@ -1180,12 +1121,11 @@ class UserForms(Frame):
                             },
                         }
                     )
-                print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
-                print(f"Modules:\n{newmodule.json(indent=2)}\n")
                 toast = ToastNotification(
                     title="Success",
-                    message=f"{newmodule.json(indent=2), lecturer.json(indent=2)}",
-                    duration=3000
+                    message=f"Welcome, {lecturer.userProfile.fullName}!",
+                    duration=3000,
+                    bootstyle=SUCCESS
                 )
                 toast.show_toast()
                 self.gif.grid_forget()
@@ -1197,10 +1137,24 @@ class UserForms(Frame):
                 duration=3000
             )
             toast.show_toast()
+            return
         self.controller.loadSignIn()
+    def validate_captcha(self, captcha: str):
+        captchaToast = ToastNotification(
+            title="Error",
+            message="",
+            duration=3000,
+            bootstyle=DANGER
+        )
+        if captcha != self.captchavar.get():
+            captchaToast.message = "Captcha is incorrect."
+            captchaToast.show_toast()
+            return False
+        return True
     def validate_password(self, password: str, confirmpassword: str):
         pwToast = ToastNotification(
             title="Error",
+            message="",
             duration=3000,
             bootstyle=DANGER
         )
@@ -1228,6 +1182,7 @@ class UserForms(Frame):
     def validate_email(self, email: str, role:str):
         emailToast = ToastNotification(
             title="Error",
+            message="",
             duration=3000,
             bootstyle=DANGER
         )
@@ -1243,9 +1198,11 @@ class UserForms(Frame):
             emailToast.message = f"Please enter a valid {addressedAs} email."
             emailToast.show_toast()
             return False
+        
     def validate_contactNo(self, contactNo: str):
         contactToast = ToastNotification(
             title="Error",
+            message="",
             duration=3000,
             bootstyle=DANGER
         )
@@ -1264,13 +1221,10 @@ class UserForms(Frame):
         password = self.controller.widgetsDict[f"{self.name}passent"].get()
         confirmpassword = self.controller.widgetsDict[f"{self.name}confpassent"].get()
         captcha = self.controller.widgetsDict[f"{self.name}captcha"].get()
-        institution = data["institution"]
-        school = data["school"]
-        programme = data["programme"]
-        currentCourses = data["currentCourses"]
         entries = [fullname, email, contactNo, password, confirmpassword]
         mainToast = ToastNotification(
             title="Error",
+            message="",
             duration=3000,
             bootstyle=DANGER
         )
@@ -1278,8 +1232,9 @@ class UserForms(Frame):
             if info == "":
                 toast = ToastNotification(
                     title="Error",
-                    message=f"Please fill in the field {info} ",
-                    duration=3000
+                    message=f"Please fill in the fields.",
+                    duration=3000,
+                    bootstyle=DANGER
                 )
                 toast.show_toast()
                 return False 
@@ -1311,6 +1266,7 @@ class UserForms(Frame):
             toast.show_toast()
             return False
         return True
+
     def send_data(self, data: dict):
         if self.validateData(data) == False:
             return

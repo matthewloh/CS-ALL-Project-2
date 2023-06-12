@@ -96,6 +96,7 @@ class DiscussionsView(Canvas):
     def postLogin(self, data: dict = None, prisma: Prisma = None):
         self.prisma = prisma
         self.userId = data["id"]
+        self.programme = data["programme"]
         self.controller.frameCreator(
             xpos=560, ypos=120, framewidth=400, frameheight=80, root=self,
             classname="modulecodeframe", bg=WHITE
@@ -109,7 +110,17 @@ class DiscussionsView(Canvas):
         self.menubuttonmenu = Menu(
             self.menubutton, tearoff=0, font=("Helvetica", 12))
         self.modulecodevar = StringVar()
-        modules = prisma.module.find_many()
+        modules = prisma.module.find_many(
+            where={
+                "programme": {
+                    "is": {
+                        "programmeCode": {
+                            "equals": self.programme
+                        }
+                    }
+                }
+            }
+        )
         listofvalues = []
         self.valueDict = {}
         for module in modules:
