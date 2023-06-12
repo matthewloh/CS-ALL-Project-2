@@ -624,7 +624,8 @@ class UserForms(Frame):
 
 
     def generateCaptchaChallenge(self):
-        image = ImageCaptcha(width=260, height=80, fonts=[r"Fonts\AvenirNext-Regular.ttf", r"Fonts\SF-Pro.ttf"])
+        # fonts=[r"Fonts\AvenirNext-Regular.ttf", r"Fonts\SF-Pro.ttf"]
+        image = ImageCaptcha(width=260, height=80, )
         # random alphanumeric string of length 6
         captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         data = image.generate(captcha_text)
@@ -1197,126 +1198,106 @@ class UserForms(Frame):
             )
             toast.show_toast()
         self.controller.loadSignIn()
+    def validate_password(self, password: str, confirmpassword: str):
+        pwToast = ToastNotification(
+            title="Error",
+            duration=3000,
+            bootstyle=DANGER
+        )
+        symbols = "!@#$%^&*()_+"
+        if password != confirmpassword:
+            pwToast.message = "Passwords do not match."
+            pwToast.show_toast()
+            return False
+        elif not any(char.isdigit() for char in password):
+            msg = "Password should have at least one numeral."
+        elif not any(char.isupper() for char in password):
+            msg = "Password should have at least one uppercase letter."
+        elif not any(char.islower() for char in password):
+            msg = "Password should have at least one lowercase letter."
+        elif not any(char in symbols for char in password):
+            msg = "Password should have at least one of the symbols !@#$%^&*()_+"
+        elif len(password) < 8:
+            msg = "Password should be at least 8 characters."
+        else:
+            return True
+        pwToast.message = msg
+        pwToast.show_toast()
+        return False
+
+    def validate_email(self, email: str, role:str):
+        emailToast = ToastNotification(
+            title="Error",
+            duration=3000,
+            bootstyle=DANGER
+        )
+        if role.startswith("student"):
+            regex = re.compile(r"^[a-zA-Z0-9_.+-]+@student.newinti.edu.my$")
+            addressedAs = "student"
+        elif role.startswith("teacher"):
+            regex = re.compile(r"^[a-zA-Z0-9_.+-]+@newinti.edu.my$")
+            addressedAs = "lecturer"
+        if re.match(regex, email):
+            return True
+        else:
+            emailToast.message = f"Please enter a valid {addressedAs} email."
+            emailToast.show_toast()
+            return False
+    def validate_contactNo(self, contactNo: str):
+        contactToast = ToastNotification(
+            title="Error",
+            duration=3000,
+            bootstyle=DANGER
+        )
+        phoneregex = re.compile(r"^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
+        if re.match(phoneregex, contactNo):
+            return True
+        else:
+            contactToast.message = "Please enter a valid contact number."
+            contactToast.show_toast()
+            return False
+    
     def validateData(self, data: dict):
-        for k, v in data.items():
-            if k in ["fullName", "contactNo", "school", "session", "tenure"]:
-                if v == "":
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Please fill in your {k}.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-            elif k == "email":
-                if self.name.startswith("student"):
-                    # only allow @student.newinti.edu.my emails
-                    regex = re.compile(r"^[a-zA-Z0-9_.+-]+@student.newinti.edu.my$")
-                elif self.name.startswith("teacher"):
-                    # only allow @newinti emails
-                    regex = re.compile(r"^[a-zA-Z0-9_.+-]+@newinti\.edu$") 
-                if v == "":
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Please fill in your email.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                elif "@" not in v:
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Please enter a valid email.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                # Matches regex for "p21013568@student.newinti.edu.my" for students
-                # or "firstname.lastname@newinti.edu.my" for lecturers
-                elif not re.match(regex, v):
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Please enter a valid email as a {self.name[:6]}.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False      
-            elif k in ["password", "confirmPassword"]:
-                passent = self.controller.widgetsDict[f"{self.name}passent"].get()
-                if v == "":
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Please fill in your password.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                elif len(passent) < 8:
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Password must be at least 8 characters long.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                elif not any(char.isdigit() for char in passent):
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Password must contain at least 1 digit.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                elif not any(char.isupper() for char in passent):
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Password must contain at least 1 uppercase letter.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                elif not any(char.islower() for char in passent):
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Password must contain at least 1 lowercase letter.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                elif not any(char in ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=", "+", "[", "]", "{", "}", ";", ":", "'", '"', ",", ".", "/", "?", "<", ">", "\\", "|", "`", "~"] for char in passent):
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Password must contain at least 1 special character.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-                if self.controller.widgetsDict[f"{self.name}confpassent"].get() != self.controller.widgetsDict[f"{self.name}passent"].get():
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Passwords do not match.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-            elif k == "contactNo":
-                phoneregex = re.compile(r"^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
-                if not re.match(phoneregex, v):
-                    toast = ToastNotification(
-                        title="Error",
-                        message=f"Please enter a valid Malaysian phone number.",
-                        duration=3000
-                    )
-                    toast.show_toast()
-                    return False
-            elif self.controller.widgetsDict[f"{self.name}captcha"].get() != self.captchavar.get():
+        fullname = data["fullName"]
+        email = data["email"]
+        contactNo = data["contactNo"]
+        password = self.controller.widgetsDict[f"{self.name}passent"].get()
+        confirmpassword = self.controller.widgetsDict[f"{self.name}confpassent"].get()
+        captcha = self.controller.widgetsDict[f"{self.name}captcha"].get()
+        institution = data["institution"]
+        school = data["school"]
+        programme = data["programme"]
+        currentCourses = data["currentCourses"]
+        entries = [fullname, email, contactNo, password, confirmpassword]
+        mainToast = ToastNotification(
+            title="Error",
+            duration=3000,
+            bootstyle=DANGER
+        )
+        for info in entries:
+            if info == "":
                 toast = ToastNotification(
                     title="Error",
-                    message=f"Please enter the correct captcha.",
+                    message=f"Please fill in the field {info} ",
                     duration=3000
                 )
                 toast.show_toast()
-                return False
+                return False 
+        if any(char in string.punctuation for char in fullname):
+            errMsg = "Your name cannot contain any special characters."
+            mainToast.message = errMsg
+            mainToast.show_toast()
+            return False
+        if not self.validate_email(email, self.name):
+            return False
+        if not self.validate_password(password, confirmpassword):
+            return False
+        if not self.validate_contactNo(contactNo):
+            return False
+        if captcha != self.captchavar.get():
+            mainToast.message = "Please enter the correct captcha."
+            mainToast.show_toast()
+            return False
         for var in [self.course1, self.course2, self.course3, self.course4]:
             blankCourses = 0
             if var.get() == "":

@@ -11,3 +11,4 @@ tkcalendar
 boto3
 openai
 tiktoken
+captcha
