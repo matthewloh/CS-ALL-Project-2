@@ -248,13 +248,13 @@ class ElementCreator(ttk.Window):
         )
         for x in listofvalues:
             menubtnmenu.add_radiobutton(label=x, variable=variable, value=x,
-                                        command=lambda: [command(), menubutton.config(text=variable.get())])
+                command=lambda: [command(), menubutton.config(text=variable.get())])
         menubutton["menu"] = menubtnmenu
         self.widgetsDict[menubutton["menu"]] = menubtnmenu
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
 
-    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*"):
+    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*", captchavar = None):
         """
         Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
         and places a ttk.Entry inside of it. The ttk.Entry is then returned into the global dict of widgets.\n
@@ -270,7 +270,16 @@ class ElementCreator(ttk.Window):
         # entrystyle.configure(f"{classname}.TEntry", font=font, background=bgcolor, foreground=WHITE)
         self.frameCreator(xpos, ypos, width, height, root,
                           classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
-
+        @validator
+        def validateCaptcha(event):
+            """
+            Validates the captcha entry.
+            """
+            parentname = str(root).split(".")[-1]
+            if self.widgetsDict[f"{parentname}captcha"].get() == captchavar.get():
+                return True
+            else:
+                return False
         @validator
         def validatePassword(event):
             """
@@ -307,6 +316,8 @@ class ElementCreator(ttk.Window):
         elif validation == "isContactNo":
             add_regex_validation(
                 widget=entry, pattern="^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
+        elif validation == "isCaptcha":
+            add_validation(widget=entry, func=validateCaptcha)
         else:
             # just not blank
             add_regex_validation(widget=entry, pattern="^.*\S.*$")

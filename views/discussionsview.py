@@ -59,7 +59,9 @@ class DiscussionsView(Canvas):
             (r"Assets\DiscussionsView\creatediscussion.png", 80, 120, "creatediscussionbtn", self,
              lambda: self.loadPostCreation()),
             (r"Assets\DiscussionsView\refreshbutton.png", 860, 220, "refreshbtn", self,
-             lambda: self.callLoadLatestPosts(self.modulecodevar.get())),
+             lambda: 
+             self.callLoadLatestPosts(self.modulecodevar.get())
+             ),
             (r"Assets\DiscussionsView\cancelbuttondisc.png", 40, 760, "cancelbtncreation", self.creationframe,
              lambda: self.unloadPostCreation()),
             (r"Assets\DiscussionsView\createpostbuttondisc.png", 480, 760, "postbtncreation", self.creationframe,
@@ -94,45 +96,6 @@ class DiscussionsView(Canvas):
     def postLogin(self, data: dict = None, prisma: Prisma = None):
         self.prisma = prisma
         self.userId = data["id"]
-        print(f"User ID: {self.userId}")
-        # posts = self.prisma.modulepost.find_many(
-        #     order={
-        #         "createdAt": "desc"
-        #     },
-        #     take=2,
-        #     include={
-        #         "replies": {
-        #             "include": {
-        #                 "author": True
-        #             }
-        #         },
-        #         "author": True,
-        #         "favoritedBy": True,
-        #     },
-        # )
-        # kualalumpur = timezone("Asia/Kuala_Lumpur")
-        # for post in posts:
-        #     print(
-        #         f"Time of post: {kualalumpur.convert(post.createdAt).strftime(r'%A %B %e %Y %I:%M %p')}")
-        #     print(f"Post:\n{post.json(indent=2)}")
-        # for post in posts:
-        #     # print(f"Post found:\n{post.json(indent=2)}, {post.id}")
-        #     createdat = post.createdAt
-        #     # string representation using Monday, 01 January 2021 00:00:00 would be %A, %d %B %Y %H:%M:%S
-        #     formattedtime = kualalumpur.convert(
-        #         createdat).strftime(r'%A %d %B %Y %H:%M:%S %z')
-        #     # print("Local time in Malaysia", formattedtime)
-        #     # print("UTC Time, from Prisma", post.createdAt.strftime(r'%A %d %B %Y %H:%M:%S %z'))
-        #     # print("Current time:",datetime.now().strftime(r'%A %d %B %Y %H:%M:%S %z'))
-        #     try:
-        #         if len(post.replies) == 0:
-        #             pass  # no posts
-        #         for reply in post.replies:
-        #             print(reply.author)
-        #             print(reply.json(indent=2))
-        #     except:
-        #         print("no replies")
-        postContentList = self.loadLatestPosts(prisma=self.prisma)
         self.controller.frameCreator(
             xpos=560, ypos=120, framewidth=400, frameheight=80, root=self,
             classname="modulecodeframe", bg=WHITE
@@ -167,6 +130,8 @@ class DiscussionsView(Canvas):
         self.modulecodevar.set("INT4004CEM")
         self.menubutton["menu"] = self.menubuttonmenu
         self.menubutton.config(text=self.valueDict[self.modulecodevar.get()])
+
+        postContentList = self.loadLatestPosts(self.modulecodevar.get())
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
@@ -196,7 +161,7 @@ class DiscussionsView(Canvas):
 
     def createPost(self):
         # ~~~~ BACKEND FUNCTIONALITY ~~~~
-        prisma = self.controller.prisma
+        prisma = self.prisma
         title = self.controller.widgetsDict["posttitleent"].get()
         content = self.postcontenttext.get("1.0", 'end-1c')
         findmodule = prisma.module.find_first(
@@ -214,7 +179,7 @@ class DiscussionsView(Canvas):
         )
         self.gif.grid_forget()
         postContentList = self.loadLatestPosts(
-            prisma=prisma, moduleCode=self.modulecodevar.get())
+            moduleCode=self.modulecodevar.get())
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
@@ -399,15 +364,22 @@ class DiscussionsView(Canvas):
         # 6. The reply button -> a button
         # 7. The favorite button -> a button
         # 8. Area to type a reply -> a text widget
-        self.contenttext = Text(
-            self.scrolledframe, width=1, height=1, bg=WHITE, fg=BLACK, font=("Arial", 20), wrap=WORD,
-            name="contenttext", padx=20, pady=20, relief=FLAT, bd=0, highlightthickness=0,
+        self.scrolledtext = ScrolledText(
+            master=self.scrolledframe, width=1, height=1, name = "contenttext",
+            bootstyle=INFO, autohide=True,
         )
+        self.contenttext = self.scrolledtext.text
+        self.contenttext.config(
+            font=("Inter", 16), wrap=WORD, 
+            fg=BLACK, 
+        )
+
         self.contenttext.insert(END, content)
-        self.contenttext.place(
+        self.scrolledtext.place(
             x=20, y=120, width=1060, height=120
         )
         self.contenttext.config(state=DISABLED)
+        self.controller.widgetsDict["contenttext"] = self.contenttext
         # buttons to delete and edit the post
         if self.userId == authorId:
             self.controller.buttonCreator(
@@ -480,16 +452,25 @@ class DiscussionsView(Canvas):
                 text=f"{repAuthorEmail}", fg=BLACK, size=15, xoffset=0
             )
             # reply content
+            scrolledtextname = f"scrolledtext{replycounter}"
             replytextname = f"replycontent{replycounter}"
-
-            text = Text(
-                self.scrolledframe, width=1, height=1, bg=WHITE, fg=BLACK, font=("Arial", 16), wrap=WORD,
-                name=replytextname, padx=20, pady=20, relief=FLAT, bd=0, highlightthickness=0,
+            scrolledtext = ScrolledText(
+                master=self.scrolledframe, width=1, height=1, name=scrolledtextname,
+                bootstyle=SECONDARY, autohide=True,
             )
-            text.insert(END, replyContent)
-            text.place(
+            contenttext = scrolledtext.text
+            contenttext.config(
+                font=("Inter", 14), wrap=WORD, 
+                fg=BLACK, 
+            )
+            contenttext.insert(END, replyContent)
+
+            contenttext.config(state=DISABLED)
+
+            scrolledtext.place(
                 x=textCoordinates[0], y=textCoordinates[1], width=1020, height=120
             )
+            self.controller.widgetsDict[replytextname] = contenttext
             # buttons to edit and delete a reply
             if repAuthorId == self.userId:
                 # edit
@@ -507,7 +488,6 @@ class DiscussionsView(Canvas):
                     buttonFunction=lambda rep=(
                         postId, replyId, self.modulecodevar.get()): self.deleteReplyorPost(*rep)
                 )
-            text.config(state=DISABLED)
             replycounter += 1
             replycoordinates = (replycoordinates[0], replycoordinates[1] + 280)
 
@@ -677,6 +657,7 @@ class DiscussionsView(Canvas):
         t.start()
 
     def deleteReply(self, postId, replyId, moduleCode: str = "INT4004CEM", isPost: bool = False):
+        prisma = self.prisma
         if isPost:
             toasttitle = "Deleting Post"
             toastmessage = "Please wait while we delete your post..."
@@ -689,7 +670,6 @@ class DiscussionsView(Canvas):
             bootstyle=INFO,
         )
         toast.show_toast()
-        prisma = self.prisma
         if isPost:
             post = prisma.modulepost.delete(
                 where={
@@ -723,9 +703,9 @@ class DiscussionsView(Canvas):
             text="Add a reply:", fg=BLACK, size=36,
         )
         try:
-            self.refreshReplies(postId, prisma, moduleCode)
+            self.refreshReplies(postId, moduleCode)
             if isPost:
-                postContentList = self.refreshPosts(prisma, moduleCode)
+                postContentList = self.refreshPosts(moduleCode)
                 self.loadDiscussionTopics(postContentList)
                 self.unloadPostView()
                 toast = ToastNotification(
@@ -736,7 +716,7 @@ class DiscussionsView(Canvas):
                 )
                 toast.show_toast()
         except:
-            postContentList = self.refreshPosts(prisma, moduleCode)
+            postContentList = self.refreshPosts(moduleCode)
             self.loadDiscussionTopics(postContentList)
             self.unloadPostView()
 
@@ -796,6 +776,7 @@ class DiscussionsView(Canvas):
         t.start()
 
     def updateReply(self, postId, replyId, moduleCode: str = "INT4004CEM", replytextname: Text = None, isPost: bool = False):
+        prisma = self.prisma
         if isPost:
             toasttitle = "Updating Post"
             toastmessage = "Please wait while we update your post..."
@@ -809,7 +790,6 @@ class DiscussionsView(Canvas):
         )
         newtext = self.replytextwidget.get("1.0", 'end-1c')
         toast.show_toast()
-        prisma = self.prisma
         utc = timezone('UTC')
         kualalumpur = timezone('Asia/Kuala_Lumpur')
         time = kualalumpur.convert(datetime.now())
@@ -855,9 +835,10 @@ class DiscussionsView(Canvas):
             text="Add a reply:", fg=BLACK, size=36,
         )
         self.replytextwidget.delete('1.0', END)
-        self.refreshReplies(postId, prisma, moduleCode)
+        self.refreshReplies(postId, moduleCode)
 
     def addReply(self, postId, moduleCode: str = "INT4004CEM"):
+        prisma = self.prisma
         toast = ToastNotification(
             title="Adding Reply",
             message="Please wait while we add your reply...",
@@ -865,7 +846,6 @@ class DiscussionsView(Canvas):
         )
         toast.show_toast()
         replytext = self.replytextwidget.get("1.0", 'end-1c')
-        prisma = self.prisma
         reply = prisma.reply.create(
             data={
                 "content": replytext,
@@ -881,23 +861,22 @@ class DiscussionsView(Canvas):
             duration=500,
         )
         newtoast.show_toast()
-        self.refreshReplies(postId, prisma, moduleCode)
+        self.refreshReplies(postId, moduleCode)
 
     def callLoadLatestPosts(self, moduleCode: str = "INT4004CEM"):
-        prisma = self.prisma
         t = threading.Thread(target=self.refreshPosts,
-                             args=(prisma, moduleCode))
+                             args=(moduleCode,))
         t.daemon = True
         t.start()
 
     def callLoadLatestReplies(self, postId, moduleCode: str = "INT4004CEM"):
-        prisma = self.prisma
         t = threading.Thread(target=self.refreshReplies,
-                             args=(postId, prisma, moduleCode))
+                             args=(postId, moduleCode))
         t.daemon = True
         t.start()
 
-    def loadLatestPosts(self, prisma: Prisma = None, moduleCode: str = "INT4004CEM"):
+    def loadLatestPosts(self, moduleCode: str = "INT4004CEM"):
+        prisma = self.prisma
         posts = prisma.modulepost.find_many(
             include={
                 "author": True,
@@ -952,14 +931,14 @@ class DiscussionsView(Canvas):
         ]
         return postContentList
 
-    def refreshPosts(self, prisma: Prisma = None, moduleCode: str = "INT4004CEM"):
+    def refreshPosts(self, moduleCode: str = "INT4004CEM"):
         toast = ToastNotification(
             title="Just a moment...",
             message=f"Loading latest posts for {moduleCode}...",
             bootstyle=INFO,
         )
         toast.show_toast()
-        postContentList = self.loadLatestPosts(prisma, moduleCode)
+        postContentList = self.loadLatestPosts(moduleCode)
         heightofframe = len(postContentList) * 100
         if heightofframe < 500:
             rowspanofFrame = int(500/20)
@@ -983,14 +962,14 @@ class DiscussionsView(Canvas):
         newtoast.show_toast()
         return postContentList
 
-    def refreshReplies(self, postId, prisma, moduleCode: str = "INT4004CEM"):
+    def refreshReplies(self, postId, moduleCode: str = "INT4004CEM"):
         toast = ToastNotification(
             title="Just a moment...",
             message=f"Fetching latest replies for Post {postId}",
             bootstyle=INFO,
         )
         toast.show_toast()
-        postContentList = self.refreshPosts(prisma, moduleCode)
+        postContentList = self.refreshPosts(moduleCode)
         # probably can be refactored into a binary search
         for tuple in postContentList:
             if tuple[0] == postId:

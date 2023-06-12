@@ -66,6 +66,7 @@ class CourseView(Canvas):
             # lecturer specific functions here like show student info
             # and upload course files and upload schedule
             self.loadcoursebuttons(modulecodes)
+        self.prisma = prisma
 
     def loadcoursebuttons(self, modulecodes: list = None):
         print(f"The modulecodes list is {modulecodes}")
@@ -99,7 +100,6 @@ class CourseView(Canvas):
                 buttonFunction=btnDict[code][5]
             )
             btnCount += 1
-            print(f"Button {code} created")
 
 
     def createFrames(self):
@@ -209,17 +209,6 @@ class CourseView(Canvas):
         self.exitUploadsView()
         self.canvas.grid()
 
-    def initializeWebView(self):
-        col = int(820/20)
-        row = int(180/20)
-        w = int(1060/20)
-        h = int(580/20)
-
-        self.webview = WebView2(parent=self.viewUploadsFrame, width=1, height=1,
-                                url=self.defaulturl)
-        self.webview.grid(row=row, column=col, rowspan=h,
-                          columnspan=w, sticky=NSEW)
-
     def exitUploadsView(self):
         self.viewUploadsFrame.grid_remove()
         try:
@@ -231,49 +220,34 @@ class CourseView(Canvas):
         except:
             pass
 
+    def initializeWebView(self):
+        col = int(820/20)
+        row = int(180/20)
+        w = int(1060/20)
+        h = int(580/20)
+
+        self.webview = WebView2(parent=self.viewUploadsFrame, width=1, height=1,
+                                url=self.defaulturl)
+        self.webview.grid(row=row, column=col, rowspan=h,
+                          columnspan=w, sticky=NSEW)
+
     def loadModuleUploadsView(self, modulecode):
         self.viewUploadsFrame.grid()
         self.viewUploadsFrame.tkraise()
         self.urlbar.delete(0, END)
         self.urlbar.insert(0, f"{self.defaulturl}")
         self.initializeWebView()
-        self.viewUploadsFrame.bind(
-            "<Enter>", lambda e: toggleRegainFocus(True))
-        self.viewUploadsFrame.bind(
-            "<Leave>", lambda e: toggleRegainFocus(False))
-        self.inFrame = StringVar()
-        self.inFrame.set("in")
-        # this is to check if the user is in the frame or not, and toggles the regainFocus, so that
-        # the user can tab out of the app, and the app WONT regain focus
-        self.inFrame.trace("w", lambda *args: toggleRegainFocus(True))
-
         toast = ToastNotification(
             title="Focus automatically regained",
             message="The focus was automatically regained to the window, to stop this, please exit the window manually.",
             duration=1000,
             bootstyle=INFO
         )
-        # timer to reload the self.urlbar
-
-        def toggleRegainFocus(bool, *args):
-            if bool:
-                self.inFrame.set("in")
-            else:
-                self.inFrame.set("out")
-
         def regainFocus():
             if GetWindowText(GetForegroundWindow()) == "INTI Learning Platform" and self.controller.focus_get() == None:
                 self.focus_force()
-                # toast.show_toast()
             self.webview.after(1000, regainFocus)
         self.currenturl = self.defaulturl
-
-        #     if self.controller.focus_get() == None:
-        #         self.focus_force()
-        #         toast.show_toast()
-        #     self.webview.after(10000, regainFocus)
-        # self.currenturl = self.defaulturl
-
         def updateUrlbar():
             if self.webview.get_url() == None:
                 self.urlbar.delete(0, END)
@@ -294,7 +268,7 @@ class CourseView(Canvas):
         t.start()
 
     def loadModuleUploads(self, modulecode):
-        prisma = self.controller.prisma
+        prisma = self.prisma
         uploads = prisma.moduleupload.find_many(
             where={
                 "module": {
@@ -379,8 +353,8 @@ class CourseView(Canvas):
             buttonFunction=lambda: self.webview.load_url(url),
         )
         ToolTip(t2, text=tiptext, bootstyle=(INFO, INVERSE))
-    # FUNCTIONS THAT NAVIGATE OUT OF COURSEVIEW
 
+    # FUNCTIONS THAT NAVIGATE OUT OF COURSEVIEW
     def loadDiscussionsView(self, modulecode, moduletitle):
         toast = ToastNotification(
             title=f"Loading Discussions for {modulecode}",

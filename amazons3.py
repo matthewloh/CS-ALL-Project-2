@@ -17,10 +17,10 @@ s3 = boto3.client('s3')
 #     s3.upload_fileobj(
 #         f, BUCKET_NAME, "test_upload_1.png",
 #     )
-response = s3.list_objects_v2(Bucket=BUCKET_NAME)
-for obj in response['Contents']:
-    # print(obj['Key'])
-    print(obj)
+# response = s3.list_objects_v2(Bucket=BUCKET_NAME)
+# for obj in response['Contents']:
+#     # print(obj['Key'])
+#     print(obj)
 
 # Download a file from a bucket
 # s3.download_file(BUCKET_NAME, "unknown-515.png", "downloaded_dog.png")
@@ -31,10 +31,16 @@ for obj in response['Contents']:
 #     # Code here to send image to frontend
 
 # Getting a Presigned URL to Give Limited Access to an unauthorized user
-# url = s3.generate_presigned_url("get_object", Params={
-#     "Bucket": BUCKET_NAME, "Key": "unknown-515.png"}, ExpiresIn=60
-#     )
-# print(url)
+url = s3.generate_presigned_url("get_object", Params={
+    "Bucket": BUCKET_NAME, "Key": "unknown-515.png"}, ExpiresIn=60
+    )
+print(url)
+# Getting a Presigned URL to let unauthorized user upload a file
+url = s3.generate_presigned_url(ClientMethod="put_object", Params={
+    "Bucket": BUCKET_NAME, "Key": "test_upload_default_access.png"}, ExpiresIn=60
+    )
+print(url)
+
 # with open("./Assets/holyplaceholder.png", "rb") as f:
 #     s3.upload_fileobj(f, BUCKET_NAME, "test_upload_default_access.png")
 # video_url = s3.generate_presigned_url("get_object", Params={

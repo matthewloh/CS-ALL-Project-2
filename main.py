@@ -1,3 +1,7 @@
+import json
+import random
+import re
+import string
 from static import *
 import ctypes
 from ctypes import windll
@@ -28,12 +32,12 @@ from components.animatedstarbtn import AnimatedStarBtn
 from components.animatedgif import AnimatedGif
 from basewindow import ElementCreator
 from win32gui import GetWindowText, GetForegroundWindow
+from captcha.image import ImageCaptcha
 load_dotenv()
 
 
-from PIL import Image, ImageTk, ImageSequence
-
 user32 = windll.user32
+
 
 class Window(ElementCreator):
     def __init__(self, *args, **kwargs):
@@ -79,10 +83,10 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                self.loadSignIn(),
-                # self.show_frame(Dashboard),
-                # self.show_canvas(DashboardCanvas),
-                # self.get_page(Dashboard).loadSpecificAssets("student"),
+                 self.loadSignIn(),
+                 # self.show_frame(Dashboard),
+                 # self.show_canvas(DashboardCanvas),
+                 # self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -111,7 +115,7 @@ class Window(ElementCreator):
                         rowspan=46, sticky=NSEW)
             canvas.grid_propagate(False)
             canvas.grid_remove()
-        
+
         self.postSelectFrame.tkraise()
         self.loadSignInPage()
         ref = self.widgetsDict["postselectframebg"]
@@ -122,7 +126,8 @@ class Window(ElementCreator):
         self.bind("<F11>", lambda e: self.togglethewindowbar())
 
     def updateWidgetsDict(self, root: Frame):
-        widgettypes = (Label, Button, Frame, Canvas, Entry, Text, ScrolledFrame, ScrolledText)
+        widgettypes = (Label, Button, Frame, Canvas, Entry,
+                       Text, ScrolledFrame, ScrolledText)
         for widgetname, widget in self.children.items():
             if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
@@ -155,12 +160,12 @@ class Window(ElementCreator):
             print("Successfully connected to Prisma client.")
         except Exception as e:
             print(e)
-    
+
     def initMainPrisma(self):
         t = threading.Thread(target=self.startPrisma)
         t.daemon = True
         t.start()
-    
+
     def initializeWindow(self):
         windll.shcore.SetProcessDpiAwareness(1)
         quarterofscreenwidth = int(int(user32.GetSystemMetrics(0) / 2) / 4)
@@ -194,11 +199,13 @@ class Window(ElementCreator):
             ref.configure(image=self.loadedImgs[0])
             self.studentform = UserForms(
                 self.postSelectFrame, self, "studentreg")
+            # self.studentform.loadAllDetailsForRegistration()
             self.studentform.loadStudentReg()
         elif teacher:
             ref.configure(image=self.loadedImgs[1])
             self.teacherform = UserForms(
                 self.postSelectFrame, self, "teacherreg")
+            # self.teacherform.loadAllDetailsForRegistration()
             self.teacherform.loadLecturerReg()
         self.postSelectFrame.grid()
         self.postSelectFrame.tkraise()
@@ -406,7 +413,7 @@ class Window(ElementCreator):
             dashboard.loadSpecificAssets(data["role"])
             dashboard.postLogin(data)
             courseview = self.widgetsDict["courseview"]
-            courseview.postLogin(data)
+            courseview.postLogin(data, self.prisma)
             discussionsview = self.widgetsDict["discussionsview"]
             discussionsview.postLogin(data, self.prisma)
             appointmentsview = self.widgetsDict["appointmentsview"]
@@ -424,8 +431,8 @@ class Window(ElementCreator):
                     continue
                 # skip widgets related to teacherreg or studentreg
                 parents = widget.winfo_parent().split(".")
-                if any(p.endswith("reg") for p in parents[-3:]):
-                    continue
+                # if any(p.endswith("reg") for p in parents[-3:]):
+                #     continue
                 print(widget.winfo_parent(),
                       widget.winfo_class(), widget.winfo_name())
         # self.developerkittoplevel.attributes("-topmost", True)
@@ -565,12 +572,32 @@ class UserForms(Frame):
         self.controller = controller
         self.parent = parent
         self.name = name
+        self.prisma = self.controller.mainPrisma
 
     def tupleToDict(self, tup):
         if len(tup) == 6:
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname"], tup))
         elif len(tup) == 7:
             return dict(zip(["xpos", "ypos", "width", "height", "root", "classname", "validation"], tup))
+        elif len(tup) == 8:
+            return dict(zip(["xpos", "ypos", "width", "height", "root", "classname", "validation", "captchavar"], tup))
+
+    def loadAllDetailsForRegistration(self):
+        prisma = self.prisma
+        institutions = prisma.institution.find_many(
+            include={
+                "school": {
+                    "include": {
+                        "programme": {
+                            "include": {
+                                "modules": True
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        return institutions
 
     def userReg(self):
         self.controller.frameCreator(
@@ -582,6 +609,7 @@ class UserForms(Frame):
             (r"Assets\Login Page with Captcha\Sign Up Form.png",
              0, 0, f"{self.name}BG", self.frameref),
         ]
+        self.captchavar = StringVar()
         self.userRegEntries = [
             (40, 120, 720, 60, self.frameref, f"{self.name}fullname"),
             (40, 220, 720, 60, self.frameref, f"{self.name}email", "isEmail"),
@@ -591,12 +619,142 @@ class UserForms(Frame):
              f"{self.name}confpassent", "isConfPass"),
             (420, 320, 340, 60, self.frameref,
              f"{self.name}contactnumber", "isContactNo"),
-            (420, 500, 340, 40, self.frameref, f"{self.name}captcha"),
+            (420, 500, 340, 40, self.frameref, f"{self.name}captcha", "isCaptcha", self.captchavar),
         ]
 
-    def validation(self):
-        
-        return True
+
+    def generateCaptchaChallenge(self):
+        image = ImageCaptcha(width=260, height=80, fonts=[r"Fonts\AvenirNext-Regular.ttf", r"Fonts\SF-Pro.ttf"])
+        # random alphanumeric string of length 6
+        captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        data = image.generate(captcha_text)
+        image.write(captcha_text, r"Assets\Login Page with Captcha\captcha.png")
+        self.captchavar.set(captcha_text)
+        # converting to a photoimage object
+        self.controller.labelCreator(
+            imagepath=r"Assets\Login Page with Captcha\captcha.png",
+            xpos=420, ypos=420, classname="imagecaptchachallenge",
+            root=self.frameref
+        )
+        print(self.captchavar.get())
+
+
+    def loadSchoolMenubuttons(self, instCode):
+        # remove all widgets and refresh options
+        for widgetname, widget in self.frameref.children.items():
+            if not widgetname.startswith("!la"):
+                if widgetname in ["schoolhostfr", "programmehostfr",
+                                  "course1hostfr", "course2hostfr", "course3hostfr", "course4hostfr"]:
+                    widget.grid_remove()
+        # reset variables
+        for var in [self.school, self.programme, self.course1, self.course2, self.course3, self.course4]:
+            var.set("")
+        positions = {
+            "school": {"x": 160, "y": 740, "width": 240, "height": 40},
+        }
+        schoollist = list(self.instDict[f"{instCode}"]["schools"].keys())
+        if schoollist == []:
+            schoollist = ["No Schools Found"]
+            self.school.set("")
+        self.controller.menubuttonCreator(
+            xpos=positions["school"]["x"], ypos=positions["school"]["y"], width=positions[
+                "school"]["width"], height=positions["school"]["height"],
+            root=self.frameref, classname="school", text=f"Select School", listofvalues=schoollist,
+            variable=self.school, font=("Helvetica", 10),
+            command=lambda: [self.loadProgrammeMButtons(
+                instCode, self.school.get())]
+        )
+
+    def loadProgrammeMButtons(self, instCode, schoolCode):
+        # remove all widgets and refresh options
+        if schoolCode == "No Schools Found":
+            return
+        for widgetname, widget in self.frameref.children.items():
+            if not widgetname.startswith("!la"):
+                if widgetname in ["programmehostfr",
+                                  "course1hostfr", "course2hostfr", "course3hostfr", "course4hostfr"]:
+                    widget.grid_remove()
+        # reset variables
+        for var in [self.programme, self.course1, self.course2, self.course3, self.course4]:
+            var.set("")
+        positions = {
+            "programme": {"x": 520, "y": 740, "width": 240, "height": 40},
+        }
+        programmeslist = list(
+            self.instDict[f"{instCode}"]["schools"][f"{schoolCode}"]["programmes"])
+        self.controller.menubuttonCreator(
+            xpos=positions["programme"]["x"], ypos=positions["programme"]["y"], width=positions[
+                "programme"]["width"], height=positions["programme"]["height"],
+            root=self.frameref, classname="programme", text=f"Select Programme", listofvalues=programmeslist,
+            variable=self.programme, font=("Helvetica", 10),
+            command=lambda: [self.loadModulesMButtons(
+                instCode, schoolCode, self.programme.get())]
+        )
+
+    def loadModulesMButtons(self, instCode, schoolCode, progCode):
+        vars = {
+            "course1": self.course1,
+            "course2": self.course2,
+            "course3": self.course3,
+            "course4": self.course4,
+        }
+        positions = {
+            "course1": {"x": 160, "y": 800, "width": 280, "height": 40},
+            "course2": {"x": 160, "y": 860, "width": 280, "height": 40},
+            "course3": {"x": 480, "y": 800, "width": 280, "height": 40},
+            "course4": {"x": 480, "y": 860, "width": 280, "height": 40},
+        }
+        moduleslist = list(self.instDict[f"{instCode}"]["schools"]
+                           [f"{schoolCode}"]["programmes"][f"{progCode}"]["modules"])
+        enumeratedModList = list(enumerate(moduleslist.copy(), 1))
+        for i, module in enumeratedModList:
+            self.controller.menubuttonCreator(
+                xpos=positions[f"course{i}"]["x"], ypos=positions[f"course{i}"]["y"], width=positions[
+                    f"course{i}"]["width"], height=positions[f"course{i}"]["height"],
+                root=self.frameref, classname=f"course{i}", text=f"Select Module {i}", listofvalues=moduleslist,
+                variable=vars[f"course{i}"], font=("Helvetica", 10),
+                command=lambda c=f"course{i}": [
+                    self.checkDuplicateModules(c, vars[c].get(), moduleslist)]
+            )
+
+    def checkDuplicateModules(self, courseNum, course, originalModules):
+        vars = {
+            "course1": self.course1,
+            "course2": self.course2,
+            "course3": self.course3,
+            "course4": self.course4,
+        }
+        positions = {
+            "course1": {"x": 160, "y": 800, "width": 280, "height": 40},
+            "course2": {"x": 160, "y": 860, "width": 280, "height": 40},
+            "course3": {"x": 480, "y": 800, "width": 280, "height": 40},
+            "course4": {"x": 480, "y": 860, "width": 280, "height": 40},
+        }
+        modules = originalModules.copy()
+        checkedcourseNum = courseNum
+        checkedcourse = course
+        selectedCourses = [self.course1.get(), self.course2.get(
+        ), self.course3.get(), self.course4.get()]
+        # print("The selected courses are,", selectedCourses)
+        # Check for duplicates
+        if selectedCourses.count(checkedcourse) > 1:
+            # Will be overriding the one before the current one
+            # print("The pairs of duplicate indexes are,", [(i, x) for i, x in enumerate(selectedCourses, 1) if x == checkedcourse])
+            # print("Out of the duplicate pairs, priortize", f"the var of course{checkedcourseNum}")
+            # print("Therefore, remove the pair which is not checkedcourseNum:", [(i,x) for i, x in enumerate(selectedCourses, 1) if x == checkedcourse and i != int(checkedcourseNum[-1])])
+            for i, x in enumerate(selectedCourses, 1):
+                if x == checkedcourse and i != int(checkedcourseNum[-1]):
+                    # print("Removing", (i, x))
+                    vars[f"course{i}"].set("")
+                    self.controller.menubuttonCreator(
+                        xpos=positions[f"course{i}"]["x"], ypos=positions[f"course{i}"]["y"], width=positions[
+                            f"course{i}"]["width"], height=positions[f"course{i}"]["height"],
+                        root=self.frameref, classname=f"course{i}", text=f"Select Module {i}", listofvalues=modules,
+                        variable=vars[f"course{i}"], font=("Helvetica", 10),
+                        command=lambda c=f"course{i}": [
+                            self.checkDuplicateModules(c, vars[c].get(), modules)]
+                    )
+
     def loadLecturerReg(self):
         self.userReg()
         self.imgLabels.append(
@@ -606,47 +764,86 @@ class UserForms(Frame):
         self.controller.settingsUnpacker(self.imgLabels, "label")
         for i in self.userRegEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
-        # implementing the joining of the two lists
+        self.generateCaptchaChallenge()
+        # Create a structure to split institutions and their schools
+        # an Institution has many Schools
+        # A school has many Programmes
+        # A programme has many modules
+        # I.E IICP -> SOC -> BCSCU -> INT4004CEM
+        self.instDict = {}
+        self.fullInfo = self.loadAllDetailsForRegistration()
+        for inst in self.fullInfo:
+            schoolsDict = {}
+            if inst.school == []:
+                print("No schools found for this institution")
+                self.instDict[f"{inst.institutionCode}"] = {
+                    "schools": schoolsDict,
+                }
+                continue
+            for school in inst.school:
+                progDict = {}
+                if school.programme == []:
+                    print("No programmes found for this school")
+                    schoolsDict[f"{school.schoolCode}"] = {
+                        "programmes": progDict,
+                    }
+                    continue
+                for programme in school.programme:
+                    modList = []
+                    if programme.modules == []:
+                        print("No modules found for this programme")
+                        progDict[f"{programme.programmeCode}"] = {
+                            "modules": modList,
+                        }
+                        continue
+                    for module in programme.modules:
+                        modList.append(module.moduleTitle)
+                    progDict[f"{programme.programmeCode}"] = {
+                        "modules": modList,
+                    }
+                schoolsDict[f"{school.schoolCode}"] = {
+                    "programmes": progDict,
+                }
+            self.instDict[f"{inst.institutionCode}"] = {
+                "schools": schoolsDict,
+            }
+        institutionlist = list(self.instDict.keys())
         lists = {
-            "institution": ["INTI International College Penang", "INTI International University Nilai", "INTI International College Subang", "INTI College Sabah"],
-            "school": ["SOC", "SOE", "CEPS", "SOBIZ"],
-            "tenure": ["FULLTIME", "PARTTIME"],
-            "programme": ["BCSCU", "BCTCU", "DCS", "DCIT", "Unlisted"],
-            "course1": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics for Computer Science", "Computer Science Activity Led Learning Project 2", ""],
-            "course2": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning Project 2", ""],
-            "course3": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics For Computer Science", "Computer Science Activity Led Learning Project 2", ""]
+            "institution": institutionlist,
         }
-        self.institution = StringVar(name=f"{self.name}institution")
-        self.school = StringVar(name=f"{self.name}school")
-        self.tenure = StringVar(name=f"{self.name}tenure")
-        self.programme = StringVar(name=f"{self.name}programme")
-        self.course1 = StringVar(name=f"{self.name}course1")
-        self.course2 = StringVar(name=f"{self.name}course2")
-        self.course3 = StringVar(name=f"{self.name}course3")
+        self.institution = StringVar()
+        self.school = StringVar()
+        self.tenure = StringVar()
+        self.programme = StringVar()
+        self.course1 = StringVar()
+        self.course2 = StringVar()
+        self.course3 = StringVar()
+        self.course4 = StringVar()
         vars = {
             "institution": self.institution,
-            "school": self.school,
             "tenure": self.tenure,
-            "programme": self.programme,
-            "course1": self.course1,
-            "course2": self.course2,
-            "course3": self.course3
         }
         positions = {
-            "institution": {"x": 140, "y": 660},
-            "school": {"x": 140, "y": 740},
-            "tenure": {"x": 520, "y": 660},
-            "programme": {"x": 520, "y": 740},
-            "course1": {"x": 20, "y": 840},
-            "course2": {"x": 280, "y": 840},
-            "course3": {"x": 540, "y": 840}
+            "institution": {"x": 160, "y": 660, "width": 240, "height": 40},
+            "tenure": {"x": 520, "y": 660, "width": 240, "height": 40},
         }
         for name, values in lists.items():
             self.controller.menubuttonCreator(
-                xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
+                xpos=positions[name]["x"], ypos=positions[name]["y"], width=positions[name]["width"], height=positions[name]["height"],
                 root=self.frameref, classname=name, text=f"Select {name}", listofvalues=values,
-                variable=vars[name], font=("Helvetica", 10), command=lambda name=name: [print(vars[name].get())]
+                variable=vars[name], font=("Helvetica", 10),
+                command=lambda name=name: [
+                    self.loadSchoolMenubuttons(vars[name].get())]
             )
+        # tenure menu button
+        tenurelist = ["FULLTIME", "PARTTIME"]
+        self.controller.menubuttonCreator(
+            xpos=positions["tenure"]["x"], ypos=positions["tenure"]["y"], width=positions[
+                "tenure"]["width"], height=positions["tenure"]["height"],
+            root=self.frameref, classname="tenure", text="Select Tenure", listofvalues=tenurelist,
+            variable=vars["tenure"], font=("Helvetica", 10),
+            command=lambda: [print(f"{vars['tenure'].get()}")]
+        )
         entries = {
             "fullname": self.controller.widgetsDict[f"{self.name}fullname"],
             "email": self.controller.widgetsDict[f"{self.name}email"],
@@ -655,7 +852,6 @@ class UserForms(Frame):
             "contactnumber": self.controller.widgetsDict[f"{self.name}contactnumber"],
             "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
         }
-
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
                                       buttonFunction=lambda: [
                                           print("validate")],
@@ -668,37 +864,20 @@ class UserForms(Frame):
                     "fullName": entries["fullname"].get(),
                     "email": entries["email"].get(),
                     "password": self.encryptPassword(entries["password"].get()),
+                    "confirmPassword": self.encryptPassword(entries["confirmpassword"].get()),
                     "contactNo": entries["contactnumber"].get(),
-                    "tenure": vars['tenure'].get(),
-                    "institution": vars['institution'].get(),
-                    "school": vars['school'].get(),
-                    "programme": vars['programme'].get(),
-                    "currentCourses": [f"{vars['course1'].get()}", f"{vars['course2'].get()}", f"{vars['course3'].get()}"],
+                    "tenure": self.tenure.get(),
+                    "institution": self.institution.get(),
+                    "school": self.school.get(),
+                    "programme": self.programme.get(),
+                    "currentCourses": [self.course1.get(), self.course2.get(), self.course3.get(), self.course4.get()],
                     "role": "LECTURER"
                 }
             ),
             root=self.parent
         )
         self.completeregbutton = self.controller.widgetsDict[f"{self.name}completeregbutton"]
-        # self.completeregbutton.config(state=DISABLED)
-    def dbGetLists(self, role):
-        prisma = self.controller.mainPrisma
-        institution = prisma.institution.find_first(
-            where={
-                "institutionCode": "IICP"
-            }
-        )
-        schools = prisma.school.find_many(
-            where={
-                "institution": {
-                    "is": {
-                        "institutionCode": institution.institutionCode
-                    }
-                }
-            }
-        )
-        lists = {}
-        return lists
+
     def loadStudentReg(self):
         self.userReg()
         self.imgLabels.append((r"Assets\Login Page with Captcha\StudentForm.png",
@@ -706,14 +885,47 @@ class UserForms(Frame):
         self.controller.settingsUnpacker(self.imgLabels, "label")
         for i in self.userRegEntries:
             self.controller.ttkEntryCreator(**self.tupleToDict(i))
+        self.generateCaptchaChallenge()
+        self.instDict = {}
+        self.fullInfo = self.loadAllDetailsForRegistration()
+        for inst in self.fullInfo:
+            schoolsDict = {}
+            if inst.school == []:
+                print("No schools found for this institution")
+                self.instDict[f"{inst.institutionCode}"] = {
+                    "schools": schoolsDict,
+                }
+                continue
+            for school in inst.school:
+                progDict = {}
+                if school.programme == []:
+                    print("No programmes found for this school")
+                    schoolsDict[f"{school.schoolCode}"] = {
+                        "programmes": progDict,
+                    }
+                    continue
+                for programme in school.programme:
+                    modList = []
+                    if programme.modules == []:
+                        print("No modules found for this programme")
+                        progDict[f"{programme.programmeCode}"] = {
+                            "modules": modList,
+                        }
+                        continue
+                    for module in programme.modules:
+                        modList.append(module.moduleTitle)
+                    progDict[f"{programme.programmeCode}"] = {
+                        "modules": modList,
+                    }
+                schoolsDict[f"{school.schoolCode}"] = {
+                    "programmes": progDict,
+                }
+            self.instDict[f"{inst.institutionCode}"] = {
+                "schools": schoolsDict,
+            }
+        institutionlist = list(self.instDict.keys())
         lists = {
-            "institution": ["INTI International College Penang", "INTI International University Nilai", "INTI International College Subang", "INTI College Sabah"],
-            "school": ["SOC", "SOE", "CEPS", "SOBIZ", "Unlisted"],
-            "session": ["APR2023", "AUG2023", "JAN2024", "APR2024", "AUG2025"],
-            "programme": ["BCSCU", "BCTCU", "DCS", "DCIT", "Unlisted"],
-            "course1": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics for Computer Science", "Computer Science Activity Led Learning 2", "None"],
-            "course2": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics for Computer Science", "Computer Science Activity Led Learning 2", "None"],
-            "course3": ["Computer Architecture and Networks", "Object-Oriented Programming", "Mathematics for Computer Science", "Computer Science Activity Led Learning 2", "None"]
+            "institution": institutionlist,
         }
         self.institution = StringVar()
         self.school = StringVar()
@@ -722,32 +934,32 @@ class UserForms(Frame):
         self.course1 = StringVar()
         self.course2 = StringVar()
         self.course3 = StringVar()
+        self.course4 = StringVar()
         vars = {
             "institution": self.institution,
-            "school": self.school,
             "session": self.session,
-            "programme": self.programme,
-            "course1": self.course1,
-            "course2": self.course2,
-            "course3": self.course3,
         }
         positions = {
-            "institution": {"x": 140, "y": 660},
-            "school": {"x": 140, "y": 740},
-            "session": {"x": 520, "y": 660},
-            "programme": {"x": 520, "y": 740},
-            "course1": {"x": 20, "y": 840},
-            "course2": {"x": 280, "y": 840},
-            "course3": {"x": 540, "y": 840}
+            "institution": {"x": 160, "y": 660, "width": 240, "height": 40},
+            "session": {"x": 520, "y": 660, "width": 240, "height": 40},
         }
         for name, values in lists.items():
             self.controller.menubuttonCreator(
-                xpos=positions[name]["x"], ypos=positions[name]["y"], width=240, height=40,
-                root=self.frameref, classname=name.capitalize(), text=f"Select {name.capitalize()}",
-                listofvalues=values, variable=vars[name], font=(
-                    "Helvetica", 10),
-                command=lambda name=name: print(vars[name].get())
+                xpos=positions[name]["x"], ypos=positions[name]["y"], width=positions[name]["width"], height=positions[name]["height"],
+                root=self.frameref, classname=name, text=f"Select {name}", listofvalues=values,
+                variable=vars[name], font=("Helvetica", 10),
+                command=lambda name=name: [
+                    self.loadSchoolMenubuttons(vars[name].get())]
             )
+        # session menu button
+        sessionlist = ["APR2023", "AUG2023", "JAN2023"]
+        self.controller.menubuttonCreator(
+            xpos=positions["session"]["x"], ypos=positions["session"]["y"], width=positions[
+                "session"]["width"], height=positions["session"]["height"],
+            root=self.frameref, classname="session", text="Select Session", listofvalues=sessionlist,
+            variable=vars["session"], font=("Helvetica", 10),
+            command=lambda: [print(vars["session"].get())]
+        )
         # TODO: add absolute positioning for the toast notification
         entries = {
             "fullname": self.controller.widgetsDict[f"{self.name}fullname"],
@@ -770,12 +982,13 @@ class UserForms(Frame):
                     "fullName": entries["fullname"].get(),
                     "email": entries["email"].get(),
                     "password": self.encryptPassword(entries["password"].get()),
+                    "confirmPassword": self.encryptPassword(entries["confirmpassword"].get()),
                     "contactNo": entries["contactnumber"].get(),
-                    "currentCourses": [f"{vars['course1'].get()}", f"{vars['course2'].get()}", f"{vars['course3'].get()}"],
-                    "institution": vars["institution"].get(),
-                    "school": vars["school"].get(),
-                    "session": vars["session"].get(),
-                    "programme": vars["programme"].get(),
+                    "currentCourses": [self.course1.get(), self.course2.get(), self.course3.get(), self.course4.get()],
+                    "institution": self.institution.get(),
+                    "school":  self.school.get(),
+                    "session": self.session.get(),
+                    "programme": self.programme.get(),
                     "role": "STUDENT"
                 }
             ),
@@ -801,14 +1014,14 @@ class UserForms(Frame):
                 prisma.moduleenrollment.delete_many(
                     where={
                         "student": {"is": {"userProfile": {"is": {"email": data["email"]}}}}})
-                prisma.student.delete_many(
-                    where={
-                        "userProfile": {"is": {"email": data["email"]}}})
-                prisma.userprofile.delete_many(
-                    where={
-                        "email": data["email"]
-                    }
-                )
+                # prisma.student.delete_many(
+                #     where={
+                #         "userProfile": {"is": {"email": data["email"]}}})
+                # prisma.userprofile.delete_many(
+                #     where={
+                #         "email": data["email"]
+                #     }
+                # )
                 student = prisma.student.create(
                     data={
                         "userProfile": {
@@ -902,11 +1115,11 @@ class UserForms(Frame):
                             }
                         }
                     )
-                prisma.userprofile.delete_many(
-                    where={
-                        "email": data["email"]
-                    }
-                )
+                # prisma.userprofile.delete_many(
+                #     where={
+                #         "email": data["email"]
+                #     }
+                # )
                 lecturer = prisma.lecturer.create(
                     data={
                         "userProfile": {
@@ -984,8 +1197,142 @@ class UserForms(Frame):
             )
             toast.show_toast()
         self.controller.loadSignIn()
-
+    def validateData(self, data: dict):
+        for k, v in data.items():
+            if k in ["fullName", "contactNo", "school", "session", "tenure"]:
+                if v == "":
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Please fill in your {k}.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+            elif k == "email":
+                if self.name.startswith("student"):
+                    # only allow @student.newinti.edu.my emails
+                    regex = re.compile(r"^[a-zA-Z0-9_.+-]+@student.newinti.edu.my$")
+                elif self.name.startswith("teacher"):
+                    # only allow @newinti emails
+                    regex = re.compile(r"^[a-zA-Z0-9_.+-]+@newinti\.edu$") 
+                if v == "":
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Please fill in your email.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                elif "@" not in v:
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Please enter a valid email.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                # Matches regex for "p21013568@student.newinti.edu.my" for students
+                # or "firstname.lastname@newinti.edu.my" for lecturers
+                elif not re.match(regex, v):
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Please enter a valid email as a {self.name[:6]}.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False      
+            elif k in ["password", "confirmPassword"]:
+                passent = self.controller.widgetsDict[f"{self.name}passent"].get()
+                if v == "":
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Please fill in your password.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                elif len(passent) < 8:
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Password must be at least 8 characters long.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                elif not any(char.isdigit() for char in passent):
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Password must contain at least 1 digit.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                elif not any(char.isupper() for char in passent):
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Password must contain at least 1 uppercase letter.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                elif not any(char.islower() for char in passent):
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Password must contain at least 1 lowercase letter.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                elif not any(char in ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=", "+", "[", "]", "{", "}", ";", ":", "'", '"', ",", ".", "/", "?", "<", ">", "\\", "|", "`", "~"] for char in passent):
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Password must contain at least 1 special character.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+                if self.controller.widgetsDict[f"{self.name}confpassent"].get() != self.controller.widgetsDict[f"{self.name}passent"].get():
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Passwords do not match.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+            elif k == "contactNo":
+                phoneregex = re.compile(r"^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
+                if not re.match(phoneregex, v):
+                    toast = ToastNotification(
+                        title="Error",
+                        message=f"Please enter a valid Malaysian phone number.",
+                        duration=3000
+                    )
+                    toast.show_toast()
+                    return False
+            elif self.controller.widgetsDict[f"{self.name}captcha"].get() != self.captchavar.get():
+                toast = ToastNotification(
+                    title="Error",
+                    message=f"Please enter the correct captcha.",
+                    duration=3000
+                )
+                toast.show_toast()
+                return False
+        for var in [self.course1, self.course2, self.course3, self.course4]:
+            blankCourses = 0
+            if var.get() == "":
+                blankCourses += 1
+        if blankCourses >= 3:
+            toast = ToastNotification(
+                title="Error",
+                message=f"Please select at least 1 course.",
+                duration=3000
+            )
+            toast.show_toast()
+            return False
+        return True
     def send_data(self, data: dict):
+        if self.validateData(data) == False:
+            return
         t = threading.Thread(target=self.prismaFormSubmit, args=(data,))
         self.gif = AnimatedGif(
             parent=self, controller=self.controller,
@@ -1000,6 +1347,7 @@ class UserForms(Frame):
     def loadSignIn(self):
         self.controller.loadSignInPage()
         self.controller.widgetsDict["signinform"].tkraise()
+
 
 class SlidePanel(Frame):
     def __init__(self, parent=None, controller: Window = None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
@@ -1263,6 +1611,7 @@ class TopBar(Frame):
                     r"Assets\Dashboard\SearchResultsBg.png", 0, 180, "SearchResults4", root=widget, text=f"Press Tab to Exit", font=("Avenir Next", 20), wraplength=600
                 )
 
+
 class DashboardCanvas(Canvas):
     def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1, bg=WHITE,
@@ -1270,6 +1619,7 @@ class DashboardCanvas(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
+
 
 class SearchPage(Canvas):
     def __init__(self, parent, controller: Window):
@@ -1282,6 +1632,7 @@ class SearchPage(Canvas):
                           font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96,
                        rowspan=5, sticky="nsew")
+
 
 class LearningHub(Canvas):
     def __init__(self, parent, controller: Window):
@@ -1296,6 +1647,7 @@ class LearningHub(Canvas):
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
 
+
 class FavoritesView(Canvas):
     def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
@@ -1304,9 +1656,11 @@ class FavoritesView(Canvas):
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
 
+
 def runGui():
     window = Window()
     window.mainloop()
+
 
 def runGuiThreaded():
     t = Thread(ThreadStart(runGui))
@@ -1315,9 +1669,10 @@ def runGuiThreaded():
     t.Daemon = True
     t.Join()
 
+
 if __name__ == "__main__":
-    # runGui()
-    try:
-        runGuiThreaded()
-    except Exception as e:
-        print("sorry")
+    runGui()
+    # try:
+    #     runGuiThreaded()
+    # except Exception as e:
+    #     print("sorry")
