@@ -97,6 +97,7 @@ class DiscussionsView(Canvas):
         self.prisma = prisma
         self.userId = data["id"]
         self.programme = data["programme"]
+        self.role = data["role"]
         self.controller.frameCreator(
             xpos=560, ypos=120, framewidth=400, frameheight=80, root=self,
             classname="modulecodeframe", bg=WHITE
@@ -110,17 +111,30 @@ class DiscussionsView(Canvas):
         self.menubuttonmenu = Menu(
             self.menubutton, tearoff=0, font=("Helvetica", 12))
         self.modulecodevar = StringVar()
-        modules = prisma.module.find_many(
-            where={
-                "programme": {
-                    "is": {
-                        "programmeCode": {
-                            "equals": self.programme
+        if self.role == "lecturer":
+            modules = prisma.module.find_many(
+                where={
+                    "lecturer": {
+                        "is": {
+                            "userId": {
+                                "equals": self.userId
+                            }
+                        }
+                    }    
+                }
+            )
+        elif self.role == "student":
+            modules = prisma.module.find_many(
+                where={
+                    "programme": {
+                        "is": {
+                            "programmeCode": {
+                                "equals": self.programme
+                            }
                         }
                     }
                 }
-            }
-        )
+            )
         listofvalues = []
         self.valueDict = {}
         for module in modules:
@@ -138,7 +152,7 @@ class DiscussionsView(Canvas):
                     self.callLoadLatestPosts(self.modulecodevar.get()),
                 ]
             )
-        self.modulecodevar.set("INT4004CEM")
+        self.modulecodevar.set(listofvalues[0])
         self.menubutton["menu"] = self.menubuttonmenu
         self.menubutton.config(text=self.valueDict[self.modulecodevar.get()])
 

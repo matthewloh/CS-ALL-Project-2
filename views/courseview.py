@@ -29,7 +29,7 @@ class CourseView(Canvas):
         self.canvas = self.controller.widgetsDict["coursescanvas"]
 
     def postLogin(self, data: dict, prisma: Prisma = None):
-        print("The data is", data)
+        # print("The data is", data)
         modules = data["modules"]
         self.role = data["role"]
         if self.role == "student":
@@ -70,7 +70,7 @@ class CourseView(Canvas):
         self.prisma = prisma
 
     def loadcoursebuttons(self, modulecodes: list = None):
-        print(f"The modulecodes list is {modulecodes}")
+        # print(f"The modulecodes list is {modulecodes}")
         c = self.controller
         coursecanvas = self.controller.widgetsDict["coursescanvas"]
         for widgetname, widget in coursecanvas.children.items():
@@ -293,11 +293,11 @@ class CourseView(Canvas):
             rspan = int(h/20)
 
         self.upframe = ScrolledFrame(
-            self.viewUploadsFrame, width=740, height=h, autohide=True,
+            self.viewUploadsFrame, width=760, height=h, autohide=True,
         )
-        gridGenerator(self.upframe, int(740/20), rspan, WHITE)
+        gridGenerator(self.upframe, int(760/20), rspan, WHITE)
         self.upframe.grid_propagate(False)
-        self.upframe.place(x=40, y=120, width=740, height=640)
+        self.upframe.place(x=40, y=120, width=760, height=640)
         startx = 20
         starty = 40
         kl = timezone("Asia/Kuala_Lumpur")

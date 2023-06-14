@@ -383,6 +383,7 @@ class Window(ElementCreator):
                     userId=user.id, role="lecturer", prisma=self.prisma)
                 modulesOfLecturer = []
                 studentinfo = []
+                programme = modules[0].programme.programmeCode
                 for mod in modules:
                     modtup = (mod.moduleCode, mod.moduleTitle, mod.moduleDesc)
                     modulesOfLecturer.append(modtup)
@@ -392,7 +393,6 @@ class Window(ElementCreator):
                              me.student.userProfile.email,
                              me.student.userProfile.contactNo)
                         )
-                    programme = mod.programme.programmeCode
                 data = {
                     "id": lecturer.userProfile.id,
                     "fullName": lecturer.userProfile.fullName,
@@ -547,6 +547,11 @@ class Window(ElementCreator):
                 },
                 include={
                     "userProfile": True,
+                    "modules": {
+                        "include": {
+                            "programme": True,
+                        }
+                    }
                 }
             )
             modules = prisma.module.find_many(
@@ -563,12 +568,9 @@ class Window(ElementCreator):
                             }
                         }
                     },
+                    "programme": True,
                 }
             )
-            for m in modules:
-                m.programme.programmeCode
-                for me in m.moduleEnrollments:
-                    me.student.userProfile.fullName
             return lecturer, modules
         # prisma.disconnect()
 
