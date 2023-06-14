@@ -68,7 +68,7 @@ class Window(ElementCreator):
             ImageTk.PhotoImage(Image.open(
                 r"Assets/Login Page with Captcha/Sign In Page.png")),
         ]
-
+        
         self.buttonSettingsPSF = [
             (r"Assets\LandingPage\Student Button.png", 1080, 320, "Student Button",
              self.parentFrame, lambda: self.signUpPage(student=True)),
@@ -200,13 +200,13 @@ class Window(ElementCreator):
             self.studentform = UserForms(
                 self.postSelectFrame, self, "studentreg")
             # self.studentform.loadAllDetailsForRegistration()
-            self.studentform.loadReg("student")
+            self.studentform.loadRegThread("student")
         elif teacher:
             ref.configure(image=self.loadedImgs[1])
             self.teacherform = UserForms(
                 self.postSelectFrame, self, "teacherreg")
             # self.teacherform.loadAllDetailsForRegistration()
-            self.teacherform.loadReg("teacher")
+            self.teacherform.loadRegThread("teacher")
         self.postSelectFrame.grid()
         self.postSelectFrame.tkraise()
 
@@ -756,8 +756,18 @@ class UserForms(Frame):
                         command=lambda c=f"course{i}": [
                             self.checkDuplicateModules(c, vars[c].get(), modules)]
                     )
-
+    def loadRegThread(self, role):
+        t = threading.Thread(target=self.loadReg, args=(role,))
+        t.daemon = True
+        t.start()
+        
     def loadReg(self, role):
+        toast = ToastNotification(
+            title="Please be patient",
+            message="We are loading the Registration Form :D",
+            bootstyle=INFO,
+        )
+        toast.show_toast()
         self.userReg()
         lectBgPath = (r"Assets\Login Page with Captcha\LecturerForm.png"
                       , 0, 600, f"{self.name}Lecturer", self.frameref)
@@ -778,6 +788,14 @@ class UserForms(Frame):
         # I.E IICP -> SOC -> BCSCU -> INT4004CEM
         self.instDict = {}
         self.fullInfo = self.loadAllDetailsForRegistration()
+        toast.hide_toast()
+        successtoast = ToastNotification(
+            title="Success!",
+            message="You can now register.",
+            bootstyle=SUCCESS,
+            duration=1000,
+        )
+        successtoast.show_toast()
         for inst in self.fullInfo:
             schoolsDict = {}
             if inst.school == []:
@@ -1608,8 +1626,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     runGuiThreaded()
-    # except Exception as e:
-    #     print("sorry")
+    # runGui()
+    try:
+        runGuiThreaded()
+    except Exception as e:
+        print("sorry")
