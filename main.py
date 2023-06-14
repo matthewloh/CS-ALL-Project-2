@@ -459,6 +459,7 @@ class Window(ElementCreator):
                           classname="DevKitEntryGreen", bg="light green")
         self.entryCreator(40, 320, 360, 80, root=self.developerkittoplevel,
                           classname="DevKitEntryOrange", bg=ORANGE)
+        
 
     def createDevWindow(self):
         self.developerkittoplevel = Toplevel(
@@ -1569,7 +1570,9 @@ class SearchPage(Canvas):
                           font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96,
                        rowspan=5, sticky="nsew")
-
+        self.staticImgs = [(r"Assets\SearchView\background.png", 0, 0, "searchpagebg", self),]
+        self.controller.settingsUnpacker(self.staticImgs, "label")
+    
 
 class LearningHub(Canvas):
     def __init__(self, parent, controller: Window):
