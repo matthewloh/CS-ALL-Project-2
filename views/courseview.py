@@ -30,6 +30,7 @@ class CourseView(Canvas):
 
     def postLogin(self, data: dict, prisma: Prisma = None):
         # print("The data is", data)
+        self.prisma = prisma
         modules = data["modules"]
         self.role = data["role"]
         if self.role == "student":
@@ -67,7 +68,6 @@ class CourseView(Canvas):
             # lecturer specific functions here like show student info
             # and upload course files and upload schedule
             self.loadcoursebuttons(modulecodes)
-        self.prisma = prisma
 
     def loadcoursebuttons(self, modulecodes: list = None):
         # print(f"The modulecodes list is {modulecodes}")

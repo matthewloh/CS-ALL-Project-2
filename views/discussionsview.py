@@ -160,16 +160,12 @@ class DiscussionsView(Canvas):
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
-            rowspanofFrame = int(500/20)
-        else:
-            rowspanofFrame = int(heightofframe/20)
-
+            heightofframe = 500
+            
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
         )
-        gridGenerator(self.postscrolledframe, int(
-            840/20), rowspanofFrame, WHITE)
-        self.postscrolledframe.grid_propagate(False)
+
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
         self.loadDiscussionTopics(postContentList)
         print("In discussionview, userid is: ", self.userId)
@@ -208,14 +204,10 @@ class DiscussionsView(Canvas):
         heightofframe = len(postContentList) * 100
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
-            rowspanofFrame = int(500/20)
-        else:
-            rowspanofFrame = int(heightofframe/20)
+            heightofframe = 500
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
         )
-        gridGenerator(self.postscrolledframe, int(
-            840/20), rowspanofFrame, WHITE)
         self.postscrolledframe.grid_propagate(False)
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
         self.loadDiscussionTopics(postContentList)
@@ -233,13 +225,13 @@ class DiscussionsView(Canvas):
         for tupleofcontent in postidtitles:
             postId = tupleofcontent[0]
             discussiontitle = tupleofcontent[1]
-            content = tupleofcontent[2]
-            author = tupleofcontent[3]
-            email = tupleofcontent[4]
-            createdat = tupleofcontent[5]
-            posteditedAt = tupleofcontent[6]
-            repliesList = tupleofcontent[7]
-            authorId = tupleofcontent[8]
+            # content = tupleofcontent[2]
+            # author = tupleofcontent[3]
+            # email = tupleofcontent[4]
+            # createdat = tupleofcontent[5]
+            # posteditedAt = tupleofcontent[6]
+            # repliesList = tupleofcontent[7]
+            # authorId = tupleofcontent[8]
             favoritedPostIds = tupleofcontent[9]
             imagepath = r"Assets\DiscussionsView\discussionstitlecomponentbg.png"
             xpos = initialcoordinates[0]
@@ -289,15 +281,18 @@ class DiscussionsView(Canvas):
         repliesList = tupleofcontent[7]
         authorId = tupleofcontent[8]
 
+        # A host is used to remove the currently loaded scrolled frame using grid_remove()
         self.controller.frameCreator(
             root=self.postviewframe, framewidth=1100, frameheight=660,
             classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
         )
         self.scrolledframehost = self.controller.widgetsDict["scrolledframehostframe"]
+        totalheight = (1 + len(repliesList)) * 280
+        if totalheight < 660:
+            totalheight = 660
         self.scrolledframe = ScrolledFrame(
-            self.scrolledframehost, width=1, height=1, name="postviewcontent", autohide=True, padding=0,
+            self.scrolledframehost, width=1, height=totalheight, name="postviewcontent", autohide=True, padding=0, bootstyle=WARNING
         )
-        self.scrolledframe.grid_propagate(False)
         self.scrolledframe.place(
             x=0, y=0, width=1100, height=660
         )
@@ -315,6 +310,7 @@ class DiscussionsView(Canvas):
         )
         # REFRESH BUTTON
         self.controller.buttonCreator(
+            # imagepath, xpos, ypos, classname, root, isPlaced, buttonFunction
             imagepath=r"Assets\DiscussionsView\refreshbutton.png", xpos=1160, ypos=20,
             classname="repliesrefreshbtn", root=self.postviewframe, isPlaced=True,
             buttonFunction=lambda: self.callLoadLatestReplies(
@@ -325,27 +321,31 @@ class DiscussionsView(Canvas):
         self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\scrolledframebg.png", xpos=0, ypos=0,
             classname="scrolledframebg", root=self.scrolledframe, isPlaced=True
-        )
-        totalheight = (1 + len(repliesList)) * 280
-        numberofverticalsquares = int(totalheight/21)
+        )            
+        image = self.controller.imagePathDict["scrolledframebg"]
+        image = Image.open(image)
         if totalheight > 660:
-            gridGenerator(self.scrolledframe, int(int(1100/20)),
-                          numberofverticalsquares, "#acbcff")
-            image = self.controller.imagePathDict["scrolledframebg"]
-            image = Image.open(image)
             image = image.resize((1100, totalheight),
                                  Image.Resampling.LANCZOS)
             self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(
                 image)
             newimage = self.controller.imageDict["scrolledframebg"]
             self.controller.widgetsDict["scrolledframebg"].configure(
-                image=newimage, bg=ORANGE)
+                image=newimage, bg="#acbcff")
             self.controller.widgetsDict["scrolledframebg"].place(
                 x=0, y=0, width=1100, height=totalheight
             )
         else:
-            gridGenerator(self.scrolledframe, int(
-                1100/20), int(640/20), "#acbcff")
+            image = image.resize((1100, totalheight),
+                                 Image.Resampling.LANCZOS)
+            self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(
+                image)
+            newimage = self.controller.imageDict["scrolledframebg"]
+            self.controller.widgetsDict["scrolledframebg"].configure(
+                image=newimage, bg="#acbcff")
+            self.controller.widgetsDict["scrolledframebg"].place(
+                x=0, y=0, width=1100, height=660
+            )
         # POST BG
         self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\exampleofapost.png", xpos=0, ypos=0,

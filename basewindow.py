@@ -99,7 +99,7 @@ class ElementCreator(ttk.Window):
         self.widgetsDict[classname].grid_propagate(False)
         return self.widgetsDict[classname]
 
-    def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False):
+    def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False, bg=WHITE):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
         will destroy the image if not referenced to something. Thus, we pass it with an identifier string variable called classname.\n\n
@@ -122,7 +122,7 @@ class ElementCreator(ttk.Window):
         label = Label(
             root, image=image, relief=FLAT, width=1, height=1,
             state=NORMAL, name=classname,
-            autostyle=False,
+            autostyle=False, bg = bg
         )
         if isPlaced:
             label.place(x=xpos, y=ypos, width=placedwidth, height=placedheight)

@@ -83,10 +83,10 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                 self.loadSignIn(),
-                 # self.show_frame(Dashboard),
-                 # self.show_canvas(DashboardCanvas),
-                 # self.get_page(Dashboard).loadSpecificAssets("student"),
+                #  self.loadSignIn(),
+                 self.show_frame(Dashboard),
+                 self.show_canvas(DashboardCanvas),
+                 self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -121,7 +121,7 @@ class Window(ElementCreator):
         ref = self.widgetsDict["postselectframebg"]
         ref.configure(image=self.loadedImgs[2])
         self.widgetsDict["backbutton"].grid_remove()
-        self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
+        # self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
 
         self.bind("<F11>", lambda e: self.togglethewindowbar())
 
@@ -1160,6 +1160,7 @@ class UserForms(Frame):
             toast.show_toast()
             return
         self.controller.loadSignIn()
+    
     def validate_captcha(self, captcha: str):
         captchaToast = ToastNotification(
             title="Error",
@@ -1172,6 +1173,7 @@ class UserForms(Frame):
             captchaToast.show_toast()
             return False
         return True
+    
     def validate_password(self, password: str, confirmpassword: str):
         pwToast = ToastNotification(
             title="Error",
@@ -1199,7 +1201,7 @@ class UserForms(Frame):
         pwToast.message = msg
         pwToast.show_toast()
         return False
-
+   
     def validate_email(self, email: str, role:str):
         emailToast = ToastNotification(
             title="Error",
