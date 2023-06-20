@@ -92,7 +92,107 @@ class Chatbot(Canvas):
      
         self.controller.settingsUnpacker(self.staticBtns, "button")
 
+    def apiCall(self, engine, history):
+        return openai.ChatCompletion.create(
+            engine=engine,
+            messages=history,
+            stream=True,
+        )
+    """
+    # Example of an OpenAI ChatCompletion request with stream=True
+    # https://platform.openai.com/docs/guides/chat
 
+    # a ChatCompletion request
+    response = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo',
+        messages=[
+            {'role': 'user', 'content': "What's 1+1? Answer in one word."}
+        ],
+        temperature=0,
+        stream=True  # this time, we set stream=True
+    )
+
+    for chunk in response:
+        print(chunk)
+        {
+        "choices": [
+            {
+            "delta": {
+                "role": "assistant"
+            },
+            "finish_reason": null,
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+        {
+        "choices": [
+            {
+            "delta": {
+                "content": "\n\n"
+            },
+            "finish_reason": null,
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+        {
+        "choices": [
+            {
+            "delta": {
+                "content": "2"
+            },
+            "finish_reason": null,
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+        {
+        "choices": [
+            {
+            "delta": {},
+            "finish_reason": "stop",
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+    """
+    def imagineWriteText(self, openAIresponse: openai.ChatCompletion.create, content: list, history: list):
+        collected_chunks = []
+        collected_messages = []
+        for chunk in openAIresponse:
+            collected_chunks.append(chunk)
+            try: 
+                chunk_message = chunk["choices"][0]["delta"]["content"]
+            except:
+                chunk_message = chunk["choices"][0]["delta"]
+            collected_messages.append(chunk_message)
+            history.append({"role": "assistant", "content": chunk_message})
+        fullrep = []
+        for chunk_message in collected_messages:
+            if type(chunk_message) == str:
+                result = "".join(chunk_message).strip()
+                result = result.replace("\n", "")
+                fullrep.append(result)
+                print(f"result: {result}")
+        print(collected_messages)
+        content.append(openAIresponse["choices"][0]["message"]["content"])
     def testFrontEnd(self, numofinputs: int):
         # REPLIES
         # starting coordinates
