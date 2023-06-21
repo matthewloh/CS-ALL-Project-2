@@ -767,7 +767,7 @@ class UserForms(Frame):
     def loadReg(self, role):
         toast = ToastNotification(
             title="Please be patient",
-            message="We are loading the Registration Form :D",
+            message="We are loading the Registration Form for you",
             bootstyle=INFO,
         )
         toast.show_toast()

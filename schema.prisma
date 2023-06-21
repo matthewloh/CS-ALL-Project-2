@@ -27,40 +27,68 @@ model UserProfile {
 }
 
 model Lecturer {
-  id           String         @id @default(cuid())
-  tenure       Tenure         @default(FULLTIME)
+  id           String           @id @default(cuid())
+  tenure       Tenure           @default(FULLTIME)
   userId       String
   schoolId     String
-  userProfile  UserProfile    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProfile  UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
   modules      Module[]
-  school       School         @relation(fields: [schoolId], references: [id])
+  school       School           @relation(fields: [schoolId], references: [id])
   appointments Appointment[]
   uploads      ModuleUpload[]
+  apptSettings LecApptSetting[]
 
   @@index([schoolId])
   @@index([userId])
 }
 
 model Appointment {
+  id           Int       @id @default(autoincrement())
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   isCompleted  Boolean   @default(false)
+  title        String
   location     String
   startTime    DateTime
   endTime      DateTime
-  studentId    String
-  lecturerId   String
-  id           Int       @id @default(autoincrement())
   completedAt  DateTime?
   editedAt     DateTime? @default(now())
   lectAccept   Boolean   @default(false)
   studAccept   Boolean   @default(false)
   lectAcceptAt DateTime?
   studAcceptAt DateTime?
+  studentId    String
+  lecturerId   String
   student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   lecturer     Lecturer  @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
+  @@index([lecturerId])
+}
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+// Essentially the consultation hours per lecturer for an academic semester
+// One lecturer can have many LecApptSetting
+// A lecturer will define the day of the week, start time, end time, location
+// Working with DateTime where year, month, day is not important
+model LecApptSetting {
+  id         Int      @id @default(autoincrement())
+  lecturerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  day        Day      @default(MONDAY)
+  startTime  DateTime
+  endTime    DateTime
+  location   String
+  lecturer   Lecturer @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+  
   @@index([lecturerId])
 }
 

@@ -7,7 +7,7 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from elementcreator import gridGenerator
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -15,6 +15,7 @@ from prisma import Prisma
 
 from PIL import Image, ImageTk, ImageSequence
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
+
 
 class AppointmentsView(Canvas):
     def __init__(self, parent, controller: ElementCreator):
@@ -24,33 +25,21 @@ class AppointmentsView(Canvas):
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
         self.createFrames()
-        self.creationframe = self.controller.widgetsDict["appointmentscreation"]
-        self.viewFrame = self.controller.widgetsDict["appointmentsmanage"]
+
         self.createElements()
         self.dateentry = DateEntry(
-            self, width=1, 
+            self, width=1,
         )
         self.dateentry.place(x=1420, y=140, width=460, height=60)
         print(self.dateentry.entry.get())
         self.scrolledframe = ScrolledFrame(
-            self, width=1, height=920, name="appointmentscrolledframe", autohide=True, padding=0
+            self, width=460, height=920, name="appointmentscrolledframe", autohide=True,
         )
         self.scrolledframe.place(
             x=1420, y=220, width=460, height=680
         )
-        self.scrolledframe.grid_propagate(False)
         gridGenerator(self.scrolledframe, int(460/20), int(920/20), DARKBLUE)
-        # self.controller.frameCreator(
-        #     xpos=1420, ypos=180, framewidth=460, frameheight=680, root=self,
-        #     classname="appcanvasframe",
-        # )
-        # self.appcanvasframe = self.controller.widgetsDict["appcanvasframe"]
-        # self.controller.canvasCreator(
-        #     xpos=0, ypos=0, width=460, height=960, root=self.appcanvasframe,
-        #     classname="appdisplaycanvas",
-        #     # xpos=0, ypos=0, framewidth=460, frameheight=960, root=self,
-        #     # classname="appdisplayframe",
-        # )
+
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
         print("Current Time =", current_time)
@@ -61,16 +50,15 @@ class AppointmentsView(Canvas):
                  "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
                  ]
         initialypos = 0
-        self.creationframe.grid_remove()
+        self.creationFrame.grid_remove()
         self.viewFrame.grid_remove()
-    
 
     def createFrames(self):
-        self.controller.frameCreator(
+        self.creationFrame = self.controller.frameCreator(
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
             classname="appointmentscreation",
         )
-        self.controller.frameCreator(
+        self.viewFrame = self.controller.frameCreator(
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
             classname="appointmentsmanage",
         )
@@ -82,16 +70,16 @@ class AppointmentsView(Canvas):
             (r"Assets\AppointmentsView\TitleLabel.png",
              0, 0, "AppointmentsHeader", self),
             (r"Assets\AppointmentsView\appointmentcreationbg.png",
-             0, 0, "appcreationbg", self.creationframe),
+             0, 0, "appcreationbg", self.creationFrame),
             (r"Assets\AppointmentsView\appmanagebg.png",
                 0, 0, "appmanagebg", self.viewFrame),
         ]
         self.staticBtns = [
-            (r"Assets\AppointmentsView\Create Appointment.png", 80, 600, "createappointmentbtn", self,
+            (r"Assets\AppointmentsView\Create Appointment.png", 60, 600, "createappointmentbtn", self,
              lambda: self.loadAppCreation()),
-            (r"Assets\AppointmentsView\manageappointments.png", 780, 600, "manageappointmentsbtn", self,
+            (r"Assets\AppointmentsView\manageappointments.png", 720, 600, "manageappointmentsbtn", self,
              lambda: self.loadAppView()),
-            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appcreateexitbtn", self.creationframe,
+            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appcreateexitbtn", self.creationFrame,
              lambda: self.unloadAppCreation()),
             (r"Assets\My Courses\exitbutton.png", 1840, 0, "appviewexitbtn", self.viewFrame,
              lambda: self.unloadAppView()),
@@ -191,36 +179,161 @@ class AppointmentsView(Canvas):
                 appContentList.append(
                     "Not accepted yet by lecturer"
                 )
-        # appContentList = [
-        #     (
-        #         app.id,
-        #         kualalumpur.convert(app.startTime).strftime(humanreadable),
-        #         kualalumpur.convert(app.endTime).strftime(humanreadable),
-        #         kualalumpur.convert(app.startTime).strftime(humandate),
-        #         kualalumpur.convert(app.endTime).strftime(humandate),
-        #         app.location,
-        #         app.student.userProfile.fullName,
-        #         app.lecturer.userProfile.fullName,
-        #         app.studAccept, app.lectAccept,
-        #         app.isCompleted,
-        #         kualalumpur.convert(app.createdAt).strftime(
-        #             r"%A, %B %e %Y at %I:%M %p"),
-        #         kualalumpur.convert(app.updatedAt).strftime(
-        #             r"%A, %B %e %Y at %I:%M %p"),
-        #     ) for app in appointments
-        # ]
         return appContentList
 
+    def loadForLecturer(self):
+        prisma = self.prisma
+        # save for later
+        pass
+
+    def loadForStudent(self):
+        prisma = self.prisma
+        modules = prisma.moduleenrollment.find_many(
+            where={
+                "student": {
+                    "is": {
+                        "userId": self.userId
+                    }
+                }
+            },
+            include={
+                "module": {
+                    "include": {
+                        "lecturer": {
+                            "include": {
+                                "userProfile": True,
+                                "apptSettings": True
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        return modules
+
+    def loadLecturerMenuBtns(self, modCode):
+        for widgetname, widget in self.creationFrame.children.items():
+            if not widgetname.startswith("!la"):
+                if widgetname in [""]:
+                    widget.grid_remove()
+        # reset variables
+        for var in [self.lecturer, self.timeslot]:
+            var.set("")
+        positions = {
+            "lecturer": {"x": 540, "y": 620, "width": 320, "height": 60},
+        }
+        # self.moduleDict[modCode] returns
+        timeslotlist = list(self.moduleDict[modCode].keys())
+        self.controller.menubuttonCreator(
+            xpos=positions["lecturer"]["x"], ypos=positions["lecturer"]["y"], width=positions[
+                "lecturer"]["width"], height=positions["lecturer"]["height"],
+            root=self.creationFrame, classname="lecturersaptmenu", text="Select Lecturer", listofvalues=timeslotlist,
+            variable=self.lecturer, font=("Helvetica", 12),
+            command=lambda: self.loadTimeslotMenuBtns(
+                modCode, self.lecturer.get())
+        )
+
+    def loadTimeslotMenuBtns(self, modCode, lecturer):
+        for widgetname, widget in self.creationFrame.children.items():
+            if not widgetname.startswith("!la"):
+                if widgetname in [""]:
+                    widget.grid_remove()
+        # reset variables
+        for var in [self.timeslot]:
+            var.set("")
+        positions = {
+            "timeslot": {"x": 920, "y": 620, "width": 320, "height": 60},
+        }
+        timeslotlist = self.moduleDict[modCode][lecturer]
+        self.controller.menubuttonCreator(
+            xpos=positions["timeslot"]["x"], ypos=positions["timeslot"]["y"], width=positions[
+                "timeslot"]["width"], height=positions["timeslot"]["height"],
+            root=self.creationFrame, classname="timeslotmenu", text="Select Timeslot", listofvalues=timeslotlist,
+            variable=self.timeslot, font=("Helvetica", 12),
+            command=lambda: print(f"timeslot selected: {self.timeslot.get()}")
+        )
+
+    def loadAllDetailsForCreation(self):
+        # MODULE -> LECTURER -> TIMESLOT
+        for widgetname, widget in self.creationFrame.children.items():
+            if not widgetname.startswith("!la"):
+                if widgetname in ["moduleshostfr", "lecturersaptmenuhostfr", "timeslotmenuhostfr"]:
+                    widget.grid_remove()
+        self.moduleDict = {}
+        kualalumpur = timezone("Asia/Kuala_Lumpur")
+        # 10:00AM strfmt
+        humanreadable = r"%I:%M%p"
+        if self.role == "lecturer":
+            self.fullinfo = self.loadForLecturer()
+        elif self.role == "student":
+            self.fullinfo = self.loadForStudent()
+        for me in self.fullinfo:
+            lecturerDict = {}
+            lecturer = me.module.lecturer.userProfile.fullName
+            apptStgTimes = []
+            for apptStg in me.module.lecturer.apptSettings:
+                day = apptStg.day
+                starttime = kualalumpur.convert(
+                    apptStg.startTime).strftime(humanreadable)
+                endtime = kualalumpur.convert(
+                    apptStg.endTime).strftime(humanreadable)
+                # 10:00AM - 11:00AM
+                formattedTime = f"{day}, {starttime} - {endtime}"
+                apptStgTimes.append(formattedTime)
+                lecturerDict[f"{lecturer}"] = apptStgTimes
+            self.moduleDict[f"{me.module.moduleCode} - {me.module.moduleTitle}"] = lecturerDict
+        modulelist = list(self.moduleDict.keys())
+        lists = {
+            "modules": modulelist,
+        }
+        self.module = StringVar()
+        self.lecturer = StringVar()
+        self.timeslot = StringVar()
+        for var in [self.module, self.lecturer, self.timeslot]:
+            var.set("")
+        vars = {
+            "modules": self.module,
+            "lecturers": self.lecturer,
+            "timeslots": self.timeslot,
+        }
+        positions = {
+            "modules": {"x": 160, "y": 620, "width": 320, "height": 60},
+        }
+        for name, values in lists.items():
+            self.controller.menubuttonCreator(
+                xpos=positions[name]["x"], ypos=positions[name]["y"], width=positions[name]["width"], height=positions[name]["height"],
+                root=self.creationFrame, classname=name, text=f"Select {name}", listofvalues=values,
+                variable=vars[name], font=("Helvetica", 12),
+                command=lambda name=name: [
+                    self.loadLecturerMenuBtns(vars[name].get())
+                ]
+            )
+
+    def loadAllAppointments(self):
+        prisma = self.prisma
+
     def loadAppCreation(self):
-        self.creationframe.grid()
-        self.creationframe.tkraise()
+        self.creationFrame.grid()
+        self.creationFrame.tkraise()
+        self.loadAllDetailsForCreation()
+        btnsettings = [
+            (r"Assets\AppointmentsView\continuecreationbtn.png", 520, 740, "continuecreation", self.creationFrame,
+             lambda: print("helloo"))
+        ]
+        self.controller.settingsUnpacker(btnsettings, "button")
 
     def unloadAppCreation(self):
-        self.creationframe.grid_remove()
+        self.creationFrame.grid_remove()
 
     def loadAppView(self):
         self.viewFrame.grid()
         self.viewFrame.tkraise()
+        self.viewScrolledFrame = ScrolledFrame(
+            self.viewFrame, width=520, height=740, autohide=True,
+        )
+        self.viewScrolledFrame.place(
+            x=60, y=120, width=520, height=740
+        )
 
     def unloadAppView(self):
         self.viewFrame.grid_remove()

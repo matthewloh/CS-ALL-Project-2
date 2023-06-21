@@ -159,6 +159,7 @@ class ElementCreator(ttk.Window):
                             classname=j[3],
                             root=widget,
                             buttonFunction=j[4])
+        return self.widgetsDict[classname]
 
     def entryCreator(self, xpos, ypos, width, height, root=None, classname=None, bg=WHITE, relief=FLAT, fg=BLACK, textvariable=None, pady=None, font=("Avenir Next Medium", 16)):
         classname = classname.lower().replace(" ", "")

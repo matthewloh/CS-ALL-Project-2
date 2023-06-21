@@ -1295,6 +1295,34 @@ def makeStructures():
     # emulate selecting an institution and returning a list of that institution's programmes
     ins = "IICP"
 
+def checkLecturerHours():
+    prisma.connect()
+    lecturer = prisma.lecturer.find_first(
+        where={
+            "userProfile": {
+                "is": {
+                    "fullName": "Shyamala Nadarajan"
+                }
+            }
+        },
+        include={
+            "apptSettings": True,
+            "userProfile": True
+        }
+    )
+    # Time only string
+    # 10:00PM
+    timestrfmt = "%I:%M%p"
+    # print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
+    kualalumpur = timezone("Asia/Kuala_Lumpur")
+    for stg in lecturer.apptSettings:
+        starttime = kualalumpur.convert(stg.startTime)
+        endtime = kualalumpur.convert(stg.endTime)
+        print(f"Lecturer Name: {lecturer.userProfile.fullName}")
+        print(f"Day: {stg.day}")
+        print(f"Start Time: {starttime.strftime(timestrfmt)}")
+        print(f"End Time: {endtime.strftime(timestrfmt)}")
+        print(f"Location: {stg.location}")
 
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
@@ -1303,7 +1331,7 @@ if __name__ == "__main__":
     # prismaCreateProgramme()
     # prismaCreateLecturer()
     # prismaCreateStudent()
-    prismaqueryAll()
+    # prismaqueryAll()
     # prisQueryModuleEnrollment()
     # prisQueryUserProfile()
     # prisCreateMultipleModules()
@@ -1316,3 +1344,4 @@ if __name__ == "__main__":
     # queryModules()
     # uploadFiles()
     # makeStructures()
+    checkLecturerHours()
