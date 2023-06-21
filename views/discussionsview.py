@@ -972,8 +972,6 @@ class DiscussionsView(Canvas):
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
         )
-        gridGenerator(self.postscrolledframe, int(
-            840/20), rowspanofFrame, WHITE)
         self.postscrolledframe.grid_propagate(False)
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
         self.loadDiscussionTopics(postContentList)
