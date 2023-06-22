@@ -52,6 +52,7 @@ model Appointment {
   startTime    DateTime
   endTime      DateTime
   completedAt  DateTime?
+  description  String?   @db.Text
   editedAt     DateTime? @default(now())
   lectAccept   Boolean   @default(false)
   studAccept   Boolean   @default(false)

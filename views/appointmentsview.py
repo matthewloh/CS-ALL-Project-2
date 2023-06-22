@@ -62,6 +62,10 @@ class AppointmentsView(Canvas):
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
             classname="appointmentsmanage",
         )
+        self.apptCreateFrame = self.controller.frameCreator(
+            xpos=0, ypos=120, framewidth=1920, frameheight=800,
+            root=self.creationFrame, classname="apptcreateframe",
+        )
 
     def createElements(self):
         self.staticImgLabels = [
@@ -72,16 +76,18 @@ class AppointmentsView(Canvas):
             (r"Assets\AppointmentsView\appointmentcreationbg.png",
              0, 0, "appcreationbg", self.creationFrame),
             (r"Assets\AppointmentsView\appmanagebg.png",
-                0, 0, "appmanagebg", self.viewFrame),
+             0, 0, "appmanagebg", self.viewFrame),
+            (r"Assets\AppointmentsView\apptcreationframebg.png",
+             0, 0, "apptcreationframebg", self.apptCreateFrame),
         ]
         self.staticBtns = [
             (r"Assets\AppointmentsView\Create Appointment.png", 60, 600, "createappointmentbtn", self,
              lambda: self.loadAppCreation()),
             (r"Assets\AppointmentsView\manageappointments.png", 720, 600, "manageappointmentsbtn", self,
              lambda: self.loadAppView()),
-            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appcreateexitbtn", self.creationFrame,
+            (r"Assets\My Courses\exitbutton.png", 1820, 20, "appcreateexitbtn", self.creationFrame,
              lambda: self.unloadAppCreation()),
-            (r"Assets\My Courses\exitbutton.png", 1840, 0, "appviewexitbtn", self.viewFrame,
+            (r"Assets\My Courses\exitbutton.png", 1820, 20, "appviewexitbtn", self.viewFrame,
              lambda: self.unloadAppView()),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
@@ -215,7 +221,7 @@ class AppointmentsView(Canvas):
     def loadLecturerMenuBtns(self, modCode):
         for widgetname, widget in self.creationFrame.children.items():
             if not widgetname.startswith("!la"):
-                if widgetname in [""]:
+                if widgetname in ["lecturersaptmenuhostfr", "timeslotmenuhostfr"]:
                     widget.grid_remove()
         # reset variables
         for var in [self.lecturer, self.timeslot]:
@@ -237,7 +243,7 @@ class AppointmentsView(Canvas):
     def loadTimeslotMenuBtns(self, modCode, lecturer):
         for widgetname, widget in self.creationFrame.children.items():
             if not widgetname.startswith("!la"):
-                if widgetname in [""]:
+                if widgetname in ["timeslotmenuhostfr"]:
                     widget.grid_remove()
         # reset variables
         for var in [self.timeslot]:
@@ -274,12 +280,13 @@ class AppointmentsView(Canvas):
             apptStgTimes = []
             for apptStg in me.module.lecturer.apptSettings:
                 day = apptStg.day
+                location = apptStg.location
                 starttime = kualalumpur.convert(
                     apptStg.startTime).strftime(humanreadable)
                 endtime = kualalumpur.convert(
                     apptStg.endTime).strftime(humanreadable)
                 # 10:00AM - 11:00AM
-                formattedTime = f"{day}, {starttime} - {endtime}"
+                formattedTime = f"{day}, {starttime} - {endtime} at {location}"
                 apptStgTimes.append(formattedTime)
                 lecturerDict[f"{lecturer}"] = apptStgTimes
             self.moduleDict[f"{me.module.moduleCode} - {me.module.moduleTitle}"] = lecturerDict
@@ -312,19 +319,30 @@ class AppointmentsView(Canvas):
 
     def loadAllAppointments(self):
         prisma = self.prisma
-
+    def loadAppDetailsFrame(self):
+        buttonsList = [
+            (r"Assets\My Courses\exituploadsview.png", 1300, 40, "exitapptcreation",
+             self.apptCreateFrame, lambda: self.unloadAppCreationDetails()),
+        ]
+        self.controller.settingsUnpacker(buttonsList, "button")
+        self.apptCreateFrame.grid()
+        self.apptCreateFrame.tkraise()
     def loadAppCreation(self):
+        self.apptCreateFrame.grid_remove()
         self.creationFrame.grid()
         self.creationFrame.tkraise()
-        self.loadAllDetailsForCreation()
+        # self.loadAllDetailsForCreation()
         btnsettings = [
             (r"Assets\AppointmentsView\continuecreationbtn.png", 520, 740, "continuecreation", self.creationFrame,
-             lambda: print("helloo"))
+             lambda: self.loadAppDetailsFrame()),
         ]
         self.controller.settingsUnpacker(btnsettings, "button")
     # loads the confirmation screen.
+
     def unloadAppCreation(self):
         self.creationFrame.grid_remove()
+    def unloadAppCreationDetails(self):
+        self.apptCreateFrame.grid_remove()
 
     def loadAppView(self):
         self.viewFrame.grid()

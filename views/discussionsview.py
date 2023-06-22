@@ -164,6 +164,7 @@ class DiscussionsView(Canvas):
             
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
+            bootstyle="rounded"
         )
 
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
