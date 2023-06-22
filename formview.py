@@ -26,7 +26,8 @@ import bcrypt
 import pendulum
 from pendulum import timezone
 from nonstandardimports import *
-from PIL import Image, ImageTk, ImageSequence, ImageFont, ImageDraw
+from tkinter import filedialog
+
 load_dotenv()
 
 GetWindowLongPtrW = ctypes.windll.user32.GetWindowLongPtrW
@@ -1052,30 +1053,6 @@ class DashboardCanvas(Canvas):
         # print(f"User email:{user.email}")
         # print(f"User Details:\n{user.json(indent=2)}")
 
-class AnimatedStarButton(Canvas):
-    def __init__(self, parent):
-        Canvas.__init__(self, parent, width=54, height=50, bd=0,
-                        highlightthickness=0, relief="ridge")
-        self.parent = parent
-        self.is_yellow = False  # Tracks the state of the star button
-
-        # Load the star button images
-        self.yellow_star_image = PhotoImage(file="Assets/FavoritesView/yellowstar.png")
-        self.white_star_image = PhotoImage(file="Assets/FavoritesView/whitestar.png")
-
-        # Create a button with the white star image
-        self.star_button = self.create_image(30, 30, image=self.white_star_image,
-                                             tags="star_button")
-        self.tag_bind("star_button", "<Button-1>", self.toggle_star_color)
-
-    def toggle_star_color(self, event):
-        # Toggle the star color when the button is clicked
-        self.is_yellow = not self.is_yellow
-        if self.is_yellow:
-            self.itemconfigure(self.star_button, image=self.yellow_star_image)
-        else:
-            self.itemconfigure(self.star_button, image=self.white_star_image)
-
 class FavoritesView(Canvas):
     def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
@@ -1083,19 +1060,15 @@ class FavoritesView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, ORANGE)
-        self.staticImgs = [(r"Assets\FavoritesView\FavoritesViewBg.png", 0, 0, "favviewbg", self),]
+        self.name_entry = Entry(self)
+        self.name_entry.place(x=9, y=8)
+        self.name_entry.grid(row=60, column=10)
+        self.staticImgs = [(r"Assets\SearchView\background.png", 0, 0, "favviewbg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
-        im = r"Assets\FavoritesView\Button.png"
-        _text = "Lab Work 1 Answer" 
-        self.controller.textElement(imagepath=im, xpos=100, ypos=240, fg="#5975D7",
-            classname="exampleofawordelement", root=self, text=_text, size=34, font=INTERBOLD, 
-            buttonFunction=lambda: self.controller.widgetsDict["exampleofawordelement"].grid_remain()
-        )
+        
 
-        self.star_button = AnimatedStarButton(self)
-        self.star_button.place(x=1600, y=262)
-
+        
 
 def runGui():
     window = Window()

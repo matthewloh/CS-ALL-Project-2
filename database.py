@@ -858,6 +858,7 @@ def creatingmoduleenrollments():
     #     print(e)
     prisma.disconnect()
 
+
 def checkModuleEnrollMents():
     prisma.connect()
     moduleEnrollments = prisma.moduleenrollment.find_many(
@@ -871,7 +872,7 @@ def checkModuleEnrollMents():
                     }
                 }
             },
-            
+
         },
         include={
             "student": {
@@ -894,8 +895,8 @@ def checkModuleEnrollMents():
     for i in range(len(moduleEnrollments)):
         mod = moduleEnrollments[i]
         module = mod.module
-        #WHAT WE NEED TO KNOW TO RENDER THE ELEMENTS
-        # 1. 
+        # WHAT WE NEED TO KNOW TO RENDER THE ELEMENTS
+        # 1.
         print("Module Code:", module.moduleCode)
         print("Module Title:", module.moduleTitle)
         print("Module Description:", module.moduleDesc)
@@ -920,6 +921,8 @@ def checkModuleEnrollMents():
     #     except AttributeError:
     #         print("No student")
         # print(m.json(indent=2))
+
+
 def createAppointment():
     prisma.connect()
     prisma.appointment.delete_many()
@@ -1014,6 +1017,7 @@ def createAppointment():
     # print(appointment.endTime.strftime("%A %d %B %Y %H:%M:%S %z"))
     # print(appointment.json(indent=2))
 
+
 def createModulePost():
     prisma.connect()
     user = prisma.userprofile.find_first(
@@ -1067,6 +1071,8 @@ def createModulePost():
         }
     )
     print(f"Module Post:\n{modulepost3.json(indent=2)}\n")
+
+
 def queryPosts():
     prisma.connect()
     # module = prisma.module.find_first(
@@ -1166,6 +1172,7 @@ def queryPosts():
         print(kualalumpur.convert(post.editedAt))
         # print(f"Post:\n{post.json(indent=2)}\n")
 
+
 def queryModules():
     prisma.connect()
     test = prisma.module.update(
@@ -1236,13 +1243,15 @@ def queryModules():
     #         }
     #     }
     # )
-        # print(f"Module Posts:\n{module.modulePosts.json(indent=2)}\n")
-        # for post in module.modulePosts:
-        #     print(f"Post:\n{post.json(indent=2)}\n")
-        #     print(f"Replies:\n{post.replies.json(indent=2)}\n")
-        #     for reply in post.replies:
-        #         print(f"Reply:\n{reply.json(indent=2)}\n")
+    # print(f"Module Posts:\n{module.modulePosts.json(indent=2)}\n")
+    # for post in module.modulePosts:
+    #     print(f"Post:\n{post.json(indent=2)}\n")
+    #     print(f"Replies:\n{post.replies.json(indent=2)}\n")
+    #     for reply in post.replies:
+    #         print(f"Reply:\n{reply.json(indent=2)}\n")
     # print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
+
+
 def uploadFiles():
     prisma.connect()
     module = prisma.module.find_first(
@@ -1263,7 +1272,7 @@ def uploadFiles():
         }
     )
     # prisma.moduleupload.delete_many()
-    # data={ 
+    # data={
     #         "module": {
     #             "connect": {
     #                 "id": module.id
@@ -1304,6 +1313,42 @@ def uploadFiles():
     uploadedfile = prisma.moduleupload.find_many()
     for u in uploadedfile:
         print(f"Uploaded File:\n{u.json(indent=2)}\n")
+
+
+def makeStructures():
+    prisma.connect()
+    # emulate selecting an institution and returning a list of that institution's programmes
+    ins = "IICP"
+
+def checkLecturerHours():
+    prisma.connect()
+    lecturer = prisma.lecturer.find_first(
+        where={
+            "userProfile": {
+                "is": {
+                    "fullName": "Shyamala Nadarajan"
+                }
+            }
+        },
+        include={
+            "apptSettings": True,
+            "userProfile": True
+        }
+    )
+    # Time only string
+    # 10:00PM
+    timestrfmt = "%I:%M%p"
+    # print(f"Lecturer:\n{lecturer.json(indent=2)}\n")
+    kualalumpur = timezone("Asia/Kuala_Lumpur")
+    for stg in lecturer.apptSettings:
+        starttime = kualalumpur.convert(stg.startTime)
+        endtime = kualalumpur.convert(stg.endTime)
+        print(f"Lecturer Name: {lecturer.userProfile.fullName}")
+        print(f"Day: {stg.day}")
+        print(f"Start Time: {starttime.strftime(timestrfmt)}")
+        print(f"End Time: {endtime.strftime(timestrfmt)}")
+        print(f"Location: {stg.location}")
+
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1322,4 +1367,4 @@ if __name__ == "__main__":
     # createModulePost()
     # queryPosts()
     # queryModules()
-    # uploadFiles()
+    uploadFiles()

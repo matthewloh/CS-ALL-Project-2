@@ -19,26 +19,24 @@ model UserProfile {
   isAdmin       Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  // Relational Fields
-  // Single relationship
   lecturer      Lecturer[]
   student       Student[]
-  // One user can create many posts and many replies
   createdPosts  ModulePost[] @relation("CreatedPosts")
   favoritePosts ModulePost[]
   replies       Reply[]
 }
 
 model Lecturer {
-  id           String         @id @default(cuid())
-  tenure       Tenure         @default(FULLTIME)
+  id           String           @id @default(cuid())
+  tenure       Tenure           @default(FULLTIME)
   userId       String
   schoolId     String
-  userProfile  UserProfile    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProfile  UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
   modules      Module[]
-  school       School         @relation(fields: [schoolId], references: [id])
+  school       School           @relation(fields: [schoolId], references: [id])
   appointments Appointment[]
   uploads      ModuleUpload[]
+  apptSettings LecApptSetting[]
 
   @@index([schoolId])
   @@index([userId])
@@ -48,23 +46,52 @@ model Appointment {
   id           Int       @id @default(autoincrement())
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  editedAt     DateTime? @default(now())
-  // To identify who accepted the appointment
-  studAccept   Boolean   @default(false)
-  lectAccept   Boolean   @default(false)
-  studAcceptAt DateTime?
-  lectAcceptAt DateTime?
   isCompleted  Boolean   @default(false)
-  completedAt  DateTime?
+  title        String
   location     String
   startTime    DateTime
   endTime      DateTime
+  completedAt  DateTime?
+  description  String?   @db.Text
+  editedAt     DateTime? @default(now())
+  lectAccept   Boolean   @default(false)
+  studAccept   Boolean   @default(false)
+  lectAcceptAt DateTime?
+  studAcceptAt DateTime?
   studentId    String
   lecturerId   String
   student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   lecturer     Lecturer  @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
+  @@index([lecturerId])
+}
+
+enum Day {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// Essentially the consultation hours per lecturer for an academic semester
+// One lecturer can have many LecApptSetting
+// A lecturer will define the day of the week, start time, end time, location
+// Working with DateTime where year, month, day is not important
+model LecApptSetting {
+  id         Int      @id @default(autoincrement())
+  lecturerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  day        Day      @default(MONDAY)
+  startTime  DateTime
+  endTime    DateTime
+  location   String
+  lecturer   Lecturer @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+
   @@index([lecturerId])
 }
 
@@ -92,8 +119,8 @@ model Student {
   id           String             @id @default(cuid())
   session      Sessions           @default(APR2023)
   userId       String
-  userProfile  UserProfile        @relation(fields: [userId], references: [id], onDelete: Cascade)
   schoolId     String?
+  userProfile  UserProfile        @relation(fields: [userId], references: [id], onDelete: Cascade)
   school       School?            @relation(fields: [schoolId], references: [id])
   modules      ModuleEnrollment[]
   appointments Appointment[]
@@ -145,17 +172,16 @@ model Module {
 }
 
 model ModulePost {
-  id        Int       @id @default(autoincrement())
-  title     String
-  content   String?   @db.Text
-  moduleId  String
-  module    Module    @relation(fields: [moduleId], references: [id])
-  replies   Reply[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  editedAt  DateTime? @default(now())
-
+  id          Int           @id @default(autoincrement())
+  title       String
+  content     String?       @db.Text
+  moduleId    String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   authorId    String
+  editedAt    DateTime?     @default(now())
+  module      Module        @relation(fields: [moduleId], references: [id])
+  replies     Reply[]
   author      UserProfile   @relation("CreatedPosts", fields: [authorId], references: [id])
   favoritedBy UserProfile[]
 
@@ -163,44 +189,47 @@ model ModulePost {
   @@index([authorId])
 }
 
-enum UploadTypes {
-  IMG
-  VIDEO
-  PDF
-  LINK
-}
-
 model ModuleUpload {
-  id          Int         @id @default(autoincrement())
-  title       String
-  description String?
+  id          Int                     @id @default(autoincrement())
   url         String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  editedAt    DateTime?   @default(now())
-  uploadType  UploadTypes @default(LINK)
   moduleId    String
-  module      Module      @relation(fields: [moduleId], references: [id])
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
   uploaderId  String
-  uploader    Lecturer    @relation(fields: [uploaderId], references: [id])
+  editedAt    DateTime?               @default(now())
+  uploadType  ModuleUpload_uploadType @default(LINK)
+  description String?
+  title       String
+  blobData    Bytes?
+  module      Module                  @relation(fields: [moduleId], references: [id])
+  uploader    Lecturer                @relation(fields: [uploaderId], references: [id])
 
   @@index([moduleId])
   @@index([uploaderId])
 }
 
 model Reply {
-  replyId           Int         @id @default(autoincrement())
   content           String?     @db.Text
   modulePostId      Int
-  moduleDiscussions ModulePost  @relation(fields: [modulePostId], references: [id], onDelete: Cascade)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   authorId          String
-  author            UserProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replyId           Int         @id @default(autoincrement())
   editedAt          DateTime?   @default(now())
+  moduleDiscussions ModulePost  @relation(fields: [modulePostId], references: [id], onDelete: Cascade)
+  author            UserProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([modulePostId])
   @@index([authorId])
+}
+
+model ModulePostToUserProfile {
+  A Int
+  B String
+
+  @@unique([A, B], map: "_ModulePostToUserProfile_AB_unique")
+  @@index([B], map: "_ModulePostToUserProfile_B_index")
+  @@map("_ModulePostToUserProfile")
 }
 
 enum Tenure {
@@ -220,4 +249,12 @@ enum Sessions {
   AUG2023
   JAN2024
   APR2024
+}
+
+enum ModuleUpload_uploadType {
+  IMG
+  VIDEO
+  PDF
+  LINK
+  BLOB
 }
