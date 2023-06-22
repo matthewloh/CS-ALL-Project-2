@@ -65,6 +65,7 @@ model Appointment {
   @@index([studentId])
   @@index([lecturerId])
 }
+
 enum Day {
   MONDAY
   TUESDAY
@@ -74,6 +75,7 @@ enum Day {
   SATURDAY
   SUNDAY
 }
+
 // Essentially the consultation hours per lecturer for an academic semester
 // One lecturer can have many LecApptSetting
 // A lecturer will define the day of the week, start time, end time, location
@@ -88,7 +90,7 @@ model LecApptSetting {
   endTime    DateTime
   location   String
   lecturer   Lecturer @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
-  
+
   @@index([lecturerId])
 }
 

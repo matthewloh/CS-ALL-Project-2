@@ -96,6 +96,7 @@ class AppointmentsView(Canvas):
             prisma=self.prisma, userId=self.userId)
         print(f"In appointments view, {self.userId} ")
         print(appContentList)
+        self.loadAllDetailsForCreation()
 
     def loadLatestAppointments(self, prisma: Prisma = None, userId: str = None):
         if self.role == "lecturer":
@@ -321,7 +322,7 @@ class AppointmentsView(Canvas):
              lambda: print("helloo"))
         ]
         self.controller.settingsUnpacker(btnsettings, "button")
-
+    # loads the confirmation screen.
     def unloadAppCreation(self):
         self.creationFrame.grid_remove()
 
