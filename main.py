@@ -138,7 +138,7 @@ class Window(ElementCreator):
             if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in root.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text, ScrolledFrame, ScrolledText)) and not widgetname.startswith("!la"):
+            if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         try:
             for widgetname, widget in self.get_page(Dashboard).children.items():
@@ -1633,8 +1633,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    # runGui()
-    try:
-        runGuiThreaded()
-    except Exception as e:
-        print("sorry")
+    runGui()
+    # try:
+    #     runGuiThreaded()
+    # except Exception as e:
+    #     print("sorry")

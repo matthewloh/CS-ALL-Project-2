@@ -254,6 +254,7 @@ class ElementCreator(ttk.Window):
         self.widgetsDict[menubutton["menu"]] = menubtnmenu
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
+        
 
     def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*", captchavar = None):
         """
@@ -326,6 +327,7 @@ class ElementCreator(ttk.Window):
 
         self.widgetsDict[classname] = entry
         self.updateWidgetsDict(root=root)
+        return entry
 
     def textElement(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=FLAT, fg=BLACK, bg=WHITE, font=SFPRO, text=None, size=40, isPlaced=False, index=0, xoffset=0):
         classname = classname.replace(" ", "").lower()

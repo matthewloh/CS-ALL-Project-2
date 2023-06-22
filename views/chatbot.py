@@ -31,73 +31,206 @@ class Chatbot(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        self.staticImgLabels = [
-            (r"Assets\Chatbot\ChatbotBg.png", 0, 0, "ChatbotBgLabel", self),
-        ]
+        self.trackingNumber = IntVar()
+        self.trackingNumber.set(0)
+        self.createFrames()
+        self.createElements()
 
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        # self.webview2creator(xpos=60, ypos=140, framewidth=1800, frameheight=700,
-        #                                 root=self, classname="chatbotwebview2", url="http://localhost:5555/")
 
         self.engine = "gpt-3.5-turbo"
         self.encoding = tiktoken.encoding_for_model(self.engine)
         self.max_tokens = 3096
-        self.slice_index = 0
-        self.timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        self.filename = self.timestamp
-        self.search_window_attributes = {}
-        self.search_window = None
-        # inputbox
-        # focus inputbox
-        # welcome message of chatbot
-        message = "Hello, I am a chatbot. I am here to help you with your queries. Please type your query in the box below."
-        userPromptInfo = "Enter your preprompt, i.e: \"Be helpful\""
-        # A host is used to remove the currently loaded scrolled frame using grid_remove()
 
+        # self.messages = [
+        #     {'role': 'system', 'content': "You are an expert in specialized domains."}
+        # ]
+        self.messages = [
+            {'role': 'system', 'content': "You are a helpful assistant."},
+            # {'role': 'user', 'content': "What's 1+1? Answer in one word."},
+            # {'role': "assistant", "content": "Two."},
+            # {'role': "user", "content": "Excellent, I think you're ready to take over the world now."},
+        ]
+
+
+        self.mainentry = self.controller.ttkEntryCreator(
+            xpos=540, ypos=800, width=840, height=80,
+            root=self, classname="chatbotinputboxentry"
+        )
+        self.mainentry.bind(
+            "<Return>", lambda event: self.renderChat(self.messages)
+        )
+        self.mainentry = self.controller.widgetsDict["chatbotinputboxentry"]
+
+
+    def createFrames(self):
         self.controller.frameCreator(
             root=self, framewidth=1680, frameheight=680,
             classname="chatscrframehost", xpos=120, ypos=100, bg=NICEBLUE
         )
         self.scrolledframehost = self.controller.widgetsDict["chatscrframehost"]
-        self.currentPairs = IntVar()
-        self.currentPairs.set(1)  # for the first pair of inputs
-        heightOfFrame = (self.currentPairs.get()) * 220
+
+    def createElements(self):
+        self.staticImgLabels = [
+            (r"Assets\Chatbot\ChatbotBg.png", 0, 0, "ChatbotBgLabel", self),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
+        self.staticBtns = [
+            (r"Assets\Chatbot\sendmessage.png", 1420, 800, "sendChatBtn",
+             self, lambda: self.renderChat(self.messages)),
+            (r"Assets\Chatbot\resetchatbtn.png", 880, 0, "resetChatBtn",
+             self, lambda: self.resetChat()),
+        ]
+        self.controller.settingsUnpacker(self.staticBtns, "button")
+        self.scrolledframehost.tkraise()
+        heightOfFrame = (self.trackingNumber.get()) * 220
         if heightOfFrame < 640:
             heightOfFrame = 640
         self.mainScrolledFrame = ScrolledFrame(
-            self.scrolledframehost, width=1, height=heightOfFrame, name="conversationframe",
-            autohide=True, bootstyle=PRIMARY, padding=0
+            self.scrolledframehost, width=1600, height=heightOfFrame, name="conversationframe",
+            autohide=True, bootstyle="primary-round", padding=0
         )
         self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
-        # self.controller.labelCreator(
-        #     imagepath=r"Assets\DiscussionsView\scrolledframebg.png", xpos=0, ypos=0,
-        #     classname="chatbotfrbg", root=self.mainScrolledFrame, isPlaced=True
-        # )       
-        # self.botwelcome = self.scrolledTextCreator(
-        #     xpos=340, ypos=0, width=1000, height=200, bootstyle=WARNING,
-        #     root=self.mainScrolledFrame, classname=f"botwelcome", isPlaced=True,
-        # )
-
-        # self.botwelcome.text.insert("end", message)
-        # self.userInfo.text.insert("end", userPromptInfo)
-        self.controller.ttkEntryCreator(
-            xpos=540, ypos=800, width=840, height=80,
-            root=self, classname="chatbotinputboxentry"
+        
+        self.scrollingVar = IntVar()
+        self.scrollingVar.set(0)
+        self.scrollingToggle = ttk.Checkbutton(
+            master=self, variable=self.scrollingVar, onvalue=1, offvalue=0,
+            command=lambda: self.toggleScrollingDown(), width=300, compound="text",
+            bootstyle="danger-round-toggle", text="Click to toggle forced scrolling down"
         )
-        inputentry = self.controller.widgetsDict["chatbotinputboxentry"]
-        self.staticBtns = [
-            (r"Assets\Chatbot\sendmessage.png", 1420, 800, "sendChatBtn",
-             self, lambda: self.testFrontEnd(int(inputentry.get()))),
+        self.scrollingToggle.place(x=1520, y=20, width=300, height=40)
+  
+    def resetChat(self):
+        self.messages.clear()
+
+        self.messages = [
+            {'role': 'system', 'content': "You are a helpful assistant."},
         ]
-     
-        self.controller.settingsUnpacker(self.staticBtns, "button")
-
-    def apiCall(self, engine, history):
-        return openai.ChatCompletion.create(
-            engine=engine,
-            messages=history,
-            stream=True,
+        self.scrolledframehost.tkraise()
+        self.mainScrolledFrame = ScrolledFrame(
+            self.scrolledframehost, width=1600, height=640, name="conversationframe",
+            autohide=True, bootstyle="primary-round", padding=0
         )
+        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
+    def incrementTrackingNumber(self):
+        self.trackingNumber.set(self.trackingNumber.get() + 1)
+        heightOfFrame = (self.trackingNumber.get()) * 220
+        if heightOfFrame < 640:
+            heightOfFrame = 640
+        self.scrolledframehost.tkraise()
+        self.mainScrolledFrame = ScrolledFrame(
+            self.scrolledframehost, width=1600, height=heightOfFrame, name="conversationframe",
+            autohide=True, bootstyle="primary-round", padding=0
+        )
+        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
+    """
+    example conversation:
+    messages = [
+        {'role': 'system', 'content': "You are a helpful assistant."},
+        {'role': 'user', 'content': "What's 1+1? Answer in one word."},
+        {'role': "assistant", "content": "Two."},
+        {'role': "user", "content": "Excellent, I think you're ready to take over the world now."},
+    ]
+    # Example of an OpenAI ChatCompletion request with stream=False
+    response = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo',
+        messages=messages,
+        stream=False # this is the default, but we set it explicitly here
+    )
+    return
+    helper functions to write:
+    def update_chat(messageslist, role, content):
+        messageslist.append({'role': role, 'content': content})
+        return messageslist
+    
+    def get_chatgpt_response(messages):
+        response = openai.ChatCompletion.create(
+            model='gpt-3.5-turbo',
+            messages=messages,
+        )
+        return response['choices'][0]['message']['content']
+
+    initializing a predefined list of messages:
+    # preprompt is accessed using messages[-1]
+    messages = [
+        {'role': 'system', 'content': "You are a helpful assistant."},
+    ]
+        
+    the flow of the chat should be: 
+    user_input = self.mainentry.get()
+    messages = update_chat(messages, 'user', user_input)
+    gpt_response = get_chatgpt_response(messages)
+    messages = update_chat(messages, 'assistant', gpt_response)
+    self.mainentry.delete(0, END)
+
+    send this messages to a renderChat function that takes in the list of dictionaries and renders them
+    according to the role of the message
+    """
+    def api_Call(self, engine, history):
+        response = openai.ChatCompletion.create(
+            model=engine,
+            messages=history,
+        )
+        return response['choices'][0]['message']['content']
+    def api_CallStream(self, engine, history):
+        response = openai.ChatCompletion.create(
+            model=engine,
+            messages=history,
+            stream=True
+        )
+        return response['choices'][0]['message']['content']
+    def renderChatStream(self, messages: list):
+        initCoords = (340, 20)
+        messages.append({'role': 'user', 'content': self.mainentry.get()})
+        streamedResponse = self.api_CallStream(self.engine, messages)
+        # Create variables to collect the stream of chunks
+        collected_chunks = []
+        collected_messages = []
+        # Iterate over the stream of events
+        for chunk in streamedResponse:
+            collected_chunks.append(chunk) # save the event response
+            chunk_message = chunk['choices'][0]['delta'] # extract the message
+            collected_messages.append(chunk_message) # save the message
+    def renderChat(self, messages: list):
+        # messages = [
+        #     {'role': 'system', 'content': "You are a helpful assistant."},
+        # ]
+        messages.append({'role': 'user', 'content': self.mainentry.get()})
+        # messages.append({'role': 'assistant', 'content': "Thinking..."})
+        # messages.append({'role': 'user', 'content': "Hurry up!"})
+        print(messages)
+        self.mainentry.delete(0, END)
+        gpt_response = self.api_Call(self.engine, messages)
+        messages.append({'role': 'assistant', 'content': gpt_response})
+        heightOfFrame = (len(messages) - 1) * 220 + 20
+        if heightOfFrame < 640:
+            heightOfFrame = 640
+        self.mainScrolledFrame.config(height=heightOfFrame)
+        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
+        fr = self.mainScrolledFrame
+        initCoords = (340, 20)
+        # iterate over the list of dictionaries
+        for message in messages:
+            role = message['role']
+            content = message['content']
+            if role != "system":
+                if role == "user":
+                    st = self.scrolledTextCreator(
+                        xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+                        root=fr, classname=f"message", isPlaced=True, bootstyle=INFO
+                    )
+                    st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
+                elif role == "assistant":
+                    st = self.scrolledTextCreator(
+                        xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+                        root=fr, classname=f"message", isPlaced=True, bootstyle=WARNING
+                    )
+                    st.text.config(fg=BLACK, font=("Arial", 16, "bold"))
+                st.text.insert(END, content)
+                st.text.config(state=DISABLED)
+                initCoords = (initCoords[0], initCoords[1] + 220)
+
+   
     """
     # Example of an OpenAI ChatCompletion request with stream=True
     # https://platform.openai.com/docs/guides/chat
@@ -193,40 +326,85 @@ class Chatbot(Canvas):
                 print(f"result: {result}")
         print(collected_messages)
         content.append(openAIresponse["choices"][0]["message"]["content"])
-    def testFrontEnd(self, numofinputs: int):
+    
+    def toggleScrollingDown(self):
+        def scrollDown():
+            if self.scrollingVar.get() == 1:
+                self.mainScrolledFrame.yview("moveto", 1.0)
+                self.mainScrolledFrame.after(100, scrollDown)
+            else:
+                return
+        scrollDown()
+
+    def testFrontEnd(self, numofinputs: int, userInput:str):
         # REPLIES
         # starting coordinates
-        self.currentPairs.set(1)
         # self.currentPairs.set(self.currentPairs.get() + pairsofinputs)
         # heightOfFrame = (self.currentPairs.get()) * 440 - (pairsofinputs * 100)
-        heightOfFrame = (1 + numofinputs) * 220 + 20
+        # initialize variables for inputs and nvm
+        # self.history =
+        heightOfFrame = (1 + numofinputs) * 440 + 20
         if heightOfFrame < 640:
             heightOfFrame = 640
-        print(heightOfFrame)
-        self.mainScrolledFrame.destroy()
-        self.mainScrolledFrame = ScrolledFrame(
-            self.scrolledframehost, width=1, height=heightOfFrame, name="conversationframe",
-            autohide=True, bootstyle=PRIMARY, padding=0
-        )
-        self.userInfo = self.scrolledTextCreator(
-            xpos=340, ypos=20, width=1000, height=200, bootstyle=SECONDARY,
-            root=self.mainScrolledFrame, classname=f"userprompt", isPlaced=True,
-        )
+        # self.mainScrolledFrame.destroy()
+        self.mainScrolledFrame.config(height=heightOfFrame)
+        # self.userInfo = self.scrolledTextCreator(
+        #     xpos=340, ypos=20, width=1000, height=200, bootstyle=SECONDARY,
+        #     root=self.mainScrolledFrame, classname=f"userprompt", isPlaced=True,
+        # )
         self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
         # self.botwelcome.text.insert("end", "Hello, I am a chatbot. I am here to help you with your queries. Please type your query in the box below.")
         # self.userInfo.text.insert("end", "Enter your preprompt, i.e: \"Be helpful\"")
         fr = self.mainScrolledFrame
-        replyCoordinates = (340, 240)
-        replyCounter = 0
-        #first reply is from the bot
-        replymsg = "Bot reply 1"
-        for i in range(numofinputs):
-            st = self.scrolledTextCreator(
-                xpos=replyCoordinates[0], ypos=replyCoordinates[1], width=1000, height=200,
-                root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
-            )
-            st.text.insert("end", f"Chatbot reply {i+1}")
-            replyCoordinates = (replyCoordinates[0], replyCoordinates[1] + 220)
+        replyCoordinates = (340, 20)
+        # Emulate alternating replies
+        print(f"numofinputs: {numofinputs}")
+        # reply coordinates = (340, numofinputs * 440 + 20)
+        i = numofinputs
+        st = self.scrolledTextCreator(
+            xpos=replyCoordinates[0], ypos=replyCoordinates[1], width=1000, height=200,
+            root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
+        )
+        
+        st.text.insert("end", userInput)
+        botSt = self.scrolledTextCreator(
+            xpos=replyCoordinates[0], ypos=replyCoordinates[1] + 220, width=1000, height=200,
+            root=fr, classname=f"openaireply{i}", isPlaced=True,
+        )
+        botSt.text.insert("end", f"OpenAI reply {i + 1}")
+
+        replyCoordinates = (replyCoordinates[0], replyCoordinates[1] + 440)
+        self.messages.append((st.text.get("1.0", "end-1c"), botSt.text.get("1.0", "end-1c")))
+        # self.controller.updateWidgetsDict(fr)
+        self.controller.updateWidgetsDict(st)
+        self.controller.updateWidgetsDict(botSt)
+        # for i in range(numofinputs + 1):
+        #     st = self.scrolledTextCreator(
+        #         xpos=replyCoordinates[0], ypos=replyCoordinates[1], width=1000, height=200,
+        #         root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
+        #     )
+            
+        #     st.text.insert("end", userInput)
+        #     botSt = self.scrolledTextCreator(
+        #         xpos=replyCoordinates[0], ypos=replyCoordinates[1] + 220, width=1000, height=200,
+        #         root=fr, classname=f"openaireply{i}", isPlaced=True,
+        #     )
+        #     botSt.text.insert("end", f"OpenAI reply {i + 1}")
+
+        #     replyCoordinates = (replyCoordinates[0], replyCoordinates[1] + 440)
+        #     self.messages.append((st.text.get("1.0", "end-1c"), botSt.text.get("1.0", "end-1c")))
+        #     # self.controller.updateWidgetsDict(fr)
+        #     self.controller.updateWidgetsDict(st)
+        #     self.controller.updateWidgetsDict(botSt)
+        for num, value in list(enumerate(self.messages, 1)):
+            print(f"num: {num}, value: {value}")
+        print(self.messages)
+
+
+        # set the view to the very bottom of the frame
+        # self.mainScrolledFrame.yview("moveto", 1.0)
+        # increment the number of pairs
+        self.trackingNumber.set(self.trackingNumber.get() + 1)
         # for i in range(0, pairsofinputs):
         #     st1 = self.scrolledTextCreator(
         #         xpos=340, ypos=yposBotReply, width=1000, height=200,
@@ -262,26 +440,10 @@ class Chatbot(Canvas):
         # # newHeight = int(heightIndex / 20)
         # # fr.grid(rowspan=newHeight, sticky=NSEW)
         # # gridGenerator(fr.container, int(1680/20), newHeight, "#56cc9d")
-        # # inputentry = self.controller.widgetsDict["chatbotinputboxentry"]
-        # # inputentry.delete(0, END)
-        # # inputentry.insert(0, "")
-        # # inputentry.tk.call("focus", inputentry._w)
-
-    def api_call(user_response):
-        # https://platform.openai.com/docs/api-reference/models
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_response},
-            ],
-            stream=True,
-            max_tokens=512,
-        )
-        print(completion)
-        bot_response = completion.choices[0].message.content
-        print(bot_response)
-        return bot_response
+        # # mainentry = self.controller.widgetsDict["chatbotinputboxentry"]
+        # # mainentry.delete(0, END)
+        # # mainentry.insert(0, "")
+        # # mainentry.tk.call("focus", mainentry._w)
 
     def scrolledTextCreator(self,
                             xpos=0, ypos=0, width=0, height=0,
