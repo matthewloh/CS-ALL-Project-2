@@ -297,7 +297,7 @@ class FavoritesView(Canvas):
         self.parent = parent
         gridGenerator(self, 96, 46, ORANGE)
         self.staticImgs = [
-            (r"Assets\FavoritesView\FavoritesViewBg.png", 0, 0, "favviewbg", self),]
+            (r"Assets\FavoritesView\FavoritesView.png", 0, 0, "favviewbg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
         self.scrolledframe = ScrolledFrame(
