@@ -1052,29 +1052,6 @@ class DashboardCanvas(Canvas):
         # print(f"User email:{user.email}")
         # print(f"User Details:\n{user.json(indent=2)}")
 
-class AnimatedStarButton(Canvas):
-    def __init__(self, parent):
-        Canvas.__init__(self, parent, width=54, height=50, bd=0,
-                        highlightthickness=0, relief="ridge")
-        self.parent = parent
-        self.is_yellow = False  # Tracks the state of the star button
-
-        # Load the star button images
-        self.yellow_star_image = PhotoImage(file="Assets/FavoritesView/yellowstar.png")
-        self.white_star_image = PhotoImage(file="Assets/FavoritesView/whitestar.png")
-
-        # Create a button with the white star image
-        self.star_button = self.create_image(30, 30, image=self.white_star_image,
-                                             tags="star_button")
-        self.tag_bind("star_button", "<Button-1>", self.toggle_star_color)
-
-    def toggle_star_color(self, event):
-        # Toggle the star color when the button is clicked
-        self.is_yellow = not self.is_yellow
-        if self.is_yellow:
-            self.itemconfigure(self.star_button, image=self.yellow_star_image)
-        else:
-            self.itemconfigure(self.star_button, image=self.white_star_image)
 
 class FavoritesView(Canvas):
     def __init__(self, parent, controller: Window):
@@ -1083,20 +1060,36 @@ class FavoritesView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, ORANGE)
-        self.staticImgs = [(r"Assets\FavoritesView\FavoritesViewBg.png", 0, 0, "favviewbg", self),]
+        self.staticImgs = [(r"Assets\FavoritesView\FavoritesView.png", 0, 0, "favviewbg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
-        im = r"Assets\FavoritesView\Button.png"
-        _text = "Lab Work 1 Answer" 
-        self.controller.textElement(imagepath=im, xpos=100, ypos=240, fg="#5975D7",
-            classname="exampleofawordelement", root=self, text=_text, size=34, font=INTERBOLD, 
-            buttonFunction=lambda: self.controller.widgetsDict["exampleofawordelement"].grid_remain()
+        self.scrolledframe = ScrolledFrame(
+            master=self, width=1680, height=580, autohide=True, bootstyle="bg-round"
         )
-
-        self.star_button = AnimatedStarButton(self)
-        self.star_button.place(x=1600, y=262)
-
-
+        self.scrolledframe.place(x = 120, y = 260, width = 1680, height = 580)
+        textElementArgs = [
+            # (imagepath, xpos, ypos, classname, root,
+            # text, fg, font, size,
+            # buttonFunction if any else None)
+            (r"Assets\FavoritesView\Button.png", 5, 20, "exampleofawordelement", self.scrolledframe,
+             "Test post 1 ", "#000000", INTER, 34,
+             lambda: print('test')
+             )
+        ]
+        # Calculates the number of post, if heightofFrame needs to exceed 580:
+        heightofFrame = len(textElementArgs) * 140
+        if heightofFrame < 580:
+            heightofFrame = 580
+        self.scrolledframe.config(height=heightofFrame)
+        for ip, x, y, cn, r, t, fg, f, s, bf in textElementArgs:
+            self.controller.textElement(
+                imagepath=ip, xpos=x, ypos=y, classname=f"{cn}{y}", root=r,
+                text=t, fg=fg, font=f,
+                size=s, buttonFunction=bf,
+                isPlaced = True
+            )
+        
+       
 def runGui():
     window = Window()
     window.mainloop()
