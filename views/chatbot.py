@@ -166,12 +166,7 @@ class Chatbot(Canvas):
     send this messages to a renderChat function that takes in the list of dictionaries and renders them
     according to the role of the message
     """
-    def api_Call(self, engine, history):
-        response = openai.ChatCompletion.create(
-            model=engine,
-            messages=history,
-        )
-        return response['choices'][0]['message']['content']
+
     def api_CallStream(self, engine, history):
         response = openai.ChatCompletion.create(
             model=engine,
@@ -191,28 +186,34 @@ class Chatbot(Canvas):
             collected_chunks.append(chunk) # save the event response
             chunk_message = chunk['choices'][0]['delta'] # extract the message
             collected_messages.append(chunk_message) # save the message
+
+    def api_Call(self, engine, history):
+        response = openai.ChatCompletion.create(
+            model=engine,
+            messages=history,
+        )
+        # print(response)
+        return response['choices'][0]['message']['content']
     def renderChat(self, messages: list):
         # messages = [
         #     {'role': 'system', 'content': "You are a helpful assistant."},
         # ]
+        # messages is a list of dictionaries initialized in __init__
+        # it's an attribute for the entire class
+        # passing in self.messages as the argument for this function
         messages.append({'role': 'user', 'content': self.mainentry.get()})
-        # messages.append({'role': 'assistant', 'content': "Thinking..."})
-        # messages.append({'role': 'user', 'content': "Hurry up!"})
-        print(messages)
+        print(f"Messages before API call: {messages}")
         self.mainentry.delete(0, END)
-        gpt_response = self.api_Call(self.engine, messages)
-        messages.append({'role': 'assistant', 'content': gpt_response})
-        heightOfFrame = (len(messages) - 1) * 220 + 20
+        heightOfFrame = (len(messages)) * 220 + 20
         if heightOfFrame < 640:
             heightOfFrame = 640
         self.mainScrolledFrame.config(height=heightOfFrame)
-        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
         fr = self.mainScrolledFrame
         initCoords = (340, 20)
-        # iterate over the list of dictionaries
-        for message in messages:
-            role = message['role']
-            content = message['content']
+        # iterate over previous list of dictionaries
+        for msgDict in messages:
+            role = msgDict['role']
+            content = msgDict['content']
             if role != "system":
                 if role == "user":
                     st = self.scrolledTextCreator(
@@ -223,12 +224,54 @@ class Chatbot(Canvas):
                 elif role == "assistant":
                     st = self.scrolledTextCreator(
                         xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
-                        root=fr, classname=f"message", isPlaced=True, bootstyle=WARNING
+                        root=fr, classname=f"message",
+                        isPlaced=True, bootstyle=SECONDARY
                     )
-                    st.text.config(fg=BLACK, font=("Arial", 16, "bold"))
+                    st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
                 st.text.insert(END, content)
                 st.text.config(state=DISABLED)
                 initCoords = (initCoords[0], initCoords[1] + 220)
+        
+        gpt_response = self.api_Call(self.engine, messages)
+        messages.append({'role': 'assistant', 'content': gpt_response})
+        heightOfFrame = (len(messages)) * 220 + 20
+        if heightOfFrame < 640:
+            heightOfFrame = 640
+        self.mainScrolledFrame.config(height=heightOfFrame)
+        print(f"Messages after API call: {messages}")
+        # get the last message, which is the gpt_response
+        lastMessageDict = messages[-1]
+        lastMessageRole = lastMessageDict['role']
+        lastMessageContent = lastMessageDict['content']
+        if lastMessageRole == "assistant":
+            st = self.scrolledTextCreator(
+                xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+                root=fr, classname=f"message", isPlaced=True, bootstyle=SECONDARY
+            )
+            st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
+            st.text.insert(END, lastMessageContent)
+            st.text.config(state=DISABLED)
+        # resize the scrolledframe to fit the number of messages
+        # iterate over the list of dictionaries
+        # for msgDict in messages:
+        #     role = msgDict['role']
+        #     content = msgDict['content']
+        #     if role != "system":
+        #         if role == "user":
+        #             st = self.scrolledTextCreator(
+        #                 xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+        #                 root=fr, classname=f"message", isPlaced=True, bootstyle=INFO
+        #             )
+        #             st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
+        #         elif role == "assistant":
+        #             st = self.scrolledTextCreator(
+        #                 xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+        #                 root=fr, classname=f"message", isPlaced=True, bootstyle=WARNING
+        #             )
+        #             st.text.config(fg=BLACK, font=("Arial", 16, "bold"))
+        #         st.text.insert(END, content)
+        #         st.text.config(state=DISABLED)
+        #         initCoords = (initCoords[0], initCoords[1] + 220)
 
    
     """
