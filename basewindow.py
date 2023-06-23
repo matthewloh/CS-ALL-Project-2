@@ -329,7 +329,7 @@ class ElementCreator(ttk.Window):
         self.updateWidgetsDict(root=root)
         return entry
 
-    def textElement(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=FLAT, fg=BLACK, bg=WHITE, font=SFPRO, text=None, size=40, isPlaced=False, index=0, xoffset=0):
+    def textElement(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=FLAT, fg=BLACK, bg=WHITE, font=SFPRO, text=None, size=40, isPlaced=False, yIndex=0, xoffset=0):
         classname = classname.replace(" ", "").lower()
         # ~~~ ADD TEXT TO IMAGE FUNCTIONS ~~~
         h = fg.lstrip("#")
@@ -341,7 +341,7 @@ class ElementCreator(ttk.Window):
         xcoord, ycoord = im.size
         # push the text to the right by xoffset pixels
         xcoord = im.size[0]/20 + xoffset*20
-        y_offset = size * index  # Vertical offset based on font size and index
+        y_offset = size * yIndex  # Vertical offset based on font size and index
         ycoord = ycoord/2 - (font.getbbox(text)[3]/2) + y_offset
         draw.text((xcoord, ycoord), text, font=font, fill=textcolor)
         self.imageDict[f"{classname}"] = ImageTk.PhotoImage(im)

@@ -202,9 +202,9 @@ class Chatbot(Canvas):
         # it's an attribute for the entire class
         # passing in self.messages as the argument for this function
         messages.append({'role': 'user', 'content': self.mainentry.get()})
-        print(f"Messages before API call: {messages}")
+        # print(f"Messages before API call: {messages}")
         self.mainentry.delete(0, END)
-        heightOfFrame = (len(messages)) * 220 + 20
+        heightOfFrame = (len(messages) - 1) * 220 + 20
         if heightOfFrame < 640:
             heightOfFrame = 640
         self.mainScrolledFrame.config(height=heightOfFrame)
@@ -231,16 +231,17 @@ class Chatbot(Canvas):
                 st.text.insert(END, content)
                 st.text.config(state=DISABLED)
                 initCoords = (initCoords[0], initCoords[1] + 220)
-        
+                print(f"Coordinates after iteration: {initCoords}")
         gpt_response = self.api_Call(self.engine, messages)
         messages.append({'role': 'assistant', 'content': gpt_response})
-        heightOfFrame = (len(messages)) * 220 + 20
+        heightOfFrame = (len(messages) - 1) * 220 + 20
         if heightOfFrame < 640:
             heightOfFrame = 640
         self.mainScrolledFrame.config(height=heightOfFrame)
-        print(f"Messages after API call: {messages}")
+        # print(f"Messages after API call: {messages}")
         # get the last message, which is the gpt_response
         lastMessageDict = messages[-1]
+        # print(f"Last message dict: {lastMessageDict}")
         lastMessageRole = lastMessageDict['role']
         lastMessageContent = lastMessageDict['content']
         if lastMessageRole == "assistant":
@@ -251,6 +252,7 @@ class Chatbot(Canvas):
             st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
             st.text.insert(END, lastMessageContent)
             st.text.config(state=DISABLED)
+        print(f"Coordinates after API call: {initCoords}")
         # resize the scrolledframe to fit the number of messages
         # iterate over the list of dictionaries
         # for msgDict in messages:

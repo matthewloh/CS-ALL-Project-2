@@ -252,6 +252,7 @@ class DiscussionsView(Canvas):
                     classname=f"post{postId}favoritestar", imagexpos=0, imageypos=0,
                     isPlaced=True, prisma=self.prisma, postId=postId, userId=self.userId,
                     isFavorited=True, postTitle=discussiontitle,
+                    resizeWidth=40, resizeHeight=40
                 )
             else:
                 AnimatedStarBtn(
@@ -262,6 +263,7 @@ class DiscussionsView(Canvas):
                     imagexpos=0, imageypos=0, isPlaced=True,
                     prisma=self.prisma, postId=postId, userId=self.userId,
                     postTitle=discussiontitle,
+                    resizeWidth=40, resizeHeight=40
                 )
             initialcoordinates = (
                 initialcoordinates[0], initialcoordinates[1] + 100)
