@@ -83,10 +83,10 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                 self.loadSignIn(),
-                 # self.show_frame(Dashboard),
-                 # self.show_canvas(DashboardCanvas),
-                 # self.get_page(Dashboard).loadSpecificAssets("student"),
+                #  self.loadSignIn(),
+                 self.show_frame(Dashboard),
+                 self.show_canvas(DashboardCanvas),
+                 self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -121,7 +121,7 @@ class Window(ElementCreator):
         ref = self.widgetsDict["postselectframebg"]
         ref.configure(image=self.loadedImgs[2])
         self.widgetsDict["backbutton"].grid_remove()
-        self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
+        # self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
 
         self.bind("<F11>", lambda e: self.togglethewindowbar())
 
@@ -138,7 +138,7 @@ class Window(ElementCreator):
             if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         for widgetname, widget in root.children.items():
-            if isinstance(widget, (Label, Button, Frame, Canvas, Entry, Text, ScrolledFrame, ScrolledText)) and not widgetname.startswith("!la"):
+            if isinstance(widget, widgettypes) and not widgetname.startswith("!la"):
                 self.widgetsDict[widgetname] = widget
         try:
             for widgetname, widget in self.get_page(Dashboard).children.items():
@@ -767,7 +767,7 @@ class UserForms(Frame):
     def loadReg(self, role):
         toast = ToastNotification(
             title="Please be patient",
-            message="We are loading the Registration Form :D",
+            message="We are loading the Registration Form for you",
             bootstyle=INFO,
         )
         toast.show_toast()
@@ -1160,6 +1160,7 @@ class UserForms(Frame):
             toast.show_toast()
             return
         self.controller.loadSignIn()
+    
     def validate_captcha(self, captcha: str):
         captchaToast = ToastNotification(
             title="Error",
@@ -1172,6 +1173,7 @@ class UserForms(Frame):
             captchaToast.show_toast()
             return False
         return True
+    
     def validate_password(self, password: str, confirmpassword: str):
         pwToast = ToastNotification(
             title="Error",
@@ -1199,7 +1201,7 @@ class UserForms(Frame):
         pwToast.message = msg
         pwToast.show_toast()
         return False
-
+   
     def validate_email(self, email: str, role:str):
         emailToast = ToastNotification(
             title="Error",
