@@ -212,7 +212,7 @@ class CourseView(Canvas):
         self.controller.settingsUnpacker(buttonsList, "button")
 
         self.defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
-        self.urlbar = self.controller.entryCreator(
+        self.urlbar = self.controller.ttkEntryCreator(
             xpos=820, ypos=120, width=980, height=40,
             root=self.viewUploadsFrame, classname=f"uploadssearchbar",
         )
