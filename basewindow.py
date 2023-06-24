@@ -97,7 +97,7 @@ class ElementCreator(ttk.Window):
                         rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         self.widgetsDict[classname].grid_propagate(False)
-        return self.widgetsDict[classname]
+        return button
 
     def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False, bg=WHITE):
         """
@@ -130,6 +130,7 @@ class ElementCreator(ttk.Window):
             label.grid(row=rowarg, column=columnarg,
                        rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
+        return label
 
     def frameCreator(self, xpos, ypos, framewidth, frameheight, root=None, classname=None, bg=LIGHTYELLOW, relief=FLAT, imgSettings=None):
         classname = classname.replace(" ", "").lower()
@@ -138,8 +139,8 @@ class ElementCreator(ttk.Window):
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
 
-        Frame(root, width=1, height=1, bg=bg, relief=relief, name=classname, autostyle=False,).grid(
-            row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        frame = Frame(root, width=1, height=1, bg=bg, relief=relief, name=classname, autostyle=False,)
+        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         if imgSettings:
             listofimages = list(enumerate(imgSettings))
@@ -159,7 +160,7 @@ class ElementCreator(ttk.Window):
                             classname=j[3],
                             root=widget,
                             buttonFunction=j[4])
-        return self.widgetsDict[classname]
+        return frame
 
     def entryCreator(self, xpos, ypos, width, height, root=None, classname=None, bg=WHITE, relief=FLAT, fg=BLACK, textvariable=None, pady=None, font=("Avenir Next Medium", 16)):
         classname = classname.lower().replace(" ", "")
@@ -168,13 +169,14 @@ class ElementCreator(ttk.Window):
         widthspan = int(width / 20)
         heightspan = int(height / 20)
         self.updateWidgetsDict(root=root)
-        Entry(root, bg=bg, relief=SOLID, font=font, fg=fg, width=1, name=classname, autostyle=False, textvariable=textvariable).grid(
+        entry = Entry(root, bg=bg, relief=SOLID, font=font, fg=fg, width=1, name=classname, autostyle=False, textvariable=textvariable)
+        entry.grid(
             row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW, pady=pady)
         self.updateWidgetsDict(root=root)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 widget.grid_propagate(False)
-        return self.widgetsDict[classname]
+        return entry
 
     def canvasCreator(self, xpos, ypos, width, height, root, classname=None, bgcolor=WHITE, imgSettings=None, relief=FLAT, isTransparent=False, transparentcolor=TRANSPARENTGREEN):
         classname = classname.lower().replace(" ", "")
@@ -184,8 +186,8 @@ class ElementCreator(ttk.Window):
         heightspan = int(height / 20)
         if imgSettings:
             listofimages = list(enumerate(imgSettings))
-        Canvas(root, bg=bgcolor, highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=classname, highlightthickness=0, autostyle=False
-               ).grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        canvas = Canvas(root, bg=bgcolor, highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=classname, highlightthickness=0, autostyle=False)
+        canvas.grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 gridGenerator(widget, widthspan, heightspan, bgcolor)
@@ -211,7 +213,7 @@ class ElementCreator(ttk.Window):
                             buttonFunction=j[4]
                         )
         self.updateWidgetsDict(root=root)
-        return self.widgetsDict[classname]
+        return canvas
 
     def menubuttonCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), text=None, variable=None, listofvalues=None, command=None):
         """
@@ -271,7 +273,7 @@ class ElementCreator(ttk.Window):
         heightspan = int(height / 20)
         # entrystyle = ttk.Style()
         # entrystyle.configure(f"{classname}.TEntry", font=font, background=bgcolor, foreground=WHITE)
-        self.frameCreator(xpos, ypos, width, height, root,
+        frame = self.frameCreator(xpos, ypos, width, height, root,
                           classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
         @validator
         def validateCaptcha(event):
@@ -296,12 +298,11 @@ class ElementCreator(ttk.Window):
             else:
                 return False
 
-        frameref = self.widgetsDict[f"{classname}hostfr"]
         themename = f"{str(root).split('.')[-1]}.TEntry"
         ttk.Style().configure(
             style=themename, font=font, background=NICEBLUE, foreground=BLACK,
         )
-        entry = ttk.Entry(frameref, bootstyle=PRIMARY,
+        entry = ttk.Entry(frame, bootstyle=PRIMARY,
                           name=classname, font=font, background=bgcolor)
         entry.grid(row=0, column=0, rowspan=heightspan,
                    columnspan=widthspan, sticky=NSEW)

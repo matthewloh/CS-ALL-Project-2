@@ -1285,9 +1285,10 @@ def uploadFiles():
     #         "module": True
     #     }
     # )
-    uploadedfile = prisma.moduleupload.find_many()
-    for u in uploadedfile:
-        print(f"Uploaded File:\n{u.json(indent=2)}\n")
+    uploadedfile = prisma.moduleupload.create()
+    # uploadedfile = prisma.moduleupload.find_many()
+    # for u in uploadedfile:
+    #     print(f"Uploaded File:\n{u.json(indent=2)}\n")
 
 
 def makeStructures():
@@ -1342,6 +1343,6 @@ if __name__ == "__main__":
     # createModulePost()
     # queryPosts()
     # queryModules()
-    # uploadFiles()
+    uploadFiles()
     # makeStructures()
-    checkLecturerHours()
+    # checkLecturerHours()

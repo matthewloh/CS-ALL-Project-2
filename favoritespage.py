@@ -257,7 +257,7 @@ class DashboardCanvas(Canvas):
         # for k, v in data.items():
         #     print(f"{k}:{v}")
         favoritesview = self.controller.widgetsDict["favoritesview"]
-        favoritesview.postLogin(data)
+        # favoritesview.postLogin(data)
         # print(f"User email:{user.email}")
         # print(f"User Details:\n{user.json(indent=2)}")
 
