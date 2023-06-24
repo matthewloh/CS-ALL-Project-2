@@ -30,6 +30,7 @@ class CourseView(Canvas):
 
     def postLogin(self, data: dict, prisma: Prisma = None):
         # print("The data is", data)
+        self.prisma = prisma
         modules = data["modules"]
         self.role = data["role"]
         if self.role == "student":
@@ -67,7 +68,6 @@ class CourseView(Canvas):
             # lecturer specific functions here like show student info
             # and upload course files and upload schedule
             self.loadcoursebuttons(modulecodes)
-        self.prisma = prisma
 
     def loadcoursebuttons(self, modulecodes: list = None):
         # print(f"The modulecodes list is {modulecodes}")
@@ -141,9 +141,13 @@ class CourseView(Canvas):
              self.viewUploadsFrame, lambda:[
                  self.exitUploadsView(),
                  self.focus_force()]),
+            (r"Assets\My Courses\uploaditembtn.png", 420, 20, "uploaditembtn",
+            self.viewUploadsFrame, lambda:[
+                self.loadUploadPage()])
         ]
 
         self.controller.settingsUnpacker(buttonsList, "button")
+        self.controller.widgetsDict["uploaditembtn"].grid_remove()
         coursecode = coursecode.lower()
         staticBtns = ["checkschedule", "gotolearninghub",
                       "viewcoursefiles", "exitbutton"]
@@ -231,12 +235,16 @@ class CourseView(Canvas):
                                 url=self.defaulturl)
         self.webview.grid(row=row, column=col, rowspan=h,
                           columnspan=w, sticky=NSEW)
-
+    def loadUploadPage(self):
+        print("Loading upload page")
+        pass
     def loadModuleUploadsView(self, modulecode):
         self.viewUploadsFrame.grid()
         self.viewUploadsFrame.tkraise()
         self.urlbar.delete(0, END)
         self.urlbar.insert(0, f"{self.defaulturl}")
+        if self.role == "lecturer":
+            self.controller.widgetsDict["uploaditembtn"].grid()
         self.initializeWebView()
         toast = ToastNotification(
             title="Focus automatically regained",
@@ -288,15 +296,10 @@ class CourseView(Canvas):
         )
         h = len(uploads) * 100 + 40
         if h <= 640:
-            rspan = int(640/20)
-        else:
-            rspan = int(h/20)
-
+            h = 640
         self.upframe = ScrolledFrame(
             self.viewUploadsFrame, width=760, height=h, autohide=True,
         )
-        gridGenerator(self.upframe, int(760/20), rspan, WHITE)
-        self.upframe.grid_propagate(False)
         self.upframe.place(x=40, y=120, width=760, height=640)
         startx = 20
         starty = 40

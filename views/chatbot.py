@@ -31,125 +31,464 @@ class Chatbot(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-        self.staticImgLabels = [
-            (r"Assets\Chatbot\ChatbotBg.png", 0, 0, "ChatbotBgLabel", self),
-        ]
+        self.trackingNumber = IntVar()
+        self.trackingNumber.set(0)
+        self.createFrames()
+        self.createElements()
 
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        # self.webview2creator(xpos=60, ypos=140, framewidth=1800, frameheight=700,
-        #                                 root=self, classname="chatbotwebview2", url="http://localhost:5555/")
 
         self.engine = "gpt-3.5-turbo"
         self.encoding = tiktoken.encoding_for_model(self.engine)
         self.max_tokens = 3096
-        self.slice_index = 0
-        self.timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        self.filename = self.timestamp
-        self.search_window_attributes = {}
-        self.search_window = None
-        # inputbox
-        # focus inputbox
-        # welcome message of chatbot
-        message = "Hello, I am a chatbot. I am here to help you with your queries. Please type your query in the box below."
-        userPromptInfo = "Enter your preprompt, i.e: \"Be helpful\""
 
-        self.botwelcome = self.scrolledTextCreator(
-            xpos=180, ypos=120, width=720, height=200,
-            root=self, classname=f"botwelcome",
-        )
-        self.userInfo = self.scrolledTextCreator(
-            xpos=1020, ypos=260, width=720, height=200,
-            root=self, classname=f"userprompt",
-        )
+        # self.messages = [
+        #     {'role': 'system', 'content': "You are an expert in specialized domains."}
+        # ]
+        self.messages = [
+            {'role': 'system', 'content': "You are a helpful assistant."},
+            # {'role': 'user', 'content': "What's 1+1? Answer in one word."},
+            # {'role': "assistant", "content": "Two."},
+            # {'role': "user", "content": "Excellent, I think you're ready to take over the world now."},
+        ]
 
-        # expand the mainscrolledframe
-        self.botwelcome.text.insert("end", message)
-        self.userInfo.text.insert("end", userPromptInfo)
-        self.controller.ttkEntryCreator(
+
+        self.mainentry = self.controller.ttkEntryCreator(
             xpos=540, ypos=800, width=840, height=80,
             root=self, classname="chatbotinputboxentry"
         )
-        inputentry = self.controller.widgetsDict["chatbotinputboxentry"]
+        self.mainentry.bind(
+            "<Return>", lambda event: self.renderChat(self.messages)
+        )
+        self.mainentry = self.controller.widgetsDict["chatbotinputboxentry"]
+
+
+    def createFrames(self):
+        self.controller.frameCreator(
+            root=self, framewidth=1680, frameheight=680,
+            classname="chatscrframehost", xpos=120, ypos=100, bg=NICEBLUE
+        )
+        self.scrolledframehost = self.controller.widgetsDict["chatscrframehost"]
+
+    def createElements(self):
+        self.staticImgLabels = [
+            (r"Assets\Chatbot\ChatbotBg.png", 0, 0, "ChatbotBgLabel", self),
+        ]
+        self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.staticBtns = [
             (r"Assets\Chatbot\sendmessage.png", 1420, 800, "sendChatBtn",
-             self, lambda: self.testFrontEnd(int(inputentry.get()))),
+             self, lambda: self.renderChat(self.messages)),
+            (r"Assets\Chatbot\resetchatbtn.png", 880, 0, "resetChatBtn",
+             self, lambda: self.resetChat()),
         ]
         self.controller.settingsUnpacker(self.staticBtns, "button")
-        self.currentPairs = IntVar()
-        self.currentPairs.set(1)  # for the first pair of inputs
-
-    def testFrontEnd(self, pairsofinputs: int):
-        # REPLIES
-        yposBotMsg = 20
-        yposUserMsg = 160
-        # a pair of responses 1 from chatbot and 1 from user
-        # chatbot on left, user on right
-        # the total combined height of the text of the chatbot and user is 340 pixels
-        self.currentPairs.set(1)
-        self.currentPairs.set(self.currentPairs.get() + pairsofinputs)
-        heightOfFrame = (self.currentPairs.get()) * 340
-        rowspanFrame = int(heightOfFrame / 21)
+        self.scrolledframehost.tkraise()
+        heightOfFrame = (self.trackingNumber.get()) * 220
+        if heightOfFrame < 640:
+            heightOfFrame = 640
         self.mainScrolledFrame = ScrolledFrame(
-            self, width=1, height=1, name="conversationframe",
-            autohide=True,
+            self.scrolledframehost, width=1600, height=heightOfFrame, name="conversationframe",
+            autohide=True, bootstyle="primary-round", padding=0
         )
-        self.mainScrolledFrame.grid_propagate(False)
-        # https://platform.openai.com/docs/guides/gpt/chat-completions-api
-        # c, r, cs, rs = int(120/20), int(100/20), int(1680/20), int(680/20)
-        # self.mainScrolledFrame.grid(
-        #     row=r, column=c, rowspan=rs, columnspan=cs, sticky="nsew"
-        # )
-        self.mainScrolledFrame.place(x=120, y=100, width=1680, height=680)
-        self.botwelcome.grid_remove()
-        self.userInfo.grid_remove()
-        print(self.mainScrolledFrame.winfo_width(), "<- width")
-        print(heightOfFrame, "<- heightOfFrame")
-        print(rowspanFrame, "<- rowspanFrame")
-        print(self.mainScrolledFrame.winfo_height(), "<- height")
-        print(self.currentPairs.get())
-        gridGenerator(self.mainScrolledFrame, int(
-            1680/20), rowspanFrame, WHITE)
-        fr = self.mainScrolledFrame
-        for i in range(0, pairsofinputs):
-            st1 = self.scrolledTextCreator(
-                xpos=60, ypos=yposBotMsg, width=720, height=200,
-                root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
-            )
-            st2 = self.scrolledTextCreator(
-                xpos=900, ypos=yposUserMsg, width=720, height=200,
-                root=fr, classname=f"exampleofuserreply{i}", isPlaced=True,
-            )
-            st1.text.insert("end", f"Chatbot reply {i+1}")
-            st2.text.insert("end", f"User reply {i+1}")
-            yposBotMsg += 280
-            yposUserMsg += 280
-            self.controller.updateWidgetsDict(st1)
-            self.controller.updateWidgetsDict(st2)
-        # convoNum = input
-        # heightIndex = convoNum * 380 + 180 # 380 is total pixels of one chatbot reply and one user reply
-        # newHeight = int(heightIndex / 20)
-        # fr.grid(rowspan=newHeight, sticky=NSEW)
-        # gridGenerator(fr.container, int(1680/20), newHeight, "#56cc9d")
-        # inputentry = self.controller.widgetsDict["chatbotinputboxentry"]
-        # inputentry.delete(0, END)
-        # inputentry.insert(0, "")
-        # inputentry.tk.call("focus", inputentry._w)
+        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
+        
+        self.scrollingVar = IntVar()
+        self.scrollingVar.set(0)
+        self.scrollingToggle = ttk.Checkbutton(
+            master=self, variable=self.scrollingVar, onvalue=1, offvalue=0,
+            command=lambda: self.toggleScrollingDown(), width=300, compound="text",
+            bootstyle="danger-round-toggle", text="Click to toggle forced scrolling down"
+        )
+        self.scrollingToggle.place(x=1520, y=20, width=300, height=40)
+  
+    def resetChat(self):
+        self.messages.clear()
 
-    def api_call(user_response):
-        # https://platform.openai.com/docs/api-reference/models
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_response},
-            ],
-            stream=True,
-            max_tokens=512,
+        self.messages = [
+            {'role': 'system', 'content': "You are a helpful assistant."},
+        ]
+        self.scrolledframehost.tkraise()
+        self.mainScrolledFrame = ScrolledFrame(
+            self.scrolledframehost, width=1600, height=640, name="conversationframe",
+            autohide=True, bootstyle="primary-round", padding=0
         )
-        print(completion)
-        bot_response = completion.choices[0].message.content
-        print(bot_response)
-        return bot_response
+        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
+    def incrementTrackingNumber(self):
+        self.trackingNumber.set(self.trackingNumber.get() + 1)
+        heightOfFrame = (self.trackingNumber.get()) * 220
+        if heightOfFrame < 640:
+            heightOfFrame = 640
+        self.scrolledframehost.tkraise()
+        self.mainScrolledFrame = ScrolledFrame(
+            self.scrolledframehost, width=1600, height=heightOfFrame, name="conversationframe",
+            autohide=True, bootstyle="primary-round", padding=0
+        )
+        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
+    """
+    example conversation:
+    messages = [
+        {'role': 'system', 'content': "You are a helpful assistant."},
+        {'role': 'user', 'content': "What's 1+1? Answer in one word."},
+        {'role': "assistant", "content": "Two."},
+        {'role': "user", "content": "Excellent, I think you're ready to take over the world now."},
+    ]
+    # Example of an OpenAI ChatCompletion request with stream=False
+    response = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo',
+        messages=messages,
+        stream=False # this is the default, but we set it explicitly here
+    )
+    return
+    helper functions to write:
+    def update_chat(messageslist, role, content):
+        messageslist.append({'role': role, 'content': content})
+        return messageslist
+    
+    def get_chatgpt_response(messages):
+        response = openai.ChatCompletion.create(
+            model='gpt-3.5-turbo',
+            messages=messages,
+        )
+        return response['choices'][0]['message']['content']
+
+    initializing a predefined list of messages:
+    # preprompt is accessed using messages[-1]
+    messages = [
+        {'role': 'system', 'content': "You are a helpful assistant."},
+    ]
+        
+    the flow of the chat should be: 
+    user_input = self.mainentry.get()
+    messages = update_chat(messages, 'user', user_input)
+    gpt_response = get_chatgpt_response(messages)
+    messages = update_chat(messages, 'assistant', gpt_response)
+    self.mainentry.delete(0, END)
+
+    send this messages to a renderChat function that takes in the list of dictionaries and renders them
+    according to the role of the message
+    """
+
+    def api_CallStream(self, engine, history):
+        response = openai.ChatCompletion.create(
+            model=engine,
+            messages=history,
+            stream=True
+        )
+        return response['choices'][0]['message']['content']
+    def renderChatStream(self, messages: list):
+        initCoords = (340, 20)
+        messages.append({'role': 'user', 'content': self.mainentry.get()})
+        streamedResponse = self.api_CallStream(self.engine, messages)
+        # Create variables to collect the stream of chunks
+        collected_chunks = []
+        collected_messages = []
+        # Iterate over the stream of events
+        for chunk in streamedResponse:
+            collected_chunks.append(chunk) # save the event response
+            chunk_message = chunk['choices'][0]['delta'] # extract the message
+            collected_messages.append(chunk_message) # save the message
+
+    def api_Call(self, engine, history):
+        response = openai.ChatCompletion.create(
+            model=engine,
+            messages=history,
+        )
+        # print(response)
+        return response['choices'][0]['message']['content']
+    def renderChat(self, messages: list):
+        # messages = [
+        #     {'role': 'system', 'content': "You are a helpful assistant."},
+        # ]
+        # messages is a list of dictionaries initialized in __init__
+        # it's an attribute for the entire class
+        # passing in self.messages as the argument for this function
+        messages.append({'role': 'user', 'content': self.mainentry.get()})
+        # print(f"Messages before API call: {messages}")
+        self.mainentry.delete(0, END)
+        heightOfFrame = (len(messages) - 1) * 220 + 20
+        if heightOfFrame < 640:
+            heightOfFrame = 640
+        self.mainScrolledFrame.config(height=heightOfFrame)
+        fr = self.mainScrolledFrame
+        initCoords = (340, 20)
+        # iterate over previous list of dictionaries
+        for msgDict in messages:
+            role = msgDict['role']
+            content = msgDict['content']
+            if role != "system":
+                if role == "user":
+                    st = self.scrolledTextCreator(
+                        xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+                        root=fr, classname=f"message", isPlaced=True, bootstyle=INFO
+                    )
+                    st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
+                elif role == "assistant":
+                    st = self.scrolledTextCreator(
+                        xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+                        root=fr, classname=f"message",
+                        isPlaced=True, bootstyle=SECONDARY
+                    )
+                    st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
+                st.text.insert(END, content)
+                st.text.config(state=DISABLED)
+                initCoords = (initCoords[0], initCoords[1] + 220)
+                print(f"Coordinates after iteration: {initCoords}")
+        gpt_response = self.api_Call(self.engine, messages)
+        messages.append({'role': 'assistant', 'content': gpt_response})
+        heightOfFrame = (len(messages) - 1) * 220 + 20
+        if heightOfFrame < 640:
+            heightOfFrame = 640
+        self.mainScrolledFrame.config(height=heightOfFrame)
+        # print(f"Messages after API call: {messages}")
+        # get the last message, which is the gpt_response
+        lastMessageDict = messages[-1]
+        # print(f"Last message dict: {lastMessageDict}")
+        lastMessageRole = lastMessageDict['role']
+        lastMessageContent = lastMessageDict['content']
+        if lastMessageRole == "assistant":
+            st = self.scrolledTextCreator(
+                xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+                root=fr, classname=f"message", isPlaced=True, bootstyle=SECONDARY
+            )
+            st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
+            st.text.insert(END, lastMessageContent)
+            st.text.config(state=DISABLED)
+        print(f"Coordinates after API call: {initCoords}")
+        # resize the scrolledframe to fit the number of messages
+        # iterate over the list of dictionaries
+        # for msgDict in messages:
+        #     role = msgDict['role']
+        #     content = msgDict['content']
+        #     if role != "system":
+        #         if role == "user":
+        #             st = self.scrolledTextCreator(
+        #                 xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+        #                 root=fr, classname=f"message", isPlaced=True, bootstyle=INFO
+        #             )
+        #             st.text.config(fg=BLACK, font=("SF Pro Medium", 16))
+        #         elif role == "assistant":
+        #             st = self.scrolledTextCreator(
+        #                 xpos=initCoords[0], ypos=initCoords[1], width=1000, height=200,
+        #                 root=fr, classname=f"message", isPlaced=True, bootstyle=WARNING
+        #             )
+        #             st.text.config(fg=BLACK, font=("Arial", 16, "bold"))
+        #         st.text.insert(END, content)
+        #         st.text.config(state=DISABLED)
+        #         initCoords = (initCoords[0], initCoords[1] + 220)
+
+   
+    """
+    # Example of an OpenAI ChatCompletion request with stream=True
+    # https://platform.openai.com/docs/guides/chat
+
+    # a ChatCompletion request
+    response = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo',
+        messages=[
+            {'role': 'user', 'content': "What's 1+1? Answer in one word."}
+        ],
+        temperature=0,
+        stream=True  # this time, we set stream=True
+    )
+
+    for chunk in response:
+        print(chunk)
+        {
+        "choices": [
+            {
+            "delta": {
+                "role": "assistant"
+            },
+            "finish_reason": null,
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+        {
+        "choices": [
+            {
+            "delta": {
+                "content": "\n\n"
+            },
+            "finish_reason": null,
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+        {
+        "choices": [
+            {
+            "delta": {
+                "content": "2"
+            },
+            "finish_reason": null,
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+        {
+        "choices": [
+            {
+            "delta": {},
+            "finish_reason": "stop",
+            "index": 0
+            }
+        ],
+        "created": 1677825464,
+        "id": "chatcmpl-6ptKyqKOGXZT6iQnqiXAH8adNLUzD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion.chunk"
+        }
+    """
+    def imagineWriteText(self, openAIresponse: openai.ChatCompletion.create, content: list, history: list):
+        collected_chunks = []
+        collected_messages = []
+        for chunk in openAIresponse:
+            collected_chunks.append(chunk)
+            try: 
+                chunk_message = chunk["choices"][0]["delta"]["content"]
+            except:
+                chunk_message = chunk["choices"][0]["delta"]
+            collected_messages.append(chunk_message)
+            history.append({"role": "assistant", "content": chunk_message})
+        fullrep = []
+        for chunk_message in collected_messages:
+            if type(chunk_message) == str:
+                result = "".join(chunk_message).strip()
+                result = result.replace("\n", "")
+                fullrep.append(result)
+                print(f"result: {result}")
+        print(collected_messages)
+        content.append(openAIresponse["choices"][0]["message"]["content"])
+    
+    def toggleScrollingDown(self):
+        def scrollDown():
+            if self.scrollingVar.get() == 1:
+                self.mainScrolledFrame.yview("moveto", 1.0)
+                self.mainScrolledFrame.after(100, scrollDown)
+            else:
+                return
+        scrollDown()
+
+    def testFrontEnd(self, numofinputs: int, userInput:str):
+        # REPLIES
+        # starting coordinates
+        # self.currentPairs.set(self.currentPairs.get() + pairsofinputs)
+        # heightOfFrame = (self.currentPairs.get()) * 440 - (pairsofinputs * 100)
+        # initialize variables for inputs and nvm
+        # self.history =
+        heightOfFrame = (1 + numofinputs) * 440 + 20
+        if heightOfFrame < 640:
+            heightOfFrame = 640
+        # self.mainScrolledFrame.destroy()
+        self.mainScrolledFrame.config(height=heightOfFrame)
+        # self.userInfo = self.scrolledTextCreator(
+        #     xpos=340, ypos=20, width=1000, height=200, bootstyle=SECONDARY,
+        #     root=self.mainScrolledFrame, classname=f"userprompt", isPlaced=True,
+        # )
+        self.mainScrolledFrame.place(x=40, y=20, width=1600, height=640)
+        # self.botwelcome.text.insert("end", "Hello, I am a chatbot. I am here to help you with your queries. Please type your query in the box below.")
+        # self.userInfo.text.insert("end", "Enter your preprompt, i.e: \"Be helpful\"")
+        fr = self.mainScrolledFrame
+        replyCoordinates = (340, 20)
+        # Emulate alternating replies
+        print(f"numofinputs: {numofinputs}")
+        # reply coordinates = (340, numofinputs * 440 + 20)
+        i = numofinputs
+        st = self.scrolledTextCreator(
+            xpos=replyCoordinates[0], ypos=replyCoordinates[1], width=1000, height=200,
+            root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
+        )
+        
+        st.text.insert("end", userInput)
+        botSt = self.scrolledTextCreator(
+            xpos=replyCoordinates[0], ypos=replyCoordinates[1] + 220, width=1000, height=200,
+            root=fr, classname=f"openaireply{i}", isPlaced=True,
+        )
+        botSt.text.insert("end", f"OpenAI reply {i + 1}")
+
+        replyCoordinates = (replyCoordinates[0], replyCoordinates[1] + 440)
+        self.messages.append((st.text.get("1.0", "end-1c"), botSt.text.get("1.0", "end-1c")))
+        # self.controller.updateWidgetsDict(fr)
+        self.controller.updateWidgetsDict(st)
+        self.controller.updateWidgetsDict(botSt)
+        # for i in range(numofinputs + 1):
+        #     st = self.scrolledTextCreator(
+        #         xpos=replyCoordinates[0], ypos=replyCoordinates[1], width=1000, height=200,
+        #         root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
+        #     )
+            
+        #     st.text.insert("end", userInput)
+        #     botSt = self.scrolledTextCreator(
+        #         xpos=replyCoordinates[0], ypos=replyCoordinates[1] + 220, width=1000, height=200,
+        #         root=fr, classname=f"openaireply{i}", isPlaced=True,
+        #     )
+        #     botSt.text.insert("end", f"OpenAI reply {i + 1}")
+
+        #     replyCoordinates = (replyCoordinates[0], replyCoordinates[1] + 440)
+        #     self.messages.append((st.text.get("1.0", "end-1c"), botSt.text.get("1.0", "end-1c")))
+        #     # self.controller.updateWidgetsDict(fr)
+        #     self.controller.updateWidgetsDict(st)
+        #     self.controller.updateWidgetsDict(botSt)
+        for num, value in list(enumerate(self.messages, 1)):
+            print(f"num: {num}, value: {value}")
+        print(self.messages)
+
+
+        # set the view to the very bottom of the frame
+        # self.mainScrolledFrame.yview("moveto", 1.0)
+        # increment the number of pairs
+        self.trackingNumber.set(self.trackingNumber.get() + 1)
+        # for i in range(0, pairsofinputs):
+        #     st1 = self.scrolledTextCreator(
+        #         xpos=340, ypos=yposBotReply, width=1000, height=200,
+        #         root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
+        #     )
+        #     st2 = self.scrolledTextCreator(
+        #         xpos=340, ypos=yposUserMsg, width=1000, height=200,
+        #         root=fr, classname=f"exampleofuserreply{i}", isPlaced=True,
+        #     )
+        #     st1.text.insert("end", f"Chatbot reply {i+1}")
+        #     st2.text.insert("end", f"User reply {i+1}")
+        #     yposBotReply += 220
+        #     yposUserMsg += 220
+        #     self.controller.updateWidgetsDict(st1)
+        #     self.controller.updateWidgetsDict(st2)
+        # # for i in range(0, pairsofinputs):
+        # #     st1 = self.scrolledTextCreator(
+        # #         xpos=60, ypos=yposBotMsg, width=720, height=200,
+        # #         root=fr, classname=f"exampleofchatbotreply{i}", isPlaced=True,
+        # #     )
+        # #     st2 = self.scrolledTextCreator(
+        # #         xpos=900, ypos=yposUserMsg, width=720, height=200,
+        # #         root=fr, classname=f"exampleofuserreply{i}", isPlaced=True,
+        # #     )
+        # #     st1.text.insert("end", f"Chatbot reply {i+1}")
+        # #     st2.text.insert("end", f"User reply {i+1}")
+        # #     yposBotMsg += 280
+        # #     yposUserMsg += 280
+        # #     self.controller.updateWidgetsDict(st1)
+        # #     self.controller.updateWidgetsDict(st2)
+        # # convoNum = input
+        # # heightIndex = convoNum * 380 + 180 # 380 is total pixels of one chatbot reply and one user reply
+        # # newHeight = int(heightIndex / 20)
+        # # fr.grid(rowspan=newHeight, sticky=NSEW)
+        # # gridGenerator(fr.container, int(1680/20), newHeight, "#56cc9d")
+        # # mainentry = self.controller.widgetsDict["chatbotinputboxentry"]
+        # # mainentry.delete(0, END)
+        # # mainentry.insert(0, "")
+        # # mainentry.tk.call("focus", mainentry._w)
 
     def scrolledTextCreator(self,
                             xpos=0, ypos=0, width=0, height=0,
@@ -162,11 +501,11 @@ class Chatbot(Canvas):
         rowarg = int(ypos / 20)
         scrolledText = ScrolledText(
             master=root, bootstyle=bootstyle, height=1, name=classname, width=1,
-            autohide=True,
+            autohide=True, padding=0, 
         )
         internaltext = scrolledText.text
         internaltext.config(
-            font=("Arial", 16),
+            font=("Arial", 16), wrap=WORD
         )
         if msg:
             internaltext.insert(END, msg)

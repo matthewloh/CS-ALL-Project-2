@@ -27,6 +27,7 @@ import pendulum
 from pendulum import timezone
 from nonstandardimports import *
 from PIL import Image, ImageTk, ImageSequence, ImageFont, ImageDraw
+from components.animatedstarbtn import AnimatedStarBtn
 load_dotenv()
 
 GetWindowLongPtrW = ctypes.windll.user32.GetWindowLongPtrW
@@ -1089,6 +1090,35 @@ class FavoritesView(Canvas):
                 isPlaced = True
             )
         
+    def threadStart(self):
+        t = threading.Thread(target=self.createPost)
+        self.gif = AnimatedGif(
+            parent=self.creationframe, controller=self.controller,
+            xpos=280, ypos=400, bg="#344557",
+            framewidth=320, frameheight=320, classname="creatingpostspinner",
+            imagepath=r"Assets\200x200spinner.gif", imagexpos=60, imageypos=60)
+        t.daemon = True
+        t.start()
+        if postId in favoritedPostIds:
+                AnimatedStarBtn(
+                    parent=self.postscrolledframe, xpos=initialcoordinates[0] + 760,
+                    ypos=initialcoordinates[1] + 20, frameheight=40, framewidth=40,
+                    classname=f"post{postId}favoritestar", imagexpos=0, imageypos=0,
+                    isPlaced=True, prisma=self.prisma, postId=postId, userId=self.userId,
+                    isFavorited=True, postTitle=discussiontitle,
+                )
+            else:
+                AnimatedStarBtn(
+                    parent=self.postscrolledframe,
+                    xpos=initialcoordinates[0] + 760,
+                    ypos=initialcoordinates[1] + 20,
+                    framewidth=40, frameheight=40, classname=f"post{postId}favoritestar",
+                    imagexpos=0, imageypos=0, isPlaced=True,
+                    prisma=self.prisma, postId=postId, userId=self.userId,
+                    postTitle=discussiontitle,
+                )
+            initialcoordinates = (
+                initialcoordinates[0], initialcoordinates[1] + 100)
        
 def runGui():
     window = Window()

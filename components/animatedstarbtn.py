@@ -20,7 +20,8 @@ class AnimatedStarBtn(Frame):
     def __init__(self,
                  parent=None, controller: ElementCreator = None,
                  xpos=0, ypos=0, framewidth=0, frameheight=0, isPlaced=False,
-                 classname=None, imagexpos=0, imageypos=0, bg=WHITE,
+                 classname=None, imagexpos=0, imageypos=0, resizeWidth=0, resizeHeight=0, 
+                 bg=WHITE,
                  prisma: Prisma = None, postId=None, userId=None,
                  isFavorited=False, postTitle=None):
         super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname)
@@ -51,6 +52,8 @@ class AnimatedStarBtn(Frame):
                 sequence = ImageSequence.Iterator(im)
                 reversedsequence = [frame.copy() for frame in sequence]
                 reversedsequence.reverse()
+                # resize each frame
+                reversedsequence = [frame.resize((resizeWidth, resizeHeight)) for frame in reversedsequence]
                 self.images = [ImageTk.PhotoImage(
                     sequence_frame) for sequence_frame in reversedsequence]
                 self.image_cycle = cycle(self.images)
@@ -59,6 +62,8 @@ class AnimatedStarBtn(Frame):
             with Image.open(file_path) as im:
                 # sequence
                 sequence = ImageSequence.Iterator(im)
+                # resize each frame
+                sequence = [frame.resize((resizeWidth, resizeHeight)) for frame in sequence]
                 self.images = [ImageTk.PhotoImage(
                     sequence_frame) for sequence_frame in sequence]
                 self.image_cycle = cycle(self.images)
@@ -68,8 +73,8 @@ class AnimatedStarBtn(Frame):
         self.frame_index = 0
         self.end_index = len(self.images) - 1
         imagetogetdetails = ImageTk.PhotoImage(Image.open(file_path))
-        self.imgwidth = 40
-        self.imgheight = 40
+        self.imgwidth = resizeWidth if resizeWidth != 0 else imagetogetdetails.width()
+        self.imgheight = resizeHeight if resizeHeight != 0 else imagetogetdetails.height()
         imgrow = int(imageypos / 20)
         imgcolumn = int(imagexpos / 20)
         imgrowspan = int(self.imgheight / 20)

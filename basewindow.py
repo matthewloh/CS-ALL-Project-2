@@ -99,7 +99,7 @@ class ElementCreator(ttk.Window):
         self.widgetsDict[classname].grid_propagate(False)
         return self.widgetsDict[classname]
 
-    def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False):
+    def labelCreator(self, imagepath, xpos, ypos, classname=None, root=None, overrideRelief=FLAT, isPlaced=False, bg=WHITE):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
         will destroy the image if not referenced to something. Thus, we pass it with an identifier string variable called classname.\n\n
@@ -122,7 +122,7 @@ class ElementCreator(ttk.Window):
         label = Label(
             root, image=image, relief=FLAT, width=1, height=1,
             state=NORMAL, name=classname,
-            autostyle=False,
+            autostyle=False, bg = bg
         )
         if isPlaced:
             label.place(x=xpos, y=ypos, width=placedwidth, height=placedheight)
@@ -159,6 +159,7 @@ class ElementCreator(ttk.Window):
                             classname=j[3],
                             root=widget,
                             buttonFunction=j[4])
+        return self.widgetsDict[classname]
 
     def entryCreator(self, xpos, ypos, width, height, root=None, classname=None, bg=WHITE, relief=FLAT, fg=BLACK, textvariable=None, pady=None, font=("Avenir Next Medium", 16)):
         classname = classname.lower().replace(" ", "")
@@ -253,6 +254,7 @@ class ElementCreator(ttk.Window):
         self.widgetsDict[menubutton["menu"]] = menubtnmenu
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
+        
 
     def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*", captchavar = None):
         """
@@ -325,8 +327,9 @@ class ElementCreator(ttk.Window):
 
         self.widgetsDict[classname] = entry
         self.updateWidgetsDict(root=root)
+        return entry
 
-    def textElement(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=FLAT, fg=BLACK, bg=WHITE, font=SFPRO, text=None, size=40, isPlaced=False, index=0, xoffset=0):
+    def textElement(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=FLAT, fg=BLACK, bg=WHITE, font=SFPRO, text=None, size=40, isPlaced=False, yIndex=0, xoffset=0):
         classname = classname.replace(" ", "").lower()
         # ~~~ ADD TEXT TO IMAGE FUNCTIONS ~~~
         h = fg.lstrip("#")
@@ -338,7 +341,7 @@ class ElementCreator(ttk.Window):
         xcoord, ycoord = im.size
         # push the text to the right by xoffset pixels
         xcoord = im.size[0]/20 + xoffset*20
-        y_offset = size * index  # Vertical offset based on font size and index
+        y_offset = size * yIndex  # Vertical offset based on font size and index
         ycoord = ycoord/2 - (font.getbbox(text)[3]/2) + y_offset
         draw.text((xcoord, ycoord), text, font=font, fill=textcolor)
         self.imageDict[f"{classname}"] = ImageTk.PhotoImage(im)
