@@ -7,7 +7,7 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from elementcreator import gridGenerator
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -18,6 +18,7 @@ from views.discussionsview import DiscussionsView
 from PIL import Image, ImageTk, ImageSequence
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 
+
 class CourseView(Canvas):
     def __init__(self, parent, controller: ElementCreator):
         Canvas.__init__(self, parent, width=1, height=1,
@@ -26,16 +27,15 @@ class CourseView(Canvas):
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
         self.createFrames()
-        self.canvas = self.controller.widgetsDict["coursescanvas"]
 
     def postLogin(self, data: dict, prisma: Prisma = None):
         # print("The data is", data)
         self.prisma = prisma
         modules = data["modules"]
         self.role = data["role"]
+        modulecodes = []
         if self.role == "student":
             lecturerinfo = data["lecturerinfo"]
-            modulecodes = []
             for i in range(len(modules)):
                 modulecode = modules[i][0]
                 moduletitle = modules[i][1]
@@ -49,7 +49,6 @@ class CourseView(Canvas):
             self.loadcoursebuttons(modulecodes)
         elif self.role == "lecturer":
             studentinfo = data["studentinfo"]
-            modulecodes = []
             lecturername = data["fullName"]
             lectureremail = data["email"]
             lecturerphone = data["phone"]
@@ -64,16 +63,13 @@ class CourseView(Canvas):
                 studentname = studentinfo[i][0]
                 studentemail = studentinfo[i][1]
                 studentphone = studentinfo[i][2]
-                print(studentname, studentemail, studentphone)
             # lecturer specific functions here like show student info
             # and upload course files and upload schedule
             self.loadcoursebuttons(modulecodes)
 
     def loadcoursebuttons(self, modulecodes: list = None):
-        # print(f"The modulecodes list is {modulecodes}")
         c = self.controller
-        coursecanvas = self.controller.widgetsDict["coursescanvas"]
-        for widgetname, widget in coursecanvas.children.items():
+        for widgetname, widget in self.canvas.children.items():
             if widgetname not in modulecodes and widgetname.startswith("int"):
                 widget.grid_forget()
 
@@ -87,6 +83,7 @@ class CourseView(Canvas):
             "int4009cem": (r"Assets\My Courses\ALL2.png", 40, 0,
                            "int4009cem", self.canvas, lambda: self.loadCourses("INT4009CEM")),
         }
+
         btnCount = 0
         yCount = 0
         for code in modulecodes:
@@ -102,52 +99,55 @@ class CourseView(Canvas):
             )
             btnCount += 1
 
-
     def createFrames(self):
-        self.controller.frameCreator(root=self,
-                                     xpos=0, ypos=0,
-                                     framewidth=1920, frameheight=920, classname="singlecourseviewframe"
-                                     )
-        self.mainframe = self.controller.widgetsDict["singlecourseviewframe"]
-        self.controller.frameCreator(
+        self.mainframe = self.controller.frameCreator(
+            xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            root=self, classname="singlecourseviewframe"
+        )
+        self.viewUploadsFrame = self.controller.frameCreator(
             xpos=0, ypos=120, framewidth=1920, frameheight=800,
             root=self.mainframe, classname="viewuploadsframe"
         )
-        self.viewUploadsFrame = self.controller.widgetsDict["viewuploadsframe"]
+        self.uploadCreationFrame = self.controller.frameCreator(
+            xpos=0, ypos=120, framewidth=1920, frameheight=800,
+            root=self.mainframe, classname="uploadcreationframe"
+        )
         self.staticImgLabels = [
-            (r"Assets\My Courses\CoursesBG.png", 0, 0, "courseviewbg", self),
+            (r"Assets\My Courses\CoursesBG.png",
+             0, 0, "courseviewbg", self),
             (r"Assets\My Courses\loadedcoursebg.png",
              0, 0, "loadedcoursebg", self.mainframe),
-            (r"Assets\My Courses\moduleuploadsbg.png", 0,
-             0, "moduleuploadsbg", self.viewUploadsFrame),
+            (r"Assets\My Courses\moduleuploadsbg.png",
+             0, 0, "moduleuploadsbg", self.viewUploadsFrame),
+            (r"Assets\My Courses\uploaditemframebg.png",
+             0, 0, "uploadcreationbg", self.uploadCreationFrame),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
-        self.controller.canvasCreator(0, 100, 1920, 820, root=self,
-                                      classname="coursescanvas", bgcolor="#F6F5D7",
-                                      isTransparent=True, transparentcolor="#efefef"
-                                      )
+        self.canvas = self.controller.canvasCreator(
+            xpos=0, ypos=100, width=1920, height=820,
+            root=self, classname="coursescanvas",
+            bgcolor="#F6F5D7", isTransparent=True, transparentcolor="#efefef"
+        )
         self.viewUploadsFrame.grid_remove()
+        self.uploadCreationFrame.grid_remove()
 
     def loadCourses(self, coursecode: str):
         self.canvas.grid_remove()
         self.mainframe.grid()
         self.mainframe.tkraise()
         buttonsList = [
-            (r"Assets\My Courses\exitbutton.png", 1820, 20, "exitbutton",
-             self.mainframe, lambda:[
-                 self.exitMainFrame(),
-                 self.focus_force()]),
-            (r"Assets\My Courses\exituploadsview.png", 1780, 20, "exituploadsview",
-             self.viewUploadsFrame, lambda:[
-                 self.exitUploadsView(),
-                 self.focus_force()]),
-            (r"Assets\My Courses\uploaditembtn.png", 420, 20, "uploaditembtn",
-            self.viewUploadsFrame, lambda:[
-                self.loadUploadPage()])
+            (r"Assets\My Courses\exitbutton.png", 1820, 20,
+             "exitbutton", self.mainframe,
+             lambda:[self.exitMainFrame(), self.focus_force()]
+             ),
+            (r"Assets\My Courses\exituploadsview.png", 1780, 20,
+             "exituploadsview", self.viewUploadsFrame,
+             lambda:[self.exitUploadsView(), self.focus_force()]),
+            (r"Assets\My Courses\exituploadsview.png", 1780, 20,
+             "exituploadcreation", self.uploadCreationFrame,
+             lambda:[self.exitUploadCreation(), self.focus_force()]),
         ]
-
         self.controller.settingsUnpacker(buttonsList, "button")
-        self.controller.widgetsDict["uploaditembtn"].grid_remove()
         coursecode = coursecode.lower()
         staticBtns = ["checkschedule", "gotolearninghub",
                       "viewcoursefiles", "exitbutton"]
@@ -155,10 +155,8 @@ class CourseView(Canvas):
         for widgetname, widget in self.mainframe.children.items():
             if isinstance(widget, Label) and not widgetname.startswith("!la"):
                 if not widgetname.startswith(f"{coursecode}") and not widgetname.startswith("loadedcoursebg"):
-                    # print("Getting removed", widgetname)
                     widget.grid_remove()
                 if widgetname.startswith(f"{coursecode}"):
-                    # print("Getting loaded", widgetname)
                     widget.grid()
             if isinstance(widget, Button):
                 if not widgetname.startswith(f"{coursecode}") and widgetname not in staticBtns:
@@ -176,14 +174,18 @@ class CourseView(Canvas):
              20, r"Assets\My Courses\coursetitlebg.png"),
             (f"{modulecode}_lecname", lecturername, 32, -1, 220,
              240, r"Assets\My Courses\whitebgtextfield.png"),
-            (f"{modulecode}_lecemail", lectureremail, 26, -1,
+            (f"{modulecode}_lecemail", lectureremail, 25, -1,
              220, 300, r"Assets\My Courses\whitebgtextfield.png"),
-            (f"{modulecode}_lecphone", lecturerphone, 28, -1,
+            (f"{modulecode}_lecphone", lecturerphone, 25, -1,
              220, 360, r"Assets\My Courses\whitebgtextfield.png")
         ]
+
         for classname, text, size, xoffset, xpos, ypos, imagepath in positions:
-            self.controller.textElement(imagepath=imagepath, xpos=xpos, ypos=ypos,
-                                        classname=classname, root=self.mainframe, text=text, size=size, xoffset=xoffset)
+            self.controller.textElement(
+                imagepath=imagepath, xpos=xpos, ypos=ypos,
+                classname=classname, root=self.mainframe,
+                text=text, size=size, xoffset=xoffset,
+            )
 
         buttons = [
             (f"{modulecode}checkschedule", r"Assets\My Courses\checklecschedule.png", 1060, 280,
@@ -195,11 +197,19 @@ class CourseView(Canvas):
             (f"{modulecode}_discussions", r"Assets\My Courses\go_to_discussions.png", 700, 780,
              lambda: self.loadDiscussionsView(modulecode, moduletitle)),
         ]
+        try:
+            self.controller.widgetsDict["uploaditembtn"].grid_remove()
+        except:
+            pass
         for classname, imagepath, xpos, ypos, buttonFunction in buttons:
             self.controller.buttonCreator(imagepath=imagepath, xpos=xpos, ypos=ypos,
                                           classname=classname, root=self.mainframe, buttonFunction=buttonFunction)
-        self.controller.buttonCreator(imagepath=r"Assets\My Courses\go_to_discussions.png", xpos=700, ypos=780,
-                                      classname=f"{modulecode}_discussions", root=self.mainframe, buttonFunction=lambda: self.loadDiscussionsView(modulecode, moduletitle))
+        buttonsList = [
+            (r"Assets\My Courses\go_to_discussions.png", 700, 780,
+             f"{modulecode}_discussions", self.mainframe,
+             lambda:[self.loadDiscussionsView(modulecode, moduletitle), self.focus_force()]),
+        ]
+        self.controller.settingsUnpacker(buttonsList, "button")
 
         self.defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
         self.urlbar = self.controller.entryCreator(
@@ -212,6 +222,7 @@ class CourseView(Canvas):
     def exitMainFrame(self):
         self.mainframe.grid_remove()
         self.exitUploadsView()
+        self.exitUploadCreation()
         self.canvas.grid()
 
     def exitUploadsView(self):
@@ -225,6 +236,10 @@ class CourseView(Canvas):
         except:
             pass
 
+    def exitUploadCreation(self):
+        self.uploadCreationFrame.grid_remove()
+        self.uploadCreationFrame.focus_set()
+
     def initializeWebView(self):
         col = int(820/20)
         row = int(180/20)
@@ -235,16 +250,27 @@ class CourseView(Canvas):
                                 url=self.defaulturl)
         self.webview.grid(row=row, column=col, rowspan=h,
                           columnspan=w, sticky=NSEW)
-    def loadUploadPage(self):
-        print("Loading upload page")
+
+    def loadUploadPage(self, modulecode):
+        self.uploadCreationFrame.grid()
+        self.uploadCreationFrame.tkraise()
+        prisma = self.prisma
+        prisma.moduleupload
+        print(f"Loading upload page for {modulecode}")
         pass
+
     def loadModuleUploadsView(self, modulecode):
         self.viewUploadsFrame.grid()
         self.viewUploadsFrame.tkraise()
         self.urlbar.delete(0, END)
         self.urlbar.insert(0, f"{self.defaulturl}")
+        _ = [
+            (r"Assets\My Courses\uploaditembtn.png", 420, 20,
+             "uploaditembtn", self.viewUploadsFrame,
+             lambda:[self.loadUploadPage(modulecode)])
+        ]
         if self.role == "lecturer":
-            self.controller.widgetsDict["uploaditembtn"].grid()
+            self.controller.settingsUnpacker(_, "button")
         self.initializeWebView()
         toast = ToastNotification(
             title="Focus automatically regained",
@@ -252,11 +278,13 @@ class CourseView(Canvas):
             duration=1000,
             bootstyle=INFO
         )
+
         def regainFocus():
             if GetWindowText(GetForegroundWindow()) == "INTI Learning Platform" and self.controller.focus_get() == None:
                 self.focus_force()
             self.webview.after(1000, regainFocus)
         self.currenturl = self.defaulturl
+
         def updateUrlbar():
             if self.webview.get_url() == None:
                 self.urlbar.delete(0, END)
@@ -308,8 +336,10 @@ class CourseView(Canvas):
             createdAt = kl.convert(u.createdAt)
             editedAt = kl.convert(u.editedAt)
             self.renderModuleUploads(
-                u.uploadType, u.id, u.title, u.description, u.url, createdAt, editedAt,
-                startx, starty, u.uploader.userProfile.fullName, u.uploader.userProfile.email
+                u.uploadType, u.id, u.title, u.description, u.url,
+                createdAt, editedAt,
+                startx, starty,
+                u.uploader.userProfile.fullName, u.uploader.userProfile.email
             )
             starty += 100
 
@@ -331,16 +361,16 @@ class CourseView(Canvas):
         b = c.buttonCreator(
             imagepath=btnImgDict[filetype], xpos=x, ypos=y,
             classname=f"{id}btn", root=self.upframe,
-            isPlaced=True,
             buttonFunction=lambda: self.webview.load_url(url),
+            isPlaced=True,
         )
         ToolTip(b, text=tiptext, bootstyle=(INFO, INVERSE))
         t1 = c.textElement(
             imagepath=textBgDict[filetype], xpos=x+20, ypos=y,
             classname=f"{id}title", root=self.upframe,
-            text=title, fg=BLACK, size=20, isPlaced=True,
-            font=INTERBOLD,
+            text=title, fg=BLACK, size=20, font=INTERBOLD,
             buttonFunction=lambda: self.webview.load_url(url),
+            isPlaced=True,
         )
         ToolTip(t1, text=tiptext, bootstyle=(INFO, INVERSE))
         fCreatedAt = createdat.strftime(r"%d/%m/%y - %I:%M %p")
@@ -352,9 +382,9 @@ class CourseView(Canvas):
         t2 = c.textElement(
             imagepath=textBgDict[filetype], xpos=x+20, ypos=y+40,
             classname=f"{id}time", root=self.upframe,
-            text=strTime, fg=BLACK, size=16, isPlaced=True,
-            font=INTER,
+            text=strTime, fg=BLACK, size=16, font=INTER,
             buttonFunction=lambda: self.webview.load_url(url),
+            isPlaced=True,
         )
         ToolTip(t2, text=tiptext, bootstyle=(INFO, INVERSE))
 
