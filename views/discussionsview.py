@@ -25,13 +25,11 @@ class DiscussionsView(Canvas):
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
         self.createFrames()
-        self.creationframe = self.controller.widgetsDict["postcreation"]
-        self.postviewframe = self.controller.widgetsDict["postview"]
 
         self.createElements()
 
-        # self.creationframe.tkraise()
-        self.controller.ttkEntryCreator(
+
+        self.posttitleent = self.controller.ttkEntryCreator(
             xpos=900, ypos=160, width=920, height=40, root=self.creationframe, classname="posttitleent"
         )
         textxpos, textypos, textcolumnspan, textrowspan = int(
@@ -73,11 +71,11 @@ class DiscussionsView(Canvas):
         self.controller.settingsUnpacker(self.staticBtns, "button")
 
     def createFrames(self):
-        self.controller.frameCreator(
+        self.creationframe = self.controller.frameCreator(
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
             classname="postcreation",
         )
-        self.controller.frameCreator(
+        self.postviewframe = self.controller.frameCreator(
             root=self, xpos=0, ypos=0, framewidth=1920, frameheight=920,
             classname="postview",
         )
@@ -86,10 +84,10 @@ class DiscussionsView(Canvas):
     def loadPostCreation(self):
         self.creationframe.grid()
         self.creationframe.tkraise()
-        self.controller.widgetsDict["posttitleent"].delete(0, END)
+        self.posttitleent.delete(0, END)
         self.postcontenttext.delete("1.0", END)
-        self.controller.widgetsDict["posttitleent"].focus_set()
-        self.controller.widgetsDict["posttitleent"].bind(
+        self.posttitleent.focus_set()
+        self.posttitleent.bind(
             "<Return>", lambda event: self.postcontenttext.focus_set()
         )
 
@@ -98,11 +96,10 @@ class DiscussionsView(Canvas):
         self.userId = data["id"]
         self.programme = data["programme"]
         self.role = data["role"]
-        self.controller.frameCreator(
+        self.frameref = self.controller.frameCreator(
             xpos=560, ypos=120, framewidth=400, frameheight=80, root=self,
             classname="modulecodeframe", bg=WHITE
         )
-        self.frameref = self.controller.widgetsDict["modulecodeframe"]
         self.menubutton = ttk.Menubutton(
             self.frameref, text="INT4004CEM", name="modulecodemenubtn", style="info.TMenubutton"
         )
@@ -184,7 +181,7 @@ class DiscussionsView(Canvas):
     def createPost(self):
         # ~~~~ BACKEND FUNCTIONALITY ~~~~
         prisma = self.prisma
-        title = self.controller.widgetsDict["posttitleent"].get()
+        title = self.posttitleent.get()
         content = self.postcontenttext.get("1.0", 'end-1c')
         findmodule = prisma.module.find_first(
             where={
@@ -285,11 +282,10 @@ class DiscussionsView(Canvas):
         authorId = tupleofcontent[8]
 
         # A host is used to remove the currently loaded scrolled frame using grid_remove()
-        self.controller.frameCreator(
+        self.scrolledframehost = self.controller.frameCreator(
             root=self.postviewframe, framewidth=1100, frameheight=660,
             classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
         )
-        self.scrolledframehost = self.controller.widgetsDict["scrolledframehostframe"]
         totalheight = (1 + len(repliesList)) * 280
         if totalheight < 660:
             totalheight = 660
@@ -321,7 +317,7 @@ class DiscussionsView(Canvas):
         )
         # PURPLE BG
         # Normal size is 1100 x 660
-        self.controller.labelCreator(
+        self.scrolledframebg = self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\scrolledframebg.png", xpos=0, ypos=0,
             classname="scrolledframebg", root=self.scrolledframe, isPlaced=True
         )            
@@ -333,9 +329,9 @@ class DiscussionsView(Canvas):
             self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(
                 image)
             newimage = self.controller.imageDict["scrolledframebg"]
-            self.controller.widgetsDict["scrolledframebg"].configure(
+            self.scrolledframebg.configure(
                 image=newimage, bg="#acbcff")
-            self.controller.widgetsDict["scrolledframebg"].place(
+            self.scrolledframebg.place(
                 x=0, y=0, width=1100, height=totalheight
             )
         else:
@@ -344,9 +340,9 @@ class DiscussionsView(Canvas):
             self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(
                 image)
             newimage = self.controller.imageDict["scrolledframebg"]
-            self.controller.widgetsDict["scrolledframebg"].configure(
+            self.scrolledframebg.configure(
                 image=newimage, bg="#acbcff")
-            self.controller.widgetsDict["scrolledframebg"].place(
+            self.scrolledframebg.place(
                 x=0, y=0, width=1100, height=660
             )
         # POST BG

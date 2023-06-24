@@ -1,11 +1,15 @@
 import threading
 from tkinter import *
+from tkinter import filedialog
+import uuid
+import boto3
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
+from components.animatedgif import AnimatedGif
 from elementcreator import gridGenerator
 from static import *
 from basewindow import ElementCreator
@@ -32,6 +36,7 @@ class CourseView(Canvas):
         # print("The data is", data)
         self.prisma = prisma
         modules = data["modules"]
+        self.userId = data["id"]
         self.role = data["role"]
         modulecodes = []
         if self.role == "student":
@@ -254,10 +259,176 @@ class CourseView(Canvas):
     def loadUploadPage(self, modulecode):
         self.uploadCreationFrame.grid()
         self.uploadCreationFrame.tkraise()
-        prisma = self.prisma
-        prisma.moduleupload
+
+        self.uploadTitleEntry = self.controller.ttkEntryCreator(
+            xpos=1120, ypos=120, width=680, height=60,
+            root=self.uploadCreationFrame, classname=f"uploadtitle",
+        )
+        self.uploadDescEntry = self.controller.ttkEntryCreator(
+            xpos=1120, ypos=200, width=680, height=60,
+            root=self.uploadCreationFrame, classname=f"uploaddesc",
+        )
+        self.uploadTitleEntry.delete(0, END)
+        self.uploadDescEntry.delete(0, END)
+        buttonSettings = [
+            (r"Assets\My Courses\CreateUploads\UploadDocument.png", 940, 280,
+             "uploaddocument", self.uploadCreationFrame,
+             lambda: self.sendUploadRequest(modulecode, "pdf")),
+            (r"Assets\My Courses\CreateUploads\UploadImage.png", 1160, 280,
+             "uploadimage", self.uploadCreationFrame,
+             lambda: self.sendUploadRequest(modulecode, "image")),
+            (r"Assets\My Courses\CreateUploads\UploadVideo.png", 1380, 280,
+             "uploadvideo", self.uploadCreationFrame,
+             lambda: self.sendUploadRequest(modulecode, "video")),
+            (r"Assets\My Courses\CreateUploads\UploadURL.png", 1600, 280,
+             "uploadurl", self.uploadCreationFrame,
+             lambda: self.sendUploadRequest(modulecode, "url")),
+        ]
+        self.controller.settingsUnpacker(buttonSettings, "button")
         print(f"Loading upload page for {modulecode}")
-        pass
+
+    def saveURL(self, modulecode, url, fileType):
+        prisma = self.prisma
+        uploadType = {
+            "pdf": "PDF",
+            "image": "IMG",
+            "video": "VIDEO",
+            "url": "LINK"
+        }
+        module = prisma.module.find_first(
+            where={
+                "moduleCode": modulecode
+            }
+        )
+        lecturer = prisma.lecturer.find_first(
+            where={
+                "userProfile": {
+                    "is": {
+                        "id": self.userId
+                    }
+                }
+            }
+        )
+        upload = prisma.moduleupload.create(
+            data={
+                "title": self.uploadTitleEntry.get(),
+                "description": self.uploadDescEntry.get(),
+                "url": url,
+                "uploadType": uploadType[fileType],
+                "moduleId": module.id,
+                "uploaderId": lecturer.id
+            }
+        )
+        self.successToast.show_toast()
+        self.exitUploadCreation()
+        self.loadModuleUploadsView(modulecode)
+
+    def sendUploadRequest(self, modulecode, fileType):
+        BUCKET_NAME = "csprojectbucket"
+        self.successToast = ToastNotification(
+            title="Upload successful",
+            message="Your upload has been successfully uploaded",
+            duration=5000,
+            bootstyle=SUCCESS
+        )
+        if self.uploadTitleEntry.get() == "" or self.uploadDescEntry.get() == "":
+            toast = ToastNotification(
+                title="Missing fields",
+                message=f"Please fill in all fields",
+                duration=3000,
+                bootstyle=DANGER
+            )
+            toast.show_toast()
+            return
+        if fileType == "url":
+            entry = self.controller.entryCreator(
+                xpos=1120, ypos=360, width=680, height=60,
+                root=self.uploadCreationFrame, classname="uploadurlentry",
+            )
+            entry.focus_set()
+            entry.bind("<Return>", lambda event: self.saveURL(modulecode, entry.get(), fileType))
+            toast = ToastNotification(
+                title="Upload URL",
+                message=f"Enter the URL for the {fileType} you want to upload and press enter.",
+                duration=5000,
+                bootstyle=INFO
+            )
+            toast.show_toast()
+            return
+        filetypes = {
+            "pdf": ("Document Files", "*.pdf *.docx *.doc *.pptx *.ppt *.xlsx *.xls *.txt *.csv *rtf"),
+            "image": ("Image Files", "*.jpg *.png *.jpeg *.gif *webp"),
+            "video": ("Video Files", "*.mp4 *.mov *webm"),
+        }
+        filename = filedialog.askopenfilename(
+            title=f"Upload {fileType} for {modulecode}",
+            filetypes=[filetypes[fileType]]
+        )
+        if filename == "":
+            return
+        fileExt = filename.split(".")[-1].lower()
+        if fileExt not in filetypes[fileType][1]:
+            toast = ToastNotification(
+                title="Invalid file type",
+                message=f"Please upload a {filetypes[fileType][0]}",
+                duration=3000,
+                bootstyle=DANGER
+            )
+            toast.show_toast()
+            return
+        print(fileExt)
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+        if fileExt in ["jpg", "jpeg", "png", "gif", "webp"]:
+            if fileExt in ["jpg", "jpeg"]:
+                fileExt = "jpeg"
+            contentType = "image/" + fileExt
+        elif fileExt in ["mp4", "webm"]:
+            contentType = "video/" + fileExt
+        elif fileExt in ["doc", "docx"]:
+            if fileExt == "doc":
+                contentType = "application/msword"
+            else:
+                contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif fileExt in ["pdf"]:
+            contentType = "application/pdf"
+        elif fileExt in ["ppt", "pptx"]:
+            if fileExt == "ppt":
+                contentType = "application/vnd.ms-powerpoint"
+            else:
+                contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        elif fileExt in ["xls", "xlsx"]:
+            if fileExt == "xls":
+                contentType = "application/vnd.ms-excel"
+            else:
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        elif fileExt in ["txt", "csv", "rtf"]:
+            if fileExt == "txt":
+                contentType = "text/plain"
+            elif fileExt == "csv":
+                contentType = "text/csv"
+            else:
+                contentType = "application/rtf"
+        else:
+            toast = ToastNotification(
+                title="Invalid file type",
+                message=f"Please upload a {filetypes[fileType][0]}",
+                duration=3000,
+                bootstyle=DANGER
+            )
+            toast.show_toast()
+            return
+
+        s3 = boto3.client('s3')
+        with open(filename, "rb") as f:
+            # rename file to prevent duplicates
+            filename = f"{modulecode.lower()}-{fileType.lower()}-{str(uuid.uuid4())}.{fileExt}"
+            s3.upload_fileobj(
+                f, BUCKET_NAME, filename,
+                ExtraArgs={'ACL': 'public-read',
+                           'ContentType': contentType}
+            )
+        url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{filename}"
+        self.saveURL(modulecode, url, fileType)
 
     def loadModuleUploadsView(self, modulecode):
         self.viewUploadsFrame.grid()
@@ -282,7 +453,8 @@ class CourseView(Canvas):
         def regainFocus():
             if GetWindowText(GetForegroundWindow()) == "INTI Learning Platform" and self.controller.focus_get() == None:
                 self.focus_force()
-            self.webview.after(1000, regainFocus)
+                toast.show_toast()
+            self.webview.after(10000, regainFocus)
         self.currenturl = self.defaulturl
 
         def updateUrlbar():

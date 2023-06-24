@@ -130,6 +130,7 @@ class ElementCreator(ttk.Window):
             label.grid(row=rowarg, column=columnarg,
                        rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
+        return label
 
     def frameCreator(self, xpos, ypos, framewidth, frameheight, root=None, classname=None, bg=LIGHTYELLOW, relief=FLAT, imgSettings=None):
         classname = classname.replace(" ", "").lower()

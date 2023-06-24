@@ -5,24 +5,37 @@ BUCKET_NAME = "csprojectbucket"
 
 s3 = boto3.client('s3')
 
-# List all buckets
+# # List all buckets
 # response = s3.list_buckets()
 
 # for bucket in response['Buckets']:
 #     print(bucket)
 
-# List all objects in a bucket
+# # List all objects in a bucket
+# response = s3.list_objects_v2(Bucket=BUCKET_NAME)
+# for obj in response['Contents']:
+#     print(obj['Key'])
+
+# # Download all objects in a bucket
+# for obj in response['Contents']:
+#     s3.download_file(BUCKET_NAME, obj['Key'], obj['Key'])
+#     s3.upload_file
+
 
 # Upload a file to a bucket
 # with open("Assets\holyplaceholder.png", "rb") as f:
 #     s3.upload_fileobj(
-#         f, BUCKET_NAME, "test_upload_1.png",
+#         f, BUCKET_NAME, "test_upload_1.png", ExtraArgs={"ACL": "public-read", "ContentType": "image/png"}
 #     )
 # response = s3.list_objects_v2(Bucket=BUCKET_NAME)
 # for obj in response['Contents']:
 #     # print(obj['Key'])
 #     print(obj)
-
+# Get the URL of item with name "test_upload_1.png"
+key = "test_upload_1.png"
+location = s3.get_bucket_location(Bucket=BUCKET_NAME)["LocationConstraint"]
+url = f"https://{BUCKET_NAME}.s3.{location}.amazonaws.com/{key}"
+print(url)
 # Download a file from a bucket
 # s3.download_file(BUCKET_NAME, "unknown-515.png", "downloaded_dog.png")
 
@@ -44,9 +57,9 @@ s3 = boto3.client('s3')
 
 # with open("./Assets/holyplaceholder.png", "rb") as f:
 #     s3.upload_fileobj(f, BUCKET_NAME, "test_upload_default_access.png")
-video_url = s3.generate_presigned_url("get_object", Params={
-    "Bucket": BUCKET_NAME, "Key": "Bad_Apples_Among_Us.mp4"}, ExpiresIn=600)
-print(video_url)
+# video_url = s3.generate_presigned_url("get_object", Params={
+#     "Bucket": BUCKET_NAME, "Key": "Bad_Apples_Among_Us.mp4"}, ExpiresIn=600)
+# print(video_url)
 # Create a Bucket
 # bucket_location = s3.create_bucket(Bucket="new_bucket_777")
 # print(bucket_location)
