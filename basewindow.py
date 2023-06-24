@@ -211,6 +211,7 @@ class ElementCreator(ttk.Window):
                             buttonFunction=j[4]
                         )
         self.updateWidgetsDict(root=root)
+        return self.widgetsDict[classname]
 
     def menubuttonCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), text=None, variable=None, listofvalues=None, command=None):
         """

@@ -1060,9 +1060,6 @@ class FavoritesView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, ORANGE)
-        self.name_entry = Entry(self)
-        self.name_entry.place(x=9, y=8)
-        self.name_entry.grid(row=60, column=10)
         self.staticImgs = [(r"Assets\SearchView\background.png", 0, 0, "favviewbg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
