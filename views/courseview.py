@@ -32,9 +32,9 @@ class CourseView(Canvas):
         gridGenerator(self, 96, 46, WHITE)
         self.createFrames()
 
-    def postLogin(self, data: dict, prisma: Prisma = None):
+    def postLogin(self, data: dict):
         # print("The data is", data)
-        self.prisma = prisma
+        self.prisma = self.controller.mainPrisma
         modules = data["modules"]
         self.userId = data["id"]
         self.role = data["role"]

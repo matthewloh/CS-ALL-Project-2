@@ -93,8 +93,8 @@ class AppointmentsView(Canvas):
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
 
-    def postLogin(self, data: dict = None, prisma: Prisma = None):
-        self.prisma = prisma
+    def postLogin(self, data: dict = None):
+        self.prisma = self.controller.mainPrisma
         self.userId = data["id"]
         self.data = data
         self.role = data["role"]

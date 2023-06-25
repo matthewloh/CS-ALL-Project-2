@@ -91,8 +91,9 @@ class DiscussionsView(Canvas):
             "<Return>", lambda event: self.postcontenttext.focus_set()
         )
 
-    def postLogin(self, data: dict = None, prisma: Prisma = None):
-        self.prisma = prisma
+    def postLogin(self, data: dict = None):
+        self.prisma = self.controller.mainPrisma
+        prisma = self.prisma
         self.userId = data["id"]
         self.programme = data["programme"]
         self.role = data["role"]

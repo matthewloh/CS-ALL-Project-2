@@ -1,4 +1,6 @@
 from ctypes import windll
+import threading
+from prisma import Prisma
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
@@ -34,6 +36,21 @@ class ElementCreator(ttk.Window):
         self.widgetsDict = {}
         self.imageDict = {}
         self.imagePathDict = {}
+        self.initMainPrisma()
+
+    def startPrisma(self):
+        try:
+            self.mainPrisma = Prisma()
+            self.mainPrisma.connect()
+            print("Successfully connected to Prisma client.")
+        except Exception as e:
+            print(e)
+
+    def initMainPrisma(self):
+        t = threading.Thread(target=self.startPrisma)
+        t.daemon = True
+        t.start()
+
     def createImageReference(self, imagepath: str, classname: str):
         # stores a key value pair of "classname" : "imagepath"
         self.imagePathDict[classname] = imagepath
