@@ -237,7 +237,7 @@ class UserForms(Frame):
         if role == "teacher":
             self.controller.buttonCreator(
                 r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-                classname=f"{self.name}completeregbutton", buttonFunction=lambda: self.send_data(
+                classname="completeregbutton", buttonFunction=lambda: self.send_data(
                     data={
                         "fullName": entries["fullname"].get(),
                         "email": entries["email"].get(),
@@ -254,10 +254,11 @@ class UserForms(Frame):
                 ),
                 root=self.parent
             )
+            self.controller.widgetsDict["skipbutton"].grid()
         elif role == "student":
             self.controller.buttonCreator(
                 r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
-                classname=f"{self.name}completeregbutton", buttonFunction=lambda: self.send_data(
+                classname=f"completeregbutton", buttonFunction=lambda: self.send_data(
                     data={
                         "fullName": entries["fullname"].get(),
                         "email": entries["email"].get(),
@@ -274,7 +275,8 @@ class UserForms(Frame):
                 ),
                 root=self.parent
             )
-        self.completeregbutton = self.controller.widgetsDict[f"{self.name}completeregbutton"]
+            self.controller.widgetsDict["skipbutton"].grid()
+
 
     def generateCaptchaChallenge(self):
         # fonts=[r"Fonts\AvenirNext-Regular.ttf", r"Fonts\SF-Pro.ttf"]

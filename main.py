@@ -71,7 +71,7 @@ class Window(ElementCreator):
             ImageTk.PhotoImage(Image.open(
                 r"Assets/Login Page with Captcha/Sign In Page.png")),
         ]
-        
+
         self.buttonSettingsPSF = [
             (r"Assets\LandingPage\Student Button.png", 1080, 320, "Student Button",
              self.parentFrame, lambda: self.signUpPage(student=True)),
@@ -86,10 +86,10 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                #  self.loadSignIn(),
-                 self.show_frame(Dashboard),
-                 self.show_canvas(DashboardCanvas),
-                 self.get_page(Dashboard).loadSpecificAssets("student"),
+                  self.loadSignIn(),
+                #  self.show_frame(Dashboard),
+                #  self.show_canvas(DashboardCanvas),
+                #  self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -105,12 +105,12 @@ class Window(ElementCreator):
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
             frame.grid_propagate(False)
             self.maincanvas = self.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas",
-                               bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
+                                                 bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
             self.updateWidgetsDict(frame)
             frame.grid_remove()
         self.canvasTuple = (DashboardCanvas, SearchPage, Chatbot,
-                 LearningHub, CourseView, DiscussionsView,
-                 FavoritesView, AppointmentsView)
+                            LearningHub, CourseView, DiscussionsView,
+                            FavoritesView, AppointmentsView)
         for CANVAS in self.canvasTuple:
             canvas = CANVAS(
                 parent=self.maincanvas, controller=self)
@@ -126,7 +126,7 @@ class Window(ElementCreator):
         ref = self.widgetsDict["postselectframebg"]
         ref.configure(image=self.loadedImgs[2])
         self.widgetsDict["backbutton"].grid_remove()
-        # self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
+        self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
 
         self.bind("<F11>", lambda e: self.togglethewindowbar())
 
@@ -158,7 +158,6 @@ class Window(ElementCreator):
         except:
             pass
 
-
     def initializeWindow(self):
         windll.shcore.SetProcessDpiAwareness(1)
         quarterofscreenwidth = int(int(user32.GetSystemMetrics(0) / 2) / 4)
@@ -185,21 +184,27 @@ class Window(ElementCreator):
 
     def signUpPage(self, student=False, teacher=False):
         ref = self.widgetsDict["postselectframebg"]
+        try:
+            self.widgetsDict["completeregbutton"].grid_remove()
+        except:
+            pass
+        self.widgetsDict["skipbutton"].grid_remove()
         self.widgetsDict["gofullscreenbtn"].grid_remove()
         self.widgetsDict["backbutton"].grid()
-        self.widgetsDict["skipbutton"].grid()
         if student:
             ref.configure(image=self.loadedImgs[0])
             self.studentform = UserForms(
                 self.postSelectFrame, self, "studentreg")
             # self.studentform.loadAllDetailsForRegistration()
             self.studentform.loadRegThread("student")
+            # self.widgetsDict["skipbutton"].grid()
         elif teacher:
             ref.configure(image=self.loadedImgs[1])
             self.teacherform = UserForms(
                 self.postSelectFrame, self, "teacherreg")
             # self.teacherform.loadAllDetailsForRegistration()
             self.teacherform.loadRegThread("teacher")
+            # self.widgetsDict["skipbutton"].grid()
         self.postSelectFrame.grid()
         self.postSelectFrame.tkraise()
 
@@ -209,14 +214,20 @@ class Window(ElementCreator):
         try:
             if self.studentform:
                 self.widgetsDict["studentreg"].grid_remove()
-                self.widgetsDict["studentregcompleteregbutton"].grid_remove()
+                self.widgetsDict["completeregbutton"].grid_remove()
+                if self.teacherform:
+                    self.widgetsDict["teacherreg"].grid_remove()
+                    self.widgetsDict["completeregbutton"].grid_remove()
                 self.studentform.loadSignIn()
         except AttributeError:
             pass
         try:
             if self.teacherform:
                 self.widgetsDict["teacherreg"].grid_remove()
-                self.widgetsDict["teacherregcompleteregbutton"].grid_remove()
+                self.widgetsDict["completeregbutton"].grid_remove()
+                if self.studentform:
+                    self.widgetsDict["studentreg"].grid_remove()
+                    self.widgetsDict["completeregbutton"].grid_remove()
                 self.teacherform.loadSignIn()
         except AttributeError:
             pass
@@ -225,7 +236,7 @@ class Window(ElementCreator):
             try:
                 if self.studentform:
                     self.studentform.grid()
-                    self.widgetsDict["studentregcompleteregbutton"].grid()
+                    self.widgetsDict["completeregbutton"].grid()
                     self.widgetsDict["postselectframebg"].configure(
                         image=self.loadedImgs[0])
             except AttributeError:
@@ -233,7 +244,7 @@ class Window(ElementCreator):
             try:
                 if self.teacherform:
                     self.teacherform.grid()
-                    self.widgetsDict["teacherregcompleteregbutton"].grid()
+                    self.widgetsDict["completeregbutton"].grid()
                     self.widgetsDict["postselectframebg"].configure(
                         image=self.loadedImgs[1])
             except AttributeError:
@@ -409,7 +420,8 @@ class Window(ElementCreator):
             dashboard = self.widgetsDict["dashboard"]
             dashboard.loadSpecificAssets(data["role"])
             dashboard.postLogin(data)
-            postLoginCanvases = ["courseview", "discussionsview", "appointmentsview", "favoritesview"]
+            postLoginCanvases = [
+                "courseview", "discussionsview", "appointmentsview", "favoritesview"]
             for canvas in postLoginCanvases:
                 canvas = self.widgetsDict[canvas]
                 canvas.postLogin(data)
@@ -451,7 +463,6 @@ class Window(ElementCreator):
                           classname="DevKitEntryGreen", bg="light green")
         self.entryCreator(40, 320, 360, 80, root=self.developerkittoplevel,
                           classname="DevKitEntryOrange", bg=ORANGE)
-        
 
     def createDevWindow(self):
         self.developerkittoplevel = Toplevel(
@@ -565,8 +576,6 @@ class Window(ElementCreator):
             )
             return lecturer, modules
         # prisma.disconnect()
-
-
 
 
 class SlidePanel(Frame):
@@ -852,9 +861,10 @@ class SearchPage(Canvas):
                           font=("Avenir Next", 20), bg=WHITE)
         namelabel.grid(row=0, column=0, columnspan=96,
                        rowspan=5, sticky="nsew")
-        self.staticImgs = [(r"Assets\SearchView\background.png", 0, 0, "searchpagebg", self),]
+        self.staticImgs = [
+            (r"Assets\SearchView\background.png", 0, 0, "searchpagebg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
-    
+
 
 class LearningHub(Canvas):
     def __init__(self, parent, controller: Window):
