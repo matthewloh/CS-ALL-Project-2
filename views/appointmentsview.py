@@ -319,6 +319,8 @@ class AppointmentsView(Canvas):
 
     def loadAllAppointments(self):
         prisma = self.prisma
+
+        
     def loadAppDetailsFrame(self):
         buttonsList = [
             (r"Assets\My Courses\exituploadsview.png", 1300, 40, "exitapptcreation",
@@ -327,6 +329,41 @@ class AppointmentsView(Canvas):
         self.controller.settingsUnpacker(buttonsList, "button")
         self.apptCreateFrame.grid()
         self.apptCreateFrame.tkraise()
+        self.appTitleEntry = self.controller.ttkEntryCreator(
+            xpos=480, ypos=160, width=720, height=60,
+            root=self.apptCreateFrame, classname="apptcreatetitle"
+        )
+        self.apptDesc = self.controller.ttkEntryCreator(
+            xpos=480, ypos=240, width=720, height=120,
+            root=self.apptCreateFrame, classname="apptdescription"
+        )
+        self.apptLocation = self.controller.ttkEntryCreator(
+            xpos=480, ypos=480, width=720, height=60,
+            root=self.apptCreateFrame, classname="apptlocation"
+        )
+        self.apptLocation.insert(0, self.timeslot.get())
+        self.startDateSelector = DateEntry(
+            master=self.apptCreateFrame, dateformat= "%d/%m/%Y"
+        )
+        self.startDateSelector.place(x=480, y=560, width=280, height=60)
+        self.endDateSelector = DateEntry(
+            master=self.apptCreateFrame,  dateformat= "%d/%m/%Y"
+        )
+        self.endDateSelector.place(x=480, y=640, width=280, height=60)
+        self.startTime = self.controller.ttkEntryCreator(
+            xpos = 780, ypos = 560, width=420, height=60,
+            root=self.apptCreateFrame, classname="starttimeentry"
+        )
+        self.endTime = self.controller.ttkEntryCreator(
+            xpos = 780, ypos = 640, width=420, height=60,
+            root=self.apptCreateFrame, classname="endtimeentry"
+        )
+        self.startTime.insert(0, self.timeslot.get())
+        self.endTime.insert(0, self.timeslot.get())
+
+        
+    
+    
     def loadAppCreation(self):
         self.apptCreateFrame.grid_remove()
         self.creationFrame.grid()

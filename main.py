@@ -83,7 +83,11 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
+<<<<<<< Updated upstream
                 #  self.loadSignIn(),
+=======
+                  self.loadSignIn(),
+>>>>>>> Stashed changes
                  self.show_frame(Dashboard),
                  self.show_canvas(DashboardCanvas),
                  self.get_page(Dashboard).loadSpecificAssets("student"),
@@ -94,7 +98,7 @@ class Window(ElementCreator):
         self.settingsUnpacker(self.buttonSettingsPSF, "button")
 
         self.openDevWindow()
-        self.bind("<Configure>", self.resizeEvent)
+        # self.bind("<Configure>", self.resizeEvent)
 
         for F in (Dashboard, ):
             frame = F(parent=self.parentFrame, controller=self)
