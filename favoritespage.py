@@ -200,14 +200,12 @@ class Dashboard(Frame):
         ]
         self.controller.settingsUnpacker(self.staticImgBtns, "button")
 
-
     def postLogin(self, data: dict, prisma: Prisma = None):
         role = data["role"]
         id = data["id"]
         fullName = data["fullName"]
         email = data["email"]
         modules = data["modules"]
-
 
 
 class DashboardCanvas(Canvas):
@@ -262,33 +260,6 @@ class DashboardCanvas(Canvas):
         # print(f"User Details:\n{user.json(indent=2)}")
 
 
-class AnimatedStarButton(Canvas):
-    def __init__(self, parent):
-        Canvas.__init__(self, parent, width=54, height=50, bd=0,
-                        highlightthickness=0, relief="ridge")
-        self.parent = parent
-        self.is_yellow = False  # Tracks the state of the star button
-
-        # Load the star button images
-        self.yellow_star_image = PhotoImage(
-            file="Assets/FavoritesView/yellowstar.png")
-        self.white_star_image = PhotoImage(
-            file="Assets/FavoritesView/whitestar.png")
-
-        # Create a button with the white star image
-        self.star_button = self.create_image(30, 30, image=self.white_star_image,
-                                             tags="star_button")
-        self.tag_bind("star_button", "<Button-1>", self.toggle_star_color)
-
-    def toggle_star_color(self, event):
-        # Toggle the star color when the button is clicked
-        self.is_yellow = not self.is_yellow
-        if self.is_yellow:
-            self.itemconfigure(self.star_button, image=self.yellow_star_image)
-        else:
-            self.itemconfigure(self.star_button, image=self.white_star_image)
-
-
 class FavoritesView(Canvas):
     def __init__(self, parent, controller: Window):
         Canvas.__init__(self, parent, width=1, height=1,
@@ -296,27 +267,64 @@ class FavoritesView(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, ORANGE)
+        self.createFrames()
         self.staticImgs = [
-            (r"Assets\FavoritesView\FavoritesViewBg.png", 0, 0, "favviewbg", self),]
+            (r"Assets\FavoritesView\FavoritesView.png", 0, 0, "favviewbg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
         self.scrolledframe = ScrolledFrame(
-            master=self, width=1680, height=580, autohide=True, bootstyle="bg-round"
+            master=self, width=1160, height=240, autohide=True, bootstyle="bg-round"
         )
-        self.scrolledframe.place(x=120, y=260, width=1680, height=580)
+        self.scrolledframe.place(x=160, y=540, width=1200, height=240)
+        exampleOfSearchItems = [
+            "This is Item 1",
+            "This is another Item",
+            "This is a third item"]
+        MAXHEIGHT = len(exampleOfSearchItems) * 120
+        if MAXHEIGHT < 240:
+            MAXHEIGHT = 240
+        self.scrolledframe.configure(height=MAXHEIGHT)
+        initCoords = (20, 0)
+        # Set your imagepath here
+        IMAGEPATH = r"Assets\SearchView\SearchBg.png"
+        for i in exampleOfSearchItems:
+            t = self.controller.textElement(
+                imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
+                classname=f"searchitem{i}", root=self.scrolledframe,
+                text=i, fg="#5975D7", font=INTERBOLD, size=32,
+                isPlaced=True, xoffset=-2, yIndex=-1/2,
+                buttonFunction=lambda i=i: print(i)
+            )
+            initCoords = (initCoords[0], initCoords[1] + 120)
+        self.buttonSettings = [
+            (r"Assets\SearchView\Click.png", 1540, 740, "loadhelpdeskbtn", self,
+             lambda: [self.helpdeskFrame.grid(), self.helpdeskFrame.tkraise()]),
+        ]
+        self.controller.settingsUnpacker(self.buttonSettings, "button")
 
-        # im = r"Assets\FavoritesView\Button.png"
-        # _text = "Lab Work 1 Answer"
-        # self.controller.textElement(imagepath=im, xpos=100, ypos=240, fg="#5975D7",
-        #                             classname="exampleofawordelement", root=self, text=_text, size=34, font=INTERBOLD,
-        #                             buttonFunction=lambda: self.controller.widgetsDict["exampleofawordelement"].grid_remove(
-        #                             )
-        #                             )
-
-        # self.star_button = AnimatedStarButton(self)
-        # self.star_button.place(x=1600, y=262)
+    def createFrames(self):
+        self.helpdeskFrame = self.controller.frameCreator(
+            xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            root=self, classname="helpdeskframe",
+        )
+        self.helpdeskLabels = [
+            (r"Assets\SearchView\helpdeskbg.png", 0, 0,
+             "helpdeskbg", self.helpdeskFrame),
+        ]
+        self.controller.settingsUnpacker(self.helpdeskLabels, "label")
+        self.helpdeskButtons = [
+            (r"Assets\SearchView\helpdeskreturnbtn.png", 140, 780,
+             "helpdeskreturnbtn", self.helpdeskFrame,
+             lambda: self.helpdeskFrame.grid_remove()),
+            (r"Assets\SearchView\helpdesksubmit.png", 1560, 780,
+             "helpdesksubmit", self.helpdeskFrame,
+             lambda: print("Submit")),
+        ]
+        self.controller.settingsUnpacker(self.helpdeskButtons, "button")
+        self.helpdeskFrame.grid_remove()
 
     def postLogin(self, data: dict):
+        return
         self.prisma = self.controller.mainPrisma
         self.userId = data["id"]
         prisma = self.prisma
@@ -344,22 +352,23 @@ class FavoritesView(Canvas):
         for favPost in favPosts:
             postModule = favPost.module
             postAuthor = favPost.author
-            createdAt = kualalumpur.convert(favPost.createdAt).strftime(timestrfmt)
+            createdAt = kualalumpur.convert(
+                favPost.createdAt).strftime(timestrfmt)
             postInfo = (
-                favPost.id, favPost.title, 
+                favPost.id, favPost.title,
                 postAuthor.fullName,
                 createdAt,
                 postModule.moduleCode, postModule.moduleTitle,
             )
             self.favPostList.append(postInfo)
-                
+
         IMAGEPATH = r"Assets\FavoritesView\Button.png"
 
         # Calculates the number of post, if heightofFrame needs to exceed 580:
         heightofFrame = len(self.favPostList) * 140
         if heightofFrame < 580:
             heightofFrame = 580
-    
+
         self.scrolledframe.config(height=heightofFrame)
 
         initCoords = (20, 20)
@@ -368,12 +377,12 @@ class FavoritesView(Canvas):
             fmttext = f"{title}\n{moduleCode} - {moduleTitle}"
             tipText = f"Created on {createdAt} by {author} in {moduleCode} - {moduleTitle}"
             t = self.controller.textElement(
-                imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1], 
+                imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
                 classname=f"favpost{id}", root=self.scrolledframe,
                 text=fmttext, fg="#5975D7", font=INTERBOLD, size=32,
                 isPlaced=True, xoffset=-2, yIndex=-1/2
             )
-            ToolTip(t, text=tipText, bootstyle=(INFO,INVERSE))
+            ToolTip(t, text=tipText, bootstyle=(INFO, INVERSE))
             AnimatedStarBtn(
                 self.scrolledframe, xpos=initCoords[0]+1540, ypos=initCoords[1]+20,
                 frameheight=60, framewidth=60,

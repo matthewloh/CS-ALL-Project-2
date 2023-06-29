@@ -191,7 +191,7 @@ model ModulePost {
 
 model ModuleUpload {
   id          Int                     @id @default(autoincrement())
-  url         String?
+  objKey      String                  
   moduleId    String
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
@@ -200,7 +200,6 @@ model ModuleUpload {
   uploadType  ModuleUpload_uploadType @default(LINK)
   description String?
   title       String
-  blobData    Bytes?
   module      Module                  @relation(fields: [moduleId], references: [id])
   uploader    Lecturer                @relation(fields: [uploaderId], references: [id])
 
@@ -256,5 +255,4 @@ enum ModuleUpload_uploadType {
   VIDEO
   PDF
   LINK
-  BLOB
 }
