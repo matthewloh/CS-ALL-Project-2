@@ -191,7 +191,7 @@ model ModulePost {
 
 model ModuleUpload {
   id          Int                     @id @default(autoincrement())
-  url         String?
+  objKey      String                  
   moduleId    String
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt

@@ -206,6 +206,7 @@ class DiscussionsView(Canvas):
             heightofframe = 500
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
+            bootstyle="rounded"
         )
         self.postscrolledframe.grid_propagate(False)
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
@@ -284,17 +285,17 @@ class DiscussionsView(Canvas):
 
         # A host is used to remove the currently loaded scrolled frame using grid_remove()
         self.scrolledframehost = self.controller.frameCreator(
-            root=self.postviewframe, framewidth=1100, frameheight=660,
+            root=self.postviewframe, framewidth=1120, frameheight=660,
             classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
         )
         totalheight = (1 + len(repliesList)) * 280
         if totalheight < 660:
             totalheight = 660
         self.scrolledframe = ScrolledFrame(
-            self.scrolledframehost, width=1, height=totalheight, name="postviewcontent", autohide=True, padding=0, bootstyle=WARNING
+            self.scrolledframehost, width=1, height=totalheight, name="postviewcontent", autohide=True, padding=0, bootstyle="warning-rounded"
         )
         self.scrolledframe.place(
-            x=0, y=0, width=1100, height=660
+            x=0, y=0, width=1120, height=660
         )
         # TITLE OF THE POST
         self.controller.textElement(
@@ -333,10 +334,10 @@ class DiscussionsView(Canvas):
             self.scrolledframebg.configure(
                 image=newimage, bg="#acbcff")
             self.scrolledframebg.place(
-                x=0, y=0, width=1100, height=totalheight
+                x=0, y=0, width=1120, height=totalheight
             )
         else:
-            image = image.resize((1100, totalheight),
+            image = image.resize((1120, totalheight),
                                  Image.Resampling.LANCZOS)
             self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(
                 image)
@@ -344,7 +345,7 @@ class DiscussionsView(Canvas):
             self.scrolledframebg.configure(
                 image=newimage, bg="#acbcff")
             self.scrolledframebg.place(
-                x=0, y=0, width=1100, height=660
+                x=0, y=0, width=1120, height=660
             )
         # POST BG
         self.controller.labelCreator(
@@ -391,7 +392,7 @@ class DiscussionsView(Canvas):
         # 8. Area to type a reply -> a text widget
         self.scrolledtext = ScrolledText(
             master=self.scrolledframe, width=1, height=1, name = "contenttext",
-            bootstyle=INFO, autohide=True,
+            bootstyle="info-rounded", autohide=True,
         )
         self.contenttext = self.scrolledtext.text
         self.contenttext.config(
@@ -481,7 +482,7 @@ class DiscussionsView(Canvas):
             replytextname = f"replycontent{replycounter}"
             scrolledtext = ScrolledText(
                 master=self.scrolledframe, width=1, height=1, name=scrolledtextname,
-                bootstyle=SECONDARY, autohide=True,
+                bootstyle="secondary-rounded", autohide=True,
             )
             contenttext = scrolledtext.text
             contenttext.config(

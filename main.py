@@ -36,6 +36,9 @@ from components.userforms import UserForms
 from basewindow import ElementCreator
 from win32gui import GetWindowText, GetForegroundWindow
 from captcha.image import ImageCaptcha
+from views.learninghub import LearningHub
+
+from views.searchpage import SearchPage
 load_dotenv()
 
 
@@ -86,10 +89,10 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                  self.loadSignIn(),
-                #  self.show_frame(Dashboard),
-                #  self.show_canvas(DashboardCanvas),
-                #  self.get_page(Dashboard).loadSpecificAssets("student"),
+                 self.loadSignIn(),
+                 #  self.show_frame(Dashboard),
+                 #  self.show_canvas(DashboardCanvas),
+                 #  self.get_page(Dashboard).loadSpecificAssets("student"),
              ])
         ]
 
@@ -848,36 +851,6 @@ class DashboardCanvas(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
-
-
-class SearchPage(Canvas):
-    def __init__(self, parent, controller: Window):
-        Canvas.__init__(self, parent, width=1, height=1,
-                        bg=WHITE, name="searchpage", autostyle=False)
-        self.controller = controller
-        self.parent = parent
-        gridGenerator(self, 96, 46, WHITE)
-        namelabel = Label(self, text="Search Page",
-                          font=("Avenir Next", 20), bg=WHITE)
-        namelabel.grid(row=0, column=0, columnspan=96,
-                       rowspan=5, sticky="nsew")
-        self.staticImgs = [
-            (r"Assets\SearchView\background.png", 0, 0, "searchpagebg", self),]
-        self.controller.settingsUnpacker(self.staticImgs, "label")
-
-
-class LearningHub(Canvas):
-    def __init__(self, parent, controller: Window):
-        Canvas.__init__(self, parent, width=1, height=1,
-                        bg=WHITE, name="learninghub", autostyle=False)
-        self.controller = controller
-        self.parent = parent
-        gridGenerator(self, 96, 46, WHITE)
-        self.staticImgLabels = [
-            # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
-            (r"Assets\LearningHub\LearningHubBG.png", 0, 0, "LearningHubBG", self),
-        ]
-        self.controller.settingsUnpacker(self.staticImgLabels, "label")
 
 
 def runGui():
