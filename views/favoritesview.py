@@ -96,7 +96,7 @@ class FavoritesView(Canvas):
             t = self.controller.textElement(
                 imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1], 
                 classname=f"favpost{id}", root=self.scrolledframe,
-                text=fmttext, fg="#5975D7", font=INTERBOLD, size=32,
+                text=fmttext, fg="#5975D7", font=URBANIST, size=32,
                 isPlaced=True, xoffset=-2, yIndex=-1/2
             )
             ToolTip(t, text=tipText, bootstyle=(INFO,INVERSE))
