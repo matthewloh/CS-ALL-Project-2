@@ -16,6 +16,7 @@ from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
 from prisma import Prisma
+from prisma import Json
 from win32gui import GetWindowText, GetForegroundWindow
 
 from views.discussionsview import DiscussionsView

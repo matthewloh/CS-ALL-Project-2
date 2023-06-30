@@ -32,23 +32,24 @@ class FavoritesView(Canvas):
             master=self, width=1680, height=580, autohide=True, bootstyle="bg-round"
         )
         self.scrolledframe.place(x=120, y=260, width=1680, height=580)
-
-        # im = r"Assets\FavoritesView\Button.png"
-        # _text = "Lab Work 1 Answer"
-        # self.controller.textElement(imagepath=im, xpos=100, ypos=240, fg="#5975D7",
-        #                             classname="exampleofawordelement", root=self, text=_text, size=34, font=INTERBOLD,
-        #                             buttonFunction=lambda: self.controller.widgetsDict["exampleofawordelement"].grid_remove(
-        #                             )
-        #                             )
-
-        # self.star_button = AnimatedStarButton(self)
-        # self.star_button.place(x=1600, y=262)
+        
 
     def postLogin(self, data: dict):
         self.prisma = self.controller.mainPrisma
         self.userId = data["id"]
         prisma = self.prisma
+        self.loadFavoritePosts()
+        self.renderFavoritePosts()
         # This returns a student
+
+                
+
+        # Calculates the number of post, if heightofFrame needs to exceed 580:
+
+    
+    def loadFavoritePosts(self):
+        prisma = self.prisma
+         # This returns a student
         user = prisma.userprofile.find_first(
             where={
                 "id": self.userId
@@ -62,22 +63,6 @@ class FavoritesView(Canvas):
                 }
             }
         )
-        # user = prisma.userprofile.find_first(
-        #     where={
-        #         "email": "p21013568@student.newinti.edu.my"
-        #     },
-        #     include={
-        #         "favoritePosts": {
-        #             "include": {
-        #                 "author": True,
-        #                 "module": True
-        #             }
-        #         },
-        #         "createdPosts": True,
-        #         # If you are working with a student, this will return the field in the Student's table where the userid is found
-        #         "lecturer": True,  # will return an empty list if the user is not a lecturer and vice versa
-        #     }
-        # )
         favPosts = user.favoritePosts
         self.favPostList = []
         kualalumpur = timezone("Asia/Kuala_Lumpur")
@@ -93,16 +78,16 @@ class FavoritesView(Canvas):
                 postModule.moduleCode, postModule.moduleTitle,
             )
             self.favPostList.append(postInfo)
-                
-        IMAGEPATH = r"Assets\FavoritesView\Button.png"
-
-        # Calculates the number of post, if heightofFrame needs to exceed 580:
+        return self.favPostList
+    
+    def renderFavoritePosts(self):
         heightofFrame = len(self.favPostList) * 140
         if heightofFrame < 580:
             heightofFrame = 580
     
         self.scrolledframe.config(height=heightofFrame)
 
+        IMAGEPATH = r"Assets\FavoritesView\Button.png"
         initCoords = (20, 20)
         for post in self.favPostList:
             id, title, author, createdAt, moduleCode, moduleTitle = post
@@ -116,12 +101,18 @@ class FavoritesView(Canvas):
             )
             ToolTip(t, text=tipText, bootstyle=(INFO,INVERSE))
             AnimatedStarBtn(
-                self.scrolledframe, xpos=initCoords[0]+1540, ypos=initCoords[1]+20,
+                parent=self.scrolledframe, controller=self.controller,
+                xpos=initCoords[0]+1540, ypos=initCoords[1]+20,
                 frameheight=60, framewidth=60,
                 classname=f"favpost{id}star",
                 prisma=self.controller.mainPrisma, userId=self.userId,
                 resizeWidth=60, resizeHeight=60,
                 isPlaced=True, isFavorited=True,
                 postId=id, postTitle=title,
+                isFromFavView=True
             )
             initCoords = (initCoords[0], initCoords[1]+140)
+    
+    def refreshFavoritesView(self):
+        self.loadFavoritePosts()
+        self.renderFavoritePosts()

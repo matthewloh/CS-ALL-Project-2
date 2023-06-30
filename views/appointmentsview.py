@@ -1,3 +1,4 @@
+import re
 import threading
 from tkinter import *
 import ttkbootstrap as ttk
@@ -336,8 +337,85 @@ class AppointmentsView(Canvas):
 
     def loadAllAppointments(self):
         prisma = self.prisma
-
+    def validateDateInputs(self):
+        # Constructing a valid DateTime Object to send into DB
+        startDate = self.startDateSelector.entry.get()
+        endDate = self.endDateSelector.entry.get()
+        startTimeStr = self.startTime.get()
+        endTimeStr = self.endTime.get()
         
+        # construct regexes to match against
+        # Date Pattern = 30/06/2023
+        # Time = 10:00AM
+        date_pattern = re.compile(r"([0-9]{2}/[0-9]{2}/[0-9]{4})")
+        time_pattern = re.compile(r"([0-9]{2}:[0-9]{2}[AP]M)")
+        # match against the regexes
+        # check individual inputs
+        toast = ToastNotification(
+                title="Invalid Date/Time Input",
+                message="Please enter a valid date and time input",
+                duration=5000,
+                bootstyle=DANGER
+            )
+
+        if not date_pattern.match(startDate):
+            toast.message = "Please enter a valid start date"
+            toast.show_toast()
+            return
+        elif not date_pattern.match(endDate):
+            toast.message = "Please enter a valid end date"
+            toast.show_toast()
+            return
+        elif not time_pattern.match(startTimeStr):
+            toast.message = "Please enter a valid start time, the format is 10:00AM"
+            toast.show_toast()
+        elif not time_pattern.match(endTimeStr):
+            toast.message = "Please enter a valid end time, the format is 10:00AM"
+            toast.show_toast()
+        else:
+            pass
+        if date_pattern.match(startDate) and date_pattern.match(endDate) and time_pattern.match(startTimeStr) and time_pattern.match(endTimeStr):
+            # if all the inputs are valid, construct the datetime object
+            # 30/06/2023 10:00AM
+            startDateTime = datetime.strptime(f"{startDate} {startTimeStr}", "%d/%m/%Y %I:%M%p")
+            endDateTime = datetime.strptime(f"{endDate} {endTimeStr}", "%d/%m/%Y %I:%M%p")
+            # check if the startDateTime is before the endDateTime
+            if startDateTime < endDateTime:
+                # if it is, return True
+                return True
+            else:
+                # if it isn't, return False
+                return False
+    def createAppointment(self):
+        prisma = self.prisma
+        lecturer = prisma.lecturer.find_first(
+            where={
+                "userProfile": {
+                    "is": {
+                        "fullName": self.lecturer.get()
+                    }
+                }
+            }
+        )
+        student = prisma.student.find_first(
+            where={
+                "userProfile": {
+                    "is": {
+                        "id": self.userId
+                    }
+                }
+            }
+        )
+        prisma.appointment.create(
+            data={
+                "title": self.appTitleEntry.get(),
+                "description": self.apptDesc.get(),
+                "startTime": self.startTime.get(),
+                "endTime": self.endTime.get(),
+                
+                
+            }
+        )
     def loadAppDetailsFrame(self):
         buttonsList = [
             (r"Assets\My Courses\exituploadsview.png", 1300, 40, "exitapptcreation",

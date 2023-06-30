@@ -23,7 +23,8 @@ class AnimatedStarBtn(Frame):
                  classname=None, imagexpos=0, imageypos=0, resizeWidth=0, resizeHeight=0, 
                  bg=WHITE,
                  prisma: Prisma = None, postId=None, userId=None,
-                 isFavorited=False, postTitle=None):
+                 isFavorited=False, postTitle=None,
+                 isFromFavView=False):
         super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname)
         self.controller = controller
         self.grid_propagate(False)
@@ -31,6 +32,7 @@ class AnimatedStarBtn(Frame):
         self.userId = userId
         self.prisma = prisma
         self.isFavorited = isFavorited
+        self.isFromFavView = isFromFavView
         self.postTitle = postTitle
         classname = classname.replace(" ", "").lower()
         widthspan = int(framewidth / 20)
@@ -176,7 +178,9 @@ class AnimatedStarBtn(Frame):
             self.tooltip = ToolTip(
                 self.img_container, f"Click to unfavorite post {self.postTitle}", bootstyle=(DANGER, INVERSE))
             self.tooltip.show_tip()
-
+            self.refreshFavoritesView()
+            if self.isFromFavView:
+                self.refreshPostsFromFavoritesView()
         t = threading.Thread(target=updateuser)
         t.daemon = True
         t.start()
@@ -217,6 +221,10 @@ class AnimatedStarBtn(Frame):
             self.tooltip = ToolTip(
                 self.img_container, f"Click to favorite {self.postTitle}", bootstyle=(INFO, INVERSE))
             self.tooltip.show_tip()
+            self.refreshFavoritesView()
+            if self.isFromFavView:
+                self.refreshPostsFromFavoritesView()
+
         t = threading.Thread(target=updateuser)
         t.daemon = True
         t.start()
@@ -238,3 +246,13 @@ class AnimatedStarBtn(Frame):
                 self.after(20, self.animate)
             else:
                 self.animation_status.set("start")
+                
+
+    def refreshFavoritesView(self):
+        self.favoritesView = self.controller.widgetsDict["favoritesview"]
+        self.favoritesView.refreshFavoritesView()
+    
+    def refreshPostsFromFavoritesView(self):
+        self.discussionsView = self.controller.widgetsDict["discussionsview"]
+        var = self.discussionsView.modulecodevar
+        self.discussionsView.callLoadLatestPosts(var.get())

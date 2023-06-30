@@ -246,7 +246,8 @@ class DiscussionsView(Canvas):
             )
             if postId in favoritedPostIds:
                 AnimatedStarBtn(
-                    parent=self.postscrolledframe, xpos=initialcoordinates[0] + 760,
+                    parent=self.postscrolledframe, controller=self.controller,
+                    xpos=initialcoordinates[0] + 760,
                     ypos=initialcoordinates[1] + 20, frameheight=40, framewidth=40,
                     classname=f"post{postId}favoritestar", imagexpos=0, imageypos=0,
                     isPlaced=True, prisma=self.prisma, postId=postId, userId=self.userId,
@@ -255,7 +256,7 @@ class DiscussionsView(Canvas):
                 )
             else:
                 AnimatedStarBtn(
-                    parent=self.postscrolledframe,
+                    parent=self.postscrolledframe, controller=self.controller,
                     xpos=initialcoordinates[0] + 760,
                     ypos=initialcoordinates[1] + 20,
                     framewidth=40, frameheight=40, classname=f"post{postId}favoritestar",

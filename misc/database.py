@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 from pendulum import timezone
+
 # ~~~~ MYSQL ~~~~
 # import os
 # from dotenv import load_dotenv
@@ -60,7 +61,7 @@ from pendulum import timezone
 #     connection.close()
 
 # ~~~~ PRISMA ~~~~
-from prisma import Prisma
+from prisma import Prisma, Json
 from prisma.models import UserProfile
 from prisma.bases import BaseUserProfile, BaseModule, BaseModuleEnrollment
 
@@ -1325,6 +1326,53 @@ def checkLecturerHours():
         print(f"End Time: {endtime.strftime(timestrfmt)}")
         print(f"Location: {stg.location}")
 
+def createJson():
+    prisma.connect()
+    """
+    Example of a quiz json
+    
+    quizData = {
+        "quizAnswer": "This is the answer",
+        "quizQuestion": "This is the question",
+        "quizOptions": [
+            "Invalid Answer 1",
+            "Invalid Answer 2",
+            "Invalid Answer 3",
+        ],
+        "quizType": "MULTIPLE_CHOICE"    
+    }
+    """
+    
+    quizData = {
+        "quizAnswer": "This is the answer",
+        "quizQuestion": "This is the question",
+        "quizOptions": [
+            "Invalid Answer 1",
+            "Invalid Answer 2",
+            "Invalid Answer 3",
+        ],
+        "quizType": "MULTIPLE_CHOICE"    
+    }
+    convertedData = Json(quizData)
+    #converting dictionary to json using Prisma's Json Class
+    submitQuiz = prisma.modulequiz.create(
+        data={
+            "title": "Quiz Title",
+            "description": "Quiz Description",
+            "quizContent": convertedData,
+            "author": {
+                "connect": {
+                    "id": "cli0faxgj0000vtdc5vq2y9pz"
+                }
+            },
+            "module": {
+                "connect": {
+                    "id": "clhrvr700000cvt9gwh6d7fk6"
+                }
+            }
+        }
+    )
+    print(f"Quiz:\n{submitQuiz.json(indent=2)}\n")
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1339,10 +1387,11 @@ if __name__ == "__main__":
     # usingpartialTypes()
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
-    # createAppointment()
+    createAppointment()
     # createModulePost()
     # queryPosts()
     # queryModules()
-    uploadFiles()
+    # uploadFiles()
     # makeStructures()
     # checkLecturerHours()
+    # createJson()

@@ -89,11 +89,7 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-<<<<<<< Updated upstream
-                 self.loadSignIn(),
-=======
                   self.loadSignIn(),
->>>>>>> Stashed changes
                  #  self.show_frame(Dashboard),
                  #  self.show_canvas(DashboardCanvas),
                  #  self.get_page(Dashboard).loadSpecificAssets("student"),
