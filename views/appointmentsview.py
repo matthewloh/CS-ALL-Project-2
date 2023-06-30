@@ -257,8 +257,21 @@ class AppointmentsView(Canvas):
                 "timeslot"]["width"], height=positions["timeslot"]["height"],
             root=self.creationFrame, classname="timeslotmenu", text="Select Timeslot", listofvalues=timeslotlist,
             variable=self.timeslot, font=("Helvetica", 12),
-            command=lambda: print(f"timeslot selected: {self.timeslot.get()}")
+            command=lambda: [
+                print(f"timeslot selected: {self.timeslot.get()}"),
+                             self.setVars(self.timeslot.get())]
         )
+    def setVars(self, timeslotString):
+        # self.timeslot.get returns the formattedTime
+        # formattedTime = f"{day}, {starttime} - {endtime} at {location}"
+        location = self.timeslot.get().split(" at ")[1]
+        day = self.timeslot.get().split(" at ")[0].split(" - ")[0].split(",")[0]
+        starttime = self.timeslot.get().split(" at ")[0].split(" - ")[0].split(",")[1].strip()
+        endtime = self.timeslot.get().split(" at ")[0].split(" - ")[1]
+        self.dayString.set(day)
+        self.locationString.set(location)
+        self.startTimeString.set(starttime)
+        self.endTimeString.set(endtime)
 
     def loadAllDetailsForCreation(self):
         # MODULE -> LECTURER -> TIMESLOT
@@ -297,6 +310,10 @@ class AppointmentsView(Canvas):
         self.module = StringVar()
         self.lecturer = StringVar()
         self.timeslot = StringVar()
+        self.locationString = StringVar()
+        self.startTimeString = StringVar()
+        self.endTimeString = StringVar()
+        self.dayString = StringVar()
         for var in [self.module, self.lecturer, self.timeslot]:
             var.set("")
         vars = {
@@ -325,9 +342,11 @@ class AppointmentsView(Canvas):
         buttonsList = [
             (r"Assets\My Courses\exituploadsview.png", 1300, 40, "exitapptcreation",
              self.apptCreateFrame, lambda: self.unloadAppCreationDetails()),
+            (r"Assets\AppointmentsView\confirmbutton.png", 1680, 680, "confirmapptcreation",
+             self.apptCreateFrame, lambda: print("confirm button pressed")),
         ]
         self.controller.settingsUnpacker(buttonsList, "button")
-        self.apptCreateFrame.grid()
+        self.apptCreateFrame.grid() 
         self.apptCreateFrame.tkraise()
         self.appTitleEntry = self.controller.ttkEntryCreator(
             xpos=480, ypos=160, width=720, height=60,
@@ -341,7 +360,7 @@ class AppointmentsView(Canvas):
             xpos=480, ypos=480, width=720, height=60,
             root=self.apptCreateFrame, classname="apptlocation"
         )
-        self.apptLocation.insert(0, self.timeslot.get())
+        self.apptLocation.insert(0, self.locationString.get())
         self.startDateSelector = DateEntry(
             master=self.apptCreateFrame, dateformat= "%d/%m/%Y"
         )
@@ -358,8 +377,9 @@ class AppointmentsView(Canvas):
             xpos = 780, ypos = 640, width=420, height=60,
             root=self.apptCreateFrame, classname="endtimeentry"
         )
-        self.startTime.insert(0, self.timeslot.get())
-        self.endTime.insert(0, self.timeslot.get())
+        self.startTime.insert(0, self.startTimeString.get())
+        self.endTime.insert(0, self.endTimeString.get())
+        
 
         
     
