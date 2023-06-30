@@ -1297,6 +1297,7 @@ def makeStructures():
     # emulate selecting an institution and returning a list of that institution's programmes
     ins = "IICP"
 
+
 def checkLecturerHours():
     prisma.connect()
     lecturer = prisma.lecturer.find_first(
@@ -1326,6 +1327,7 @@ def checkLecturerHours():
         print(f"End Time: {endtime.strftime(timestrfmt)}")
         print(f"Location: {stg.location}")
 
+
 def createJson():
     prisma.connect()
     """
@@ -1342,37 +1344,64 @@ def createJson():
         "quizType": "MULTIPLE_CHOICE"    
     }
     """
-    
-    quizData = {
-        "quizAnswer": "This is the answer",
-        "quizQuestion": "This is the question",
-        "quizOptions": [
-            "Invalid Answer 1",
-            "Invalid Answer 2",
-            "Invalid Answer 3",
-        ],
-        "quizType": "MULTIPLE_CHOICE"    
-    }
-    convertedData = Json(quizData)
-    #converting dictionary to json using Prisma's Json Class
-    submitQuiz = prisma.modulequiz.create(
-        data={
-            "title": "Quiz Title",
-            "description": "Quiz Description",
-            "quizContent": convertedData,
-            "author": {
-                "connect": {
-                    "id": "cli0faxgj0000vtdc5vq2y9pz"
-                }
-            },
-            "module": {
-                "connect": {
-                    "id": "clhrvr700000cvt9gwh6d7fk6"
+
+    # quizData = {
+    #     "quizAnswer": "This is the answer",
+    #     "quizQuestion": "This is the question",
+    #     "quizOptions": [
+    #         "Invalid Answer 1",
+    #         "Invalid Answer 2",
+    #         "Invalid Answer 3",
+    #     ],
+    #     "quizType": "MULTIPLE_CHOICE"
+    # }
+    # convertedData = Json(quizData)
+    # #converting dictionary to json using Prisma's Json Class
+    # submitQuiz = prisma.modulequiz.create(
+    #     data={
+    #         "title": "Quiz Title",
+    #         "description": "Quiz Description",
+    #         "quizContent": convertedData,
+    #         "author": {
+    #             "connect": {
+    #                 "id": "cli0faxgj0000vtdc5vq2y9pz"
+    #             }
+    #         },
+    #         "module": {
+    #             "connect": {
+    #                 "id": "clhrvr700000cvt9gwh6d7fk6"
+    #             }
+    #         }
+    #     }
+    # )
+    # print(f"Quiz:\n{submitQuiz.json(indent=2)}\n")
+    module = prisma.module.find_first(
+        where={
+            "moduleCode": "INT4004CEM"
+        },
+        include={
+            "moduleQuizzes": {
+                "include": {
+                    "quizAttempts": {
+                        "include": {
+                            "user": True
+                        }
+                    }
                 }
             }
         }
     )
-    print(f"Quiz:\n{submitQuiz.json(indent=2)}\n")
+    for quiz in module.moduleQuizzes:
+        returnedDict = quiz.quizContent
+        print(returnedDict)
+        print(returnedDict["quizType"])
+        print(returnedDict["quizAnswer"])
+        print(returnedDict["quizOptions"])
+        for attempt in quiz.quizAttempts:
+            print(attempt.user.fullName)
+            print(attempt.json(indent=2))
+
+
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1387,11 +1416,11 @@ if __name__ == "__main__":
     # usingpartialTypes()
     # creatingmoduleenrollments()
     # checkModuleEnrollMents()
-    createAppointment()
+    # createAppointment()
     # createModulePost()
     # queryPosts()
     # queryModules()
     # uploadFiles()
     # makeStructures()
     # checkLecturerHours()
-    # createJson()
+    createJson()

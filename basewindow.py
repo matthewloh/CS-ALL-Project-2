@@ -275,6 +275,8 @@ class ElementCreator(ttk.Window):
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
         
+        return menubutton
+        
 
     def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*", captchavar = None):
         """

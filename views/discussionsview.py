@@ -7,7 +7,7 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from elementcreator import gridGenerator
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -16,6 +16,7 @@ from prisma import Prisma
 from components.animatedgif import AnimatedGif
 from components.animatedstarbtn import AnimatedStarBtn
 from PIL import Image, ImageTk, ImageSequence
+
 
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller: ElementCreator):
@@ -27,7 +28,6 @@ class DiscussionsView(Canvas):
         self.createFrames()
 
         self.createElements()
-
 
         self.posttitleent = self.controller.ttkEntryCreator(
             xpos=900, ypos=160, width=920, height=40, root=self.creationframe, classname="posttitleent"
@@ -57,7 +57,7 @@ class DiscussionsView(Canvas):
             (r"Assets\DiscussionsView\creatediscussion.png", 80, 120, "creatediscussionbtn", self,
              lambda: self.loadPostCreation()),
             (r"Assets\DiscussionsView\refreshbutton.png", 860, 220, "refreshbtn", self,
-             lambda: 
+             lambda:
              self.callLoadLatestPosts(self.modulecodevar.get())
              ),
             (r"Assets\DiscussionsView\cancelbuttondisc.png", 40, 760, "cancelbtncreation", self.creationframe,
@@ -118,7 +118,7 @@ class DiscussionsView(Canvas):
                                 "equals": self.userId
                             }
                         }
-                    }    
+                    }
                 }
             )
         elif self.role == "student":
@@ -159,7 +159,7 @@ class DiscussionsView(Canvas):
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
             heightofframe = 500
-            
+
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
             bootstyle="rounded"
@@ -323,7 +323,7 @@ class DiscussionsView(Canvas):
         self.scrolledframebg = self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\scrolledframebg.png", xpos=0, ypos=0,
             classname="scrolledframebg", root=self.scrolledframe, isPlaced=True
-        )            
+        )
         image = self.controller.imagePathDict["scrolledframebg"]
         image = Image.open(image)
         if totalheight > 660:
@@ -392,13 +392,13 @@ class DiscussionsView(Canvas):
         # 7. The favorite button -> a button
         # 8. Area to type a reply -> a text widget
         self.scrolledtext = ScrolledText(
-            master=self.scrolledframe, width=1, height=1, name = "contenttext",
+            master=self.scrolledframe, width=1, height=1, name="contenttext",
             bootstyle="info-rounded", autohide=True,
         )
         self.contenttext = self.scrolledtext.text
         self.contenttext.config(
-            font=("Inter", 16), wrap=WORD, 
-            fg=BLACK, 
+            font=("Inter", 16), wrap=WORD,
+            fg=BLACK,
         )
 
         self.contenttext.insert(END, content)
@@ -487,8 +487,8 @@ class DiscussionsView(Canvas):
             )
             contenttext = scrolledtext.text
             contenttext.config(
-                font=("Inter", 14), wrap=WORD, 
-                fg=BLACK, 
+                font=("Inter", 14), wrap=WORD,
+                fg=BLACK,
             )
             contenttext.insert(END, replyContent)
 

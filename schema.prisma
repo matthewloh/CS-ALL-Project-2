@@ -291,6 +291,7 @@ model QuizAttempts {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   quizId    Int
+  quizScore Int
   quiz      ModuleQuiz  @relation(fields: [quizId], references: [id])
   user      UserProfile @relation(fields: [userId], references: [id])
 
