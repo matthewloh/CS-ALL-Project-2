@@ -53,10 +53,8 @@ class Window(ElementCreator):
         self.imagePathDict = {}
         self.frames = {}
         self.canvasInDashboard = {}
-
         self.initializeWindow()
         self.initMainPrisma()
-
         self.labelSettingsParentFrame = [
             (r"Assets\LandingPage\BackgroundImage.png",
              0, 0, "Background Image", self.parentFrame),
@@ -132,7 +130,18 @@ class Window(ElementCreator):
         self.widgetsDict["skipbutton"].grid_remove()  # Comment to bypass login
 
         self.bind("<F11>", lambda e: self.togglethewindowbar())
-
+        self.test()
+    def test(self):
+            def foo():                
+                baz = self.mainPrisma.execute_raw(
+                    """
+                    SELECT 1;
+                    """
+                )
+            t = threading.Thread(target=foo)
+            t.daemon = True
+            t.start()
+            self.after(1000, self.test)
     def updateWidgetsDict(self, root: Frame):
         widgettypes = (Label, Button, Frame, Canvas, Entry,
                        Text, ScrolledFrame, ScrolledText)
@@ -867,8 +876,8 @@ def runGuiThreaded():
 
 
 if __name__ == "__main__":
-    runGui()
-    # try:
-    #     runGuiThreaded()
-    # except Exception as e:
-    #     print("sorry")
+    # runGui()
+    try:
+        runGuiThreaded()
+    except Exception as e:
+        print("sorry")

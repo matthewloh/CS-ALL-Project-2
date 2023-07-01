@@ -11,7 +11,7 @@ from ttkbootstrap.validation import add_text_validation, add_regex_validation, v
 from elementcreator import gridGenerator
 from nonstandardimports import *
 from tkinter import *
-from static import * 
+from static import *
 from PIL import Image, ImageTk, ImageSequence, ImageDraw, ImageFont
 # https://stackoverflow.com/a/68621773
 # This bit of code allows us to remove the window bar present in tkinter
@@ -30,6 +30,8 @@ def get_handle(root) -> int:
 
 user32 = windll.user32
 eventId = None
+
+
 class ElementCreator(ttk.Window):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -58,6 +60,7 @@ class ElementCreator(ttk.Window):
         image = ImageTk.PhotoImage(Image.open(imagepath))
         # stores a key value pair of "classname" : "image" to prevent garbage collection
         self.imageDict[classname] = image
+
     def settingsUnpacker(self, listoftuples, typeoftuple):
         """
         format for labels: (imagepath, x, y, classname, root)\n
@@ -70,13 +73,13 @@ class ElementCreator(ttk.Window):
                 self.buttonCreator(**self.tupleToDict(i))
             elif typeoftuple == "label":
                 self.labelCreator(**self.tupleToDict(i))
-                
+
     def tupleToDict(self, tup):  # TODO: make this multipurpose
         if len(tup) == 5:
             return dict(zip(("imagepath", "xpos", "ypos", "classname", "root"), tup))
         if len(tup) == 6:
             return dict(zip(("imagepath", "xpos", "ypos", "classname", "root", "buttonFunction"), tup))
-    
+
     def buttonCreator(self, imagepath, xpos, ypos, classname=None, buttonFunction=None, root=None, relief=SUNKEN, overrideRelief=FLAT, pady=None, hasImage=True, bg=WHITE, isPlaced=False):
         """
         This function takes in the image path, x and y coordinates and the classname, which is necessary because the garbage collector
@@ -139,7 +142,7 @@ class ElementCreator(ttk.Window):
         label = Label(
             root, image=image, relief=FLAT, width=1, height=1,
             state=NORMAL, name=classname,
-            autostyle=False, bg = bg
+            autostyle=False, bg=bg
         )
         if isPlaced:
             label.place(x=xpos, y=ypos, width=placedwidth, height=placedheight)
@@ -156,8 +159,10 @@ class ElementCreator(ttk.Window):
         columnarg = int(xpos / 20)
         rowarg = int(ypos / 20)
 
-        frame = Frame(root, width=1, height=1, bg=bg, relief=relief, name=classname, autostyle=False,)
-        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        frame = Frame(root, width=1, height=1, bg=bg,
+                      relief=relief, name=classname, autostyle=False,)
+        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan,
+                   columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         if imgSettings:
             listofimages = list(enumerate(imgSettings))
@@ -186,7 +191,8 @@ class ElementCreator(ttk.Window):
         widthspan = int(width / 20)
         heightspan = int(height / 20)
         self.updateWidgetsDict(root=root)
-        entry = Entry(root, bg=bg, relief=SOLID, font=font, fg=fg, width=1, name=classname, autostyle=False, textvariable=textvariable)
+        entry = Entry(root, bg=bg, relief=SOLID, font=font, fg=fg, width=1,
+                      name=classname, autostyle=False, textvariable=textvariable)
         entry.grid(
             row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW, pady=pady)
         self.updateWidgetsDict(root=root)
@@ -203,8 +209,10 @@ class ElementCreator(ttk.Window):
         heightspan = int(height / 20)
         if imgSettings:
             listofimages = list(enumerate(imgSettings))
-        canvas = Canvas(root, bg=bgcolor, highlightcolor=bgcolor, relief=FLAT, width=1, height=1, name=classname, highlightthickness=0, autostyle=False)
-        canvas.grid(row=rowarg, column=columnarg, rowspan=heightspan, columnspan=widthspan, sticky=NSEW)
+        canvas = Canvas(root, bg=bgcolor, highlightcolor=bgcolor, relief=FLAT,
+                        width=1, height=1, name=classname, highlightthickness=0, autostyle=False)
+        canvas.grid(row=rowarg, column=columnarg, rowspan=heightspan,
+                    columnspan=widthspan, sticky=NSEW)
         for widgetname, widget in root.children.items():
             if widgetname == classname.lower().replace(" ", ""):
                 gridGenerator(widget, widthspan, heightspan, bgcolor)
@@ -247,11 +255,19 @@ class ElementCreator(ttk.Window):
         classname = classname.lower().replace(" ", "")
         themename = f"{str(root).split('.')[-1]}.TMenubutton"
         # print(themename, classname)
-        menustyle = ttk.Style().configure(
+        menustyle = ttk.Style()
+        menustyle.configure(
             style=themename, font=("Helvetica", 10),
-            background="#F9F5EB", foreground=BLACK, bordercolor="#78c2ad",
-            relief="raised"
+            background="#F9F5EB", foreground=BLACK,
+            bordercolor="#78c2ad",
+            relief="raised",
         )
+        if themename == "apptcreateframe.TMenubutton":
+            menustyle.configure(style=themename, background=LIGHTPURPLE,
+                                foreground=BLACK, bordercolor=LIGHTPURPLE,
+                                font=("Urbanist Medium", 20))
+            menustyle.map(themename, foreground=[('active', BLACK), ("disabled", BLACK)],
+                          background=[('active', "#ffe3bd"), ("disabled", "#ffe3bd")])
         self.frameCreator(xpos, ypos, width, height, root,
                           classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
         frameref = self.widgetsDict[f"{classname}hostfr"]
@@ -269,16 +285,15 @@ class ElementCreator(ttk.Window):
         )
         for x in listofvalues:
             menubtnmenu.add_radiobutton(label=x, variable=variable, value=x,
-                command=lambda: [command(), menubutton.config(text=variable.get())])
+                                        command=lambda: [command(), menubutton.config(text=variable.get())])
         menubutton["menu"] = menubtnmenu
         self.widgetsDict[menubutton["menu"]] = menubtnmenu
         self.widgetsDict[classname] = menubutton
         self.updateWidgetsDict(root=root)
-        
-        return menubutton
-        
 
-    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), validation=False, passwordchar="*", captchavar = None):
+        return menubutton
+
+    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), fg=BLACK, validation=False, passwordchar="*", captchavar=None):
         """
         Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
         and places a ttk.Entry inside of it. The ttk.Entry is then returned into the global dict of widgets.\n
@@ -293,7 +308,8 @@ class ElementCreator(ttk.Window):
         # entrystyle = ttk.Style()
         # entrystyle.configure(f"{classname}.TEntry", font=font, background=bgcolor, foreground=WHITE)
         frame = self.frameCreator(xpos, ypos, width, height, root,
-                          classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
+                                  classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
+
         @validator
         def validateCaptcha(event):
             """
@@ -304,6 +320,7 @@ class ElementCreator(ttk.Window):
                 return True
             else:
                 return False
+
         @validator
         def validatePassword(event):
             """
@@ -321,7 +338,7 @@ class ElementCreator(ttk.Window):
         ttk.Style().configure(
             style=themename, font=font, background=NICEBLUE, foreground=BLACK,
         )
-        entry = ttk.Entry(frame, bootstyle=PRIMARY,
+        entry = ttk.Entry(frame, bootstyle=PRIMARY, foreground=fg,
                           name=classname, font=font, background=bgcolor)
         entry.grid(row=0, column=0, rowspan=heightspan,
                    columnspan=widthspan, sticky=NSEW)

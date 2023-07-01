@@ -28,10 +28,7 @@ class FavoritesView(Canvas):
             (r"Assets\FavoritesView\FavoritesView.png", 0, 0, "favviewbg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
-        self.scrolledframe = ScrolledFrame(
-            master=self, width=1680, height=580, autohide=True, bootstyle="bg-round"
-        )
-        self.scrolledframe.place(x=120, y=260, width=1680, height=580)
+
         
 
     def postLogin(self, data: dict):
@@ -50,6 +47,10 @@ class FavoritesView(Canvas):
     def loadFavoritePosts(self):
         prisma = self.prisma
          # This returns a student
+        self.scrolledframe = ScrolledFrame(
+            master=self, width=1680, height=580, autohide=True, bootstyle="bg-round"
+        )
+        self.scrolledframe.place(x=120, y=260, width=1680, height=580)
         user = prisma.userprofile.find_first(
             where={
                 "id": self.userId

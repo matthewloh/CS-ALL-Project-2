@@ -408,7 +408,7 @@ class DiscussionsView(Canvas):
         self.contenttext.config(state=DISABLED)
         self.controller.widgetsDict["contenttext"] = self.contenttext
         # buttons to delete and edit the post
-        if self.userId == authorId:
+        if self.userId == authorId or self.role == "lecturer":
             self.controller.buttonCreator(
                 imagepath=r"Assets\DiscussionsView\edit.png", xpos=960, ypos=20,
                 classname="editpost", root=self.scrolledframe, isPlaced=True,
@@ -499,7 +499,7 @@ class DiscussionsView(Canvas):
             )
             self.controller.widgetsDict[replytextname] = contenttext
             # buttons to edit and delete a reply
-            if repAuthorId == self.userId:
+            if repAuthorId == self.userId or self.role == "lecturer":
                 # edit
                 self.controller.buttonCreator(
                     imagepath=r"Assets\DiscussionsView\edit.png", xpos=authorCoordinates[0]+900, ypos=authorCoordinates[1],
