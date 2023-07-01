@@ -23,6 +23,7 @@ from prisma import Prisma
 from win32gui import GetWindowText, GetForegroundWindow
 
 from views.discussionsview import DiscussionsView
+from views.appointmentsview import AppointmentsView
 from PIL import Image, ImageTk, ImageSequence
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 
@@ -197,7 +198,7 @@ class CourseView(Canvas):
 
         buttons = [
             (f"{modulecode}checkschedule", r"Assets\My Courses\checklecschedule.png", 1060, 280,
-             lambda m=(lectureremail): print(f"Check Schedule {m}")),
+             lambda m=(modulecode, moduletitle, lecturername): self.loadAppointmentsView(m[0], m[1], m[2])),
             (f"{modulecode}_gotolearninghub", r"Assets\My Courses\gotolearninghub.png", 1340, 280,
              lambda m=(modulecode): print(f"Go to Learning Hub {m}")),
             (f"{modulecode}_viewcoursefiles", r"Assets\My Courses\loadcoursefiles.png", 1620, 280,
@@ -819,3 +820,20 @@ class CourseView(Canvas):
         discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
         toast2.show_toast()
         self.controller.show_canvas(DiscussionsView)
+        
+    def loadAppointmentsView(self, modulecode, moduletitle, lecturerName):
+        WD = self.controller.widgetsDict
+        appView = WD["appointmentsview"]
+        appView.creationFrame.grid_remove()
+        appView.viewFrame.grid_remove()
+        appView.loadAllDetailsForCreation()
+        appView.loadAppCreation()
+        self.controller.show_canvas(AppointmentsView)
+        if self.role == "student":
+            appView.module.set(f"{modulecode} - {moduletitle}")
+            appView.lecturer.set(lecturerName)
+            appView.loadLecturerMenuBtns(appView.module.get())
+            appView.loadTimeslotMenuBtns(appView.module.get(), lecturerName)
+            WD["modules"].configure(text=f"{modulecode} - {moduletitle}")
+            WD["lecturersaptmenu"].configure(text=lecturerName)
+            

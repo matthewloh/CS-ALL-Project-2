@@ -28,22 +28,25 @@ class FavoritesView(Canvas):
             (r"Assets\FavoritesView\FavoritesView.png", 0, 0, "favviewbg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
-
-        
-
     def postLogin(self, data: dict):
         self.prisma = self.controller.mainPrisma
         self.userId = data["id"]
         prisma = self.prisma
+        self.createElements()
         self.loadFavoritePosts()
         self.renderFavoritePosts()
         # This returns a student
 
                 
 
-        # Calculates the number of post, if heightofFrame needs to exceed 580:
+    def createElements(self):
+        self.controller.buttonCreator(
+            imagepath=r"Assets\FavoritesView\refreshfavorites.png", xpos=1720, ypos=150,
+            root=self, classname="refreshfavorites", 
+            buttonFunction=lambda: self.refreshFavoritesView(),
+            isPlaced=True, 
+        )
 
-    
     def loadFavoritePosts(self):
         prisma = self.prisma
          # This returns a student
@@ -97,7 +100,7 @@ class FavoritesView(Canvas):
             t = self.controller.textElement(
                 imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1], 
                 classname=f"favpost{id}", root=self.scrolledframe,
-                text=fmttext, fg="#5975D7", font=URBANIST, size=32,
+                text=fmttext, fg="#5975D7", font=SFPRO, size=32,
                 isPlaced=True, xoffset=-2, yIndex=-1/2
             )
             ToolTip(t, text=tipText, bootstyle=(INFO,INVERSE))
