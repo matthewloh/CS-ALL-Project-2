@@ -146,7 +146,6 @@ class CourseView(Canvas):
         self.mainframe.grid()
         self.mainframe.tkraise()
         self.BUCKET_NAME = f"{coursecode.lower()}bucket"
-        print(self.BUCKET_NAME)
         buttonsList = [
             (r"Assets\My Courses\exitbutton.png", 1820, 20,
              "exitbutton", self.mainframe,
