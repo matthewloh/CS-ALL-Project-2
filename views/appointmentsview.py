@@ -11,7 +11,7 @@ from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.dialogs import Messagebox, MessageDialog, Querybox
 from ttkbootstrap.dialogs.dialogs import DatePickerDialog
 from ttkbootstrap.tooltip import ToolTip
-from elementcreator import gridGenerator
+from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta

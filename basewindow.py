@@ -1,5 +1,6 @@
 from ctypes import windll
 import threading
+from tkinter import FLAT, NSEW, Frame, Label
 from prisma import Prisma
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -8,7 +9,6 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
-from elementcreator import gridGenerator
 from nonstandardimports import *
 from tkinter import *
 from static import *
@@ -30,6 +30,20 @@ def get_handle(root) -> int:
 
 user32 = windll.user32
 eventId = None
+
+
+def gridGenerator(root: Frame, width, height, color, overriderelief: bool = False, relief: str = FLAT, name=None):
+    for x in range(width):
+        root.columnconfigure(x, weight=1, uniform="row")
+        if height > width:
+            Label(root, width=1, bg=color, relief=relief if overriderelief else FLAT, name=name, autostyle=False).grid(
+                row=0, column=x, sticky=NSEW)
+    for y in range(height):
+        root.rowconfigure(y, weight=1, uniform="row")
+        if width >= height:
+            Label(root, width=1, bg=color, relief=relief if overriderelief else FLAT, name=name, autostyle=False).grid(
+                row=y, column=0, sticky=NSEW)
+    return root
 
 
 class ElementCreator(ttk.Window):

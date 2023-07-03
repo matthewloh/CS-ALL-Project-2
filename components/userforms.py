@@ -9,7 +9,6 @@ from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
-from elementcreator import gridGenerator
 from static import * 
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
@@ -504,32 +503,6 @@ class UserForms(Frame):
                         "schoolCode": data["school"]
                     }
                 )
-                modules = prisma.module.find_many(
-                    where={
-                        "lecturer": {
-                            "is": {
-                                "userProfile": {
-                                    "is": {
-                                        "email": data["email"]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                )
-                for module in modules:
-                    if modules == "":
-                        continue
-                    prisma.module.update(
-                        where={
-                            "id": module.id
-                        },
-                        data={
-                            "lecturer": {
-                                "disconnect": True
-                            }
-                        }
-                    )
                 lecturer = prisma.lecturer.create(
                     data={
                         "userProfile": {
@@ -547,6 +520,9 @@ class UserForms(Frame):
                             }
                         },
                         "tenure": data["tenure"],
+                    },
+                    include={
+                        "userProfile": True,
                     }
                 )
                 for modules in data["currentCourses"]:
@@ -698,16 +674,18 @@ class UserForms(Frame):
             duration=3000,
             bootstyle=DANGER
         )
-        for info in entries:
+        field_names = ["Full Name", "Email", "Contact Number", "Password", "Confirm Password"]
+        for i, info in enumerate(entries):
             if info == "":
+                field_name = field_names[i]
                 toast = ToastNotification(
                     title="Error",
-                    message=f"Please fill in the fields.",
+                    message=f"The {field_name} field is empty. Please fill it in.",
                     duration=3000,
                     bootstyle=DANGER
                 )
                 toast.show_toast()
-                return False 
+                return False
         if any(char in string.punctuation for char in fullname):
             errMsg = "Your name cannot contain any special characters."
             mainToast.message = errMsg
