@@ -10,7 +10,7 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from components.animatedgif import AnimatedGif
-from elementcreator import gridGenerator
+from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta

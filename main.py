@@ -1,11 +1,6 @@
-import json
-import random
-import re
-import string
 from components.slidepanel import SlidePanel
 from components.topbar import TopBar
 from static import *
-import ctypes
 from ctypes import windll
 import threading
 from tkinter import *
@@ -13,34 +8,23 @@ from tkinter import *
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
-from ttkbootstrap.tooltip import ToolTip
-from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
 from dotenv import load_dotenv
 from prisma import Prisma
-from elementcreator import gridGenerator
+from basewindow import gridGenerator
 import bcrypt
-from datetime import datetime, timedelta, timezone
 # TODO: please stop formatting my imports you're breaking my code
 # this contains my pywin32 imports, PIL imports, pythonnet
 from nonstandardimports import *
-from pendulum import timezone
 from views.discussionsview import DiscussionsView
 from views.chatbot import Chatbot
 from views.courseview import CourseView
 from views.favoritesview import FavoritesView
 from views.appointmentsview import AppointmentsView
-from components.animatedstarbtn import AnimatedStarBtn
-from components.animatedgif import AnimatedGif
-from components.userforms import UserForms
-
-from basewindow import ElementCreator
-from win32gui import GetWindowText, GetForegroundWindow
-from captcha.image import ImageCaptcha
 from views.learninghub import LearningHub
-
 from views.searchpage import SearchPage
+from components.userforms import UserForms
+from basewindow import ElementCreator
 load_dotenv()
 
 
@@ -89,7 +73,7 @@ class Window(ElementCreator):
              self.postSelectFrame,
              lambda: [
                  # Uncomment this out and then comment out the three lines below to enable the sign in page
-                  self.loadSignIn(),
+                 self.loadSignIn(),
                  #  self.show_frame(Dashboard),
                  #  self.show_canvas(DashboardCanvas),
                  #  self.get_page(Dashboard).loadSpecificAssets("student"),
@@ -133,19 +117,19 @@ class Window(ElementCreator):
 
         self.bind("<F11>", lambda e: self.togglethewindowbar())
         self.test()
-        
+
     def test(self):
-            def foo():                
-                baz = self.mainPrisma.execute_raw(
-                    """
+        def foo():
+            baz = self.mainPrisma.execute_raw(
+                """
                     SELECT 1;
                     """
-                )
-            t = threading.Thread(target=foo)
-            t.daemon = True
-            t.start()
-            self.after(1000, self.test)
-            
+            )
+        t = threading.Thread(target=foo)
+        t.daemon = True
+        t.start()
+        self.after(1000, self.test)
+
     def updateWidgetsDict(self, root: Frame):
         widgettypes = (Label, Button, Frame, Canvas, Entry,
                        Text, ScrolledFrame, ScrolledText)
@@ -211,16 +195,12 @@ class Window(ElementCreator):
             ref.configure(image=self.loadedImgs[0])
             self.studentform = UserForms(
                 self.postSelectFrame, self, "studentreg")
-            # self.studentform.loadAllDetailsForRegistration()
             self.studentform.loadRegThread("student")
-            # self.widgetsDict["skipbutton"].grid()
         elif teacher:
             ref.configure(image=self.loadedImgs[1])
             self.teacherform = UserForms(
                 self.postSelectFrame, self, "teacherreg")
-            # self.teacherform.loadAllDetailsForRegistration()
             self.teacherform.loadRegThread("teacher")
-            # self.widgetsDict["skipbutton"].grid()
         self.postSelectFrame.grid()
         self.postSelectFrame.tkraise()
 
@@ -272,10 +252,6 @@ class Window(ElementCreator):
                 ])
             self.widgetsDict["skipbutton"].grid()
             self.widgetsDict["gofullscreenbtn"].grid_remove()
-            # self.widgetsDict["skipbutton"].configure(
-            #     command=lambda: [
-            #         self.loadSignIn(),
-            #     ])
         self.widgetsDict["backbutton"].configure(
             command=lambda: [
                 reloadForm(),
@@ -609,7 +585,7 @@ class Window(ElementCreator):
                 }
             )
             return lecturer, modules
-        # prisma.disconnect()
+
 
 class Dashboard(Frame):
     def __init__(self, parent, controller: Window):
@@ -645,12 +621,10 @@ class Dashboard(Frame):
             message="You will not be able to use the keyboard for the application until you exit the webbrowser view. You can exit the webbrowser view by clicking the exit button on the top right corner of the webbrowser view.",
             duration=3000,
         )
-        self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas",
-                                      bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
-        self.maincanvasref = self.controller.widgetsDict["maincanvas"]
-        self.controller.canvasCreator(0, 0, 1920, 920, root=self.maincanvasref, classname="dashboardcanvas",
-                                      bgcolor=NICEBLUE, isTransparent=True, transparentcolor=LIGHTYELLOW)
-        self.dashboardcanvasref = self.controller.widgetsDict["dashboardcanvas"]
+        self.maincanvasref = self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas",
+                                                           bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
+        self.dashboardcanvasref = self.controller.canvasCreator(0, 0, 1920, 920, root=self.maincanvasref, classname="dashboardcanvas",
+                                                                bgcolor=NICEBLUE, isTransparent=True, transparentcolor=LIGHTYELLOW)
         self.controller.settingsUnpacker(self.staticImgBtns, "button")
 
     def loadSpecificAssets(self, role):
@@ -672,12 +646,33 @@ class Dashboard(Frame):
         # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
         cont = self.controller
         initialypos = 20
+        h = len(modules) * 300 + 20
+        if h < 920:
+            h = 920
+        self.dashboardScrolledFrame = ScrolledFrame(
+            self.dashboardcanvasref, width=600, height=h, bootstyle="success-rounded", autohide=True,
+        )
+        self.dashboardScrolledFrame.place(x=740, y=0, width=600, height=920)
+
+        Label(self.dashboardScrolledFrame, bg="#dee8e0", width=600, height=h, relief=FLAT, bd=0, autostyle=False).place(x=0, y=0, width=600, height=h)
         for m in modules:
-            cont.textElement(
-                imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=760, ypos=initialypos,
-                classname=f"{m[0]}title", root=self.dashboardcanvasref, text=m[1], size=28, xoffset=-1,
-                buttonFunction=lambda e=m[0]: print(f"clicked {e}")
+            cont.labelCreator(
+                imagepath=r"Assets\Dashboard\ModuleTile.png", xpos=0, ypos=initialypos+20,
+                classname=f"{m[0]}tile", root=self.dashboardScrolledFrame, isPlaced=True
             )
+            if m[1] == "Computer Science Activity Led Learning Project 2": # too long to display properly
+                cont.textElement(
+                    imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=20, ypos=initialypos,
+                    classname=f"{m[0]}title", root=self.dashboardScrolledFrame, text="Computer Science\nActivity Led Learning Project 2", size=28,
+                    buttonFunction=lambda e=m[0]: self.navigateToModuleView(e), isPlaced=True, yIndex=-1/2
+                )
+                
+            else:
+                cont.textElement(
+                    imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=20, ypos=initialypos,
+                    classname=f"{m[0]}title", root=self.dashboardScrolledFrame, text=m[1], size=28, 
+                    buttonFunction=lambda e=m[0]: self.navigateToModuleView(e), isPlaced=True
+                )
             initialypos += 300
         cont.textElement(
             imagepath=r"Assets\Dashboard\NameBg.png", xpos=160, ypos=120,
@@ -687,6 +682,13 @@ class Dashboard(Frame):
             imagepath=r"Assets\Dashboard\NameBg.png", xpos=160, ypos=160,
             classname="useremaildash", root=self.dashboardcanvasref, text=email, size=24, xoffset=-1
         )
+    def navigateToModuleView(self, moduleCode):
+        courseview = self.controller.widgetsDict["courseview"]
+        courseview.loadCourses(f"{moduleCode.upper()}")
+        courseview.viewUploadsFrame.grid_remove()
+        courseview.uploadCreationFrame.grid_remove()
+        self.controller.show_canvas(CourseView)
+        
 
 class DashboardCanvas(Canvas):
     def __init__(self, parent, controller: Window):
@@ -695,6 +697,7 @@ class DashboardCanvas(Canvas):
         self.controller = controller
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
+
 
 def runGui():
     window = Window()
