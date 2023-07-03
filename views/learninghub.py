@@ -101,6 +101,8 @@ class LearningHub(Canvas):
 
     def loadCourseButtons(self, modulecodes: list = None):
         c = self.controller
+        listOfBgs = ["int4004cemhubbg", "int4068cemhubbg",
+                      "int4003cemhubbg", "int4009cemhubbg"]
         for widgetname, widget in self.canvas.children.items():
             if widgetname not in modulecodes and widgetname.startswith("int"):
                 widget.grid_forget()
@@ -127,7 +129,6 @@ class LearningHub(Canvas):
                 xpos=btn[1] + (btnCount * 1200) - 40,
                 ypos=btn[2] + (yCount * 360) - 40,
                 root=btn[4], classname=btn[3] + "bg",
-                isPlaced=True,
             )
             c.buttonCreator(
                 imagepath=btn[0],
