@@ -27,6 +27,8 @@ from views.appointmentsview import AppointmentsView
 from PIL import Image, ImageTk, ImageSequence
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 
+from views.learninghub import LearningHub
+
 
 class CourseView(Canvas):
     def __init__(self, parent, controller: ElementCreator):
@@ -199,7 +201,7 @@ class CourseView(Canvas):
             (f"{modulecode}checkschedule", r"Assets\My Courses\checklecschedule.png", 1060, 280,
              lambda m=(modulecode, moduletitle, lecturername): self.loadAppointmentsView(m[0], m[1], m[2])),
             (f"{modulecode}_gotolearninghub", r"Assets\My Courses\gotolearninghub.png", 1340, 280,
-             lambda m=(modulecode): print(f"Go to Learning Hub {m}")),
+             lambda m=(modulecode): self.loadLearningHubView(m)),
             (f"{modulecode}_viewcoursefiles", r"Assets\My Courses\loadcoursefiles.png", 1620, 280,
              lambda m=(modulecode): self.loadModuleUploadsView(m)),
             (f"{modulecode}_discussions", r"Assets\My Courses\go_to_discussions.png", 700, 780,
@@ -835,4 +837,10 @@ class CourseView(Canvas):
             appView.loadTimeslotMenuBtns(appView.module.get(), lecturerName)
             WD["modules"].configure(text=f"{modulecode} - {moduletitle}")
             WD["lecturersaptmenu"].configure(text=lecturerName)
+            
+    def loadLearningHubView(self, modulecode):
+        WD = self.controller.widgetsDict
+        learningHub = WD["learninghub"]
+        learningHub.loadCourseHubContent(modulecode)
+        self.controller.show_canvas(LearningHub)
             

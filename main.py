@@ -703,7 +703,6 @@ def runGui():
     window = Window()
     window.mainloop()
 
-
 def runGuiThreaded():
     t = Thread(ThreadStart(runGui))
     t.ApartmentState = ApartmentState.STA
@@ -711,10 +710,6 @@ def runGuiThreaded():
     t.Daemon = True
     t.Join()
 
-
 if __name__ == "__main__":
     # runGui()
-    try:
-        runGuiThreaded()
-    except Exception as e:
-        print("sorry")
+    runGuiThreaded()
