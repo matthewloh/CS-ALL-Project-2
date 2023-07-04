@@ -32,10 +32,10 @@ s3 = boto3.client('s3')
 #     # print(obj['Key'])
 #     print(obj)
 # Get the URL of item with name "test_upload_1.png"
-key = "test_upload_1.png"
+key = "Chapter_9_-_Introduction_to_Compter_Networks_(Part_A).pdf"
 location = s3.get_bucket_location(Bucket=BUCKET_NAME)["LocationConstraint"]
 url = f"https://{BUCKET_NAME}.s3.{location}.amazonaws.com/{key}"
-print(url)
+# print(url)
 # Download a file from a bucket
 # s3.download_file(BUCKET_NAME, "unknown-515.png", "downloaded_dog.png")
 
@@ -57,9 +57,9 @@ print(url)
 
 # with open("./Assets/holyplaceholder.png", "rb") as f:
 #     s3.upload_fileobj(f, BUCKET_NAME, "test_upload_default_access.png")
-# video_url = s3.generate_presigned_url("get_object", Params={
-#     "Bucket": BUCKET_NAME, "Key": "Bad_Apples_Among_Us.mp4"}, ExpiresIn=600)
-# print(video_url)
+video_url = s3.generate_presigned_url("get_object", Params={
+    "Bucket": BUCKET_NAME, "Key": f"{key}"}, ExpiresIn=600)
+print(video_url)
 # Create a Bucket
 # bucket_location = s3.create_bucket(Bucket="new_bucket_777")
 # print(bucket_location)

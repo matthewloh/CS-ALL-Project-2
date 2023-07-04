@@ -12,7 +12,7 @@ from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
 from dotenv import load_dotenv
-from elementcreator import gridGenerator
+from basewindow import gridGenerator
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 from datetime import datetime, timedelta, timezone
 # TODO: please stop formatting my imports you're breaking my code

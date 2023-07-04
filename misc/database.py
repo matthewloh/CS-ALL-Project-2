@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 from pendulum import timezone
+
 # ~~~~ MYSQL ~~~~
 # import os
 # from dotenv import load_dotenv
@@ -60,7 +61,7 @@ from pendulum import timezone
 #     connection.close()
 
 # ~~~~ PRISMA ~~~~
-from prisma import Prisma
+from prisma import Prisma, Json
 from prisma.models import UserProfile
 from prisma.bases import BaseUserProfile, BaseModule, BaseModuleEnrollment
 
@@ -1296,6 +1297,7 @@ def makeStructures():
     # emulate selecting an institution and returning a list of that institution's programmes
     ins = "IICP"
 
+
 def checkLecturerHours():
     prisma.connect()
     lecturer = prisma.lecturer.find_first(
@@ -1325,6 +1327,198 @@ def checkLecturerHours():
         print(f"End Time: {endtime.strftime(timestrfmt)}")
         print(f"Location: {stg.location}")
 
+
+def createJson():
+    prisma.connect()
+    """
+    Example of a quiz json
+    
+    quizData = {
+        "quizAnswer": "This is the answer",
+        "quizQuestion": "This is the question",
+        "quizOptions": [
+            "Invalid Answer 1",
+            "Invalid Answer 2",
+            "Invalid Answer 3",
+        ],
+        "quizType": "MULTIPLE_CHOICE"    
+    }
+    """
+    quizType = "MULTIPLE_CHOICE"
+    quizData = {
+        "numOfQuestions": 10,
+        "questions": [
+            {
+                "question": "What is the binary representation of the decimal number 10?",
+                "options": [
+                    "1010",
+                    "1100",
+                    "1110",
+                    "1001"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the hexadecimal representation of the binary number 101011?",
+                "options": [
+                    "2B",
+                    "5A",
+                    "AB",
+                    "BA"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the octal representation of the decimal number 25?",
+                "options": [
+                    "31",
+                    "32",
+                    "33",
+                    "34"
+                ],
+                "correctAnswer": 2
+            },
+            {
+                "question": "What is the decimal equivalent of the binary number 1101?",
+                "options": [
+                    "11",
+                    "12",
+                    "13",
+                    "14"
+                ],
+                "correctAnswer": 2
+            },
+            {
+                "question": "What is the binary representation of the hexadecimal number 2F?",
+                "options": [
+                    "101011",
+                    "110011",
+                    "111011",
+                    "100011"
+                ],
+                "correctAnswer": 1
+            },
+            {
+                "question": "What is the hexadecimal representation of the decimal number 255?",
+                "options": [
+                    "FF",
+                    "EE",
+                    "DD",
+                    "CC"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the octal representation of the binary number 101010?",
+                "options": [
+                    "52",
+                    "54",
+                    "56",
+                    "60"
+                ],
+                "correctAnswer": 1
+            },
+            {
+                "question": "What is the decimal equivalent of the octal number 77?",
+                "options": [
+                    "63",
+                    "64",
+                    "65",
+                    "66"
+                ],
+                "correctAnswer": 3
+            },
+            {
+                "question": "What is the binary representation of the decimal number 7?",
+                "options": [
+                    "0111",
+                    "1000",
+                    "1001",
+                    "1010"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the hexadecimal representation of the binary number 11110000?",
+                "options": [
+                    "F0",
+                    "E0",
+                    "D0",
+                    "C0"
+                ],
+                "correctAnswer": 0
+            }
+        ]
+    }
+    convertedData = Json(quizData)
+    #converting dictionary to json using Prisma's Json Class
+    submitQuiz = prisma.modulehubcontent.create(
+        data={
+            "title": "Quiz Title 1",
+            "description": "Quiz Description",
+            "contentType": "MULTIPLE_CHOICE",
+            "contentInfo": convertedData,
+            "author": {
+                "connect": {
+                    "id": "cli0faxgj0000vtdc5vq2y9pz"
+                }
+            },
+            "module": {
+                "connect": {
+                    "id": "clhrvr700000cvt9gwh6d7fk6"
+                }
+            }
+        }
+    )
+    print(f"Quiz:\n{submitQuiz.json(indent=2)}\n")
+    # Fill in the Blanks Style Quiz
+    # fillBlanks = {
+    #     "numOfQuestions": 3,
+    #     "questions": [
+    #         {
+    #             "question": "The _______ is the part of the computer that executes the instructions of a computer program.",
+    #             "acceptedAnswers": [
+    #                 "CPU", "Central Processing Unit"
+    #             ]
+    #         },
+    #         {
+    #             "question": "The _______ is the part of the computer that stores data and instructions.",
+    #             "acceptedAnswers": [
+    #                 "Memory", "RAM", "Random Access Memory"
+    #             ]
+    #         }
+    #     ]
+    # }
+    module = prisma.module.find_first(
+        where={
+            "moduleCode": "INT4004CEM"
+        },
+        include={
+            "moduleHubContent": {
+                "include": {
+                    "author": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    }
+                }
+            }
+        }
+    )
+    # print(f"Module Hub Content:\n{module.moduleHubContent}\n")
+    for c in module.moduleHubContent:
+        # print(c.json(indent=2))
+        print(c.contentType)
+        # print(type(c.contentInfo["questions"]))
+        formatted = json.dumps(c.contentInfo["questions"], indent=2)
+        print(formatted)
+        for q in c.contentInfo["questions"]:
+            print(q["question"])
+            print(q["options"])
+            print(q["correctAnswer"])
+            print("\n")
+
+
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1343,6 +1537,7 @@ if __name__ == "__main__":
     # createModulePost()
     # queryPosts()
     # queryModules()
-    uploadFiles()
+    # uploadFiles()
     # makeStructures()
     # checkLecturerHours()
+    createJson()

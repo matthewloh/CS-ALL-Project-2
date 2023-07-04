@@ -6,8 +6,8 @@ from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
-from elementcreator import gridGenerator
-from static import * 
+from basewindow import gridGenerator
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -16,6 +16,7 @@ from prisma import Prisma
 from components.animatedgif import AnimatedGif
 from components.animatedstarbtn import AnimatedStarBtn
 from PIL import Image, ImageTk, ImageSequence
+
 
 class DiscussionsView(Canvas):
     def __init__(self, parent, controller: ElementCreator):
@@ -27,7 +28,6 @@ class DiscussionsView(Canvas):
         self.createFrames()
 
         self.createElements()
-
 
         self.posttitleent = self.controller.ttkEntryCreator(
             xpos=900, ypos=160, width=920, height=40, root=self.creationframe, classname="posttitleent"
@@ -57,7 +57,7 @@ class DiscussionsView(Canvas):
             (r"Assets\DiscussionsView\creatediscussion.png", 80, 120, "creatediscussionbtn", self,
              lambda: self.loadPostCreation()),
             (r"Assets\DiscussionsView\refreshbutton.png", 860, 220, "refreshbtn", self,
-             lambda: 
+             lambda:
              self.callLoadLatestPosts(self.modulecodevar.get())
              ),
             (r"Assets\DiscussionsView\cancelbuttondisc.png", 40, 760, "cancelbtncreation", self.creationframe,
@@ -91,8 +91,9 @@ class DiscussionsView(Canvas):
             "<Return>", lambda event: self.postcontenttext.focus_set()
         )
 
-    def postLogin(self, data: dict = None, prisma: Prisma = None):
-        self.prisma = prisma
+    def postLogin(self, data: dict = None):
+        self.prisma = self.controller.mainPrisma
+        prisma = self.prisma
         self.userId = data["id"]
         self.programme = data["programme"]
         self.role = data["role"]
@@ -117,7 +118,7 @@ class DiscussionsView(Canvas):
                                 "equals": self.userId
                             }
                         }
-                    }    
+                    }
                 }
             )
         elif self.role == "student":
@@ -158,7 +159,7 @@ class DiscussionsView(Canvas):
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
             heightofframe = 500
-            
+
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
             bootstyle="rounded"
@@ -205,6 +206,7 @@ class DiscussionsView(Canvas):
             heightofframe = 500
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
+            bootstyle="rounded"
         )
         self.postscrolledframe.grid_propagate(False)
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
@@ -244,7 +246,8 @@ class DiscussionsView(Canvas):
             )
             if postId in favoritedPostIds:
                 AnimatedStarBtn(
-                    parent=self.postscrolledframe, xpos=initialcoordinates[0] + 760,
+                    parent=self.postscrolledframe, controller=self.controller,
+                    xpos=initialcoordinates[0] + 760,
                     ypos=initialcoordinates[1] + 20, frameheight=40, framewidth=40,
                     classname=f"post{postId}favoritestar", imagexpos=0, imageypos=0,
                     isPlaced=True, prisma=self.prisma, postId=postId, userId=self.userId,
@@ -253,7 +256,7 @@ class DiscussionsView(Canvas):
                 )
             else:
                 AnimatedStarBtn(
-                    parent=self.postscrolledframe,
+                    parent=self.postscrolledframe, controller=self.controller,
                     xpos=initialcoordinates[0] + 760,
                     ypos=initialcoordinates[1] + 20,
                     framewidth=40, frameheight=40, classname=f"post{postId}favoritestar",
@@ -283,17 +286,17 @@ class DiscussionsView(Canvas):
 
         # A host is used to remove the currently loaded scrolled frame using grid_remove()
         self.scrolledframehost = self.controller.frameCreator(
-            root=self.postviewframe, framewidth=1100, frameheight=660,
+            root=self.postviewframe, framewidth=1120, frameheight=660,
             classname="scrolledframehostframe", xpos=100, ypos=180, bg=NICEBLUE
         )
         totalheight = (1 + len(repliesList)) * 280
         if totalheight < 660:
             totalheight = 660
         self.scrolledframe = ScrolledFrame(
-            self.scrolledframehost, width=1, height=totalheight, name="postviewcontent", autohide=True, padding=0, bootstyle=WARNING
+            self.scrolledframehost, width=1, height=totalheight, name="postviewcontent", autohide=True, padding=0, bootstyle="warning-rounded"
         )
         self.scrolledframe.place(
-            x=0, y=0, width=1100, height=660
+            x=0, y=0, width=1120, height=660
         )
         # TITLE OF THE POST
         self.controller.textElement(
@@ -320,7 +323,7 @@ class DiscussionsView(Canvas):
         self.scrolledframebg = self.controller.labelCreator(
             imagepath=r"Assets\DiscussionsView\scrolledframebg.png", xpos=0, ypos=0,
             classname="scrolledframebg", root=self.scrolledframe, isPlaced=True
-        )            
+        )
         image = self.controller.imagePathDict["scrolledframebg"]
         image = Image.open(image)
         if totalheight > 660:
@@ -332,10 +335,10 @@ class DiscussionsView(Canvas):
             self.scrolledframebg.configure(
                 image=newimage, bg="#acbcff")
             self.scrolledframebg.place(
-                x=0, y=0, width=1100, height=totalheight
+                x=0, y=0, width=1120, height=totalheight
             )
         else:
-            image = image.resize((1100, totalheight),
+            image = image.resize((1120, totalheight),
                                  Image.Resampling.LANCZOS)
             self.controller.imageDict["scrolledframebg"] = ImageTk.PhotoImage(
                 image)
@@ -343,7 +346,7 @@ class DiscussionsView(Canvas):
             self.scrolledframebg.configure(
                 image=newimage, bg="#acbcff")
             self.scrolledframebg.place(
-                x=0, y=0, width=1100, height=660
+                x=0, y=0, width=1120, height=660
             )
         # POST BG
         self.controller.labelCreator(
@@ -389,13 +392,13 @@ class DiscussionsView(Canvas):
         # 7. The favorite button -> a button
         # 8. Area to type a reply -> a text widget
         self.scrolledtext = ScrolledText(
-            master=self.scrolledframe, width=1, height=1, name = "contenttext",
-            bootstyle=INFO, autohide=True,
+            master=self.scrolledframe, width=1, height=1, name="contenttext",
+            bootstyle="info-rounded", autohide=True,
         )
         self.contenttext = self.scrolledtext.text
         self.contenttext.config(
-            font=("Inter", 16), wrap=WORD, 
-            fg=BLACK, 
+            font=("Inter", 16), wrap=WORD,
+            fg=BLACK,
         )
 
         self.contenttext.insert(END, content)
@@ -405,7 +408,7 @@ class DiscussionsView(Canvas):
         self.contenttext.config(state=DISABLED)
         self.controller.widgetsDict["contenttext"] = self.contenttext
         # buttons to delete and edit the post
-        if self.userId == authorId:
+        if self.userId == authorId or self.role == "lecturer":
             self.controller.buttonCreator(
                 imagepath=r"Assets\DiscussionsView\edit.png", xpos=960, ypos=20,
                 classname="editpost", root=self.scrolledframe, isPlaced=True,
@@ -480,12 +483,12 @@ class DiscussionsView(Canvas):
             replytextname = f"replycontent{replycounter}"
             scrolledtext = ScrolledText(
                 master=self.scrolledframe, width=1, height=1, name=scrolledtextname,
-                bootstyle=SECONDARY, autohide=True,
+                bootstyle="secondary-rounded", autohide=True,
             )
             contenttext = scrolledtext.text
             contenttext.config(
-                font=("Inter", 14), wrap=WORD, 
-                fg=BLACK, 
+                font=("Inter", 14), wrap=WORD,
+                fg=BLACK,
             )
             contenttext.insert(END, replyContent)
 
@@ -496,7 +499,7 @@ class DiscussionsView(Canvas):
             )
             self.controller.widgetsDict[replytextname] = contenttext
             # buttons to edit and delete a reply
-            if repAuthorId == self.userId:
+            if repAuthorId == self.userId or self.role == "lecturer":
                 # edit
                 self.controller.buttonCreator(
                     imagepath=r"Assets\DiscussionsView\edit.png", xpos=authorCoordinates[0]+900, ypos=authorCoordinates[1],
