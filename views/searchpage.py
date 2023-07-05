@@ -34,19 +34,20 @@ class SearchPage(Canvas):
         self.createFrames()
 
         # Image
-        self.staticImgs = [(r"Assets\SearchView\searchframe.png", 0, 0, "searchpagebg", self),]
+        self.staticImgs = [
+            (r"Assets\SearchView\searchframe.png", 0, 0, "searchpagebg", self),]
         self.controller.settingsUnpacker(self.staticImgs, "label")
 
         # Entry
-        self.keywordEntry=self.controller.ttkEntryCreator(
+        self.keywordEntry = self.controller.ttkEntryCreator(
             xpos=300, ypos=220, width=420, height=60, root=self, classname="keywordentry")
-        
-        self.keywordEntry.insert(0,"Enter Keyword Here")
-        
-        self.keywordEntry2=self.controller.ttkEntryCreator(
+
+        self.keywordEntry.insert(0, "Enter Keyword Here")
+
+        self.keywordEntry2 = self.controller.ttkEntryCreator(
             xpos=915, ypos=220, width=440, height=60, root=self, classname="keywordentry2")
-        
-        self.keywordEntry2.insert(0,"Enter Date Here")
+
+        self.keywordEntry2.insert(0, "Enter Date Here")
 
         # Scrolled Frame
         self.scrolledframe = ScrolledFrame(
@@ -54,8 +55,8 @@ class SearchPage(Canvas):
         )
         self.scrolledframe.place(x=140, y=540, width=1200, height=240)
         exampleOfSearchItems = [
-            "This is Item 1", 
-            "This is another Item", 
+            "This is Item 1",
+            "This is another Item",
             "This is a third item"]
         h = len(exampleOfSearchItems) * 120
         if h < 240:
@@ -66,14 +67,14 @@ class SearchPage(Canvas):
         IMAGEPATH = r"Assets\SearchView\Button.png"
         for i in exampleOfSearchItems:
             t = self.controller.textElement(
-                imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1], 
+                imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
                 classname=f"searchitem{i}", root=self.scrolledframe,
                 text=i, fg="#000000", font=INTER, size=32,
                 isPlaced=True, xoffset=-2, yIndex=-1/2,
-                buttonFunction=lambda i = i: print(i)
+                buttonFunction=lambda i=i: print(i)
             )
             initCoords = (initCoords[0], initCoords[1] + 120)
-    
+
         # Button
         self.staticBtns = [
             (r"Assets\SearchView\Search.png", 660, 321, "searchbtncreation", self,
@@ -107,19 +108,20 @@ class SearchPage(Canvas):
         self.controller.settingsUnpacker(self.helpdeskButtons, "button")
         self.helpdeskFrame.grid_remove()
 
-        #Entry
-        self.nameEntry=self.controller.ttkEntryCreator(
+        # Entry
+        self.nameEntry = self.controller.ttkEntryCreator(
             xpos=340, ypos=260, width=520, height=60, root=self.helpdeskFrame, classname="helpdeskframe")
-        
-        self.nameEntry.insert(0,"Enter Name Here")
-        
-        self.emailEntry=self.controller.ttkEntryCreator(
+
+        self.nameEntry.insert(0, "Enter Name Here")
+
+        self.emailEntry = self.controller.ttkEntryCreator(
             xpos=1080, ypos=260, width=600, height=60, root=self.helpdeskFrame, classname="emailentry")
-        
-        self.emailEntry.insert(0,"Enter E-mail Here")
-        
-        #Scrolled Text
-        self.scrolledtext = ScrolledText( master=self.helpdeskFrame, width=630, height=330,autohide=True)
-        self.scrolledtext.place(x=222,y=402,width=630,height=330)
-        self.textArea = self.scrolledtext.text 
-        self.textArea.configure(font=(INTERBOLD,20))
+
+        self.emailEntry.insert(0, "Enter E-mail Here")
+
+        # Scrolled Text
+        self.scrolledtext = ScrolledText(
+            master=self.helpdeskFrame, width=630, height=330, autohide=True)
+        self.scrolledtext.place(x=222, y=402, width=630, height=330)
+        self.textArea = self.scrolledtext.text
+        self.textArea.configure(font=(INTERBOLD, 20))

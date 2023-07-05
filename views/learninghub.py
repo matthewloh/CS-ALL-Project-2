@@ -48,6 +48,14 @@ class LearningHub(Canvas):
             xpos=0, ypos=0, framewidth=1920, frameheight=920,
             root=self, classname="playingframe"
         )
+        self.createContentFrame = self.controller.frameCreator(
+            xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            root=self, classname="createcontentframe"
+        )
+        self.editSectionFrame = self.controller.frameCreator(
+            xpos=60, ypos=280, framewidth=1800, frameheight=600,
+            root=self.createContentFrame, classname="editsectionframe"
+        )
         self.staticImgLabels = [
             # (r"Assets\AppointmentsView\TitleLabel.png", 0, 0, "AppointmentsHeader", self),
             (r"Assets\LearningHub\LearningHubBG.png", 0, 0, "LearningHubBG", self),
@@ -55,6 +63,10 @@ class LearningHub(Canvas):
              0, "learninghubmainbg", self.mainframe),
             (r"Assets\LearningHub\RulesFrame\RulesFrameBg.png",
              0, 0, "rulesframemainbg", self.rulesFrame),
+            (r"Assets\LearningHub\ContentCreationBg\CreateContentFrameBg.png",
+             0, 0, "createcontentframemainbg", self.createContentFrame),
+            (r"Assets\LearningHub\ContentCreationBg\EditingContentFrame.png",
+             0, 0, "editsectionframemainbg", self.editSectionFrame),
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.canvas = self.controller.canvasCreator(
@@ -101,21 +113,23 @@ class LearningHub(Canvas):
 
     def loadCourseButtons(self, modulecodes: list = None):
         c = self.controller
-        listOfBgs = ["int4004cemhubbg", "int4068cemhubbg",
-                      "int4003cemhubbg", "int4009cemhubbg"]
+
         for widgetname, widget in self.canvas.children.items():
             if widgetname not in modulecodes and widgetname.startswith("int"):
                 widget.grid_forget()
-
+        try:
+            self.controller.widgetsDict["createquizbutton"].grid_remove()
+        except:
+            pass
         btnDict = {
             "int4004cem": (r"Assets\LearningHub\ComputerArchitecture.png", 160, 220,
                            "int4004cemhub", self.canvas, lambda: self.loadCourseHubContent("int4004cem")),
             "int4068cem": (r"Assets\LearningHub\MathematicsCS.png", 160, 220,
-                           "int4068cemhub", self.canvas, lambda: print('hehe')),
+                           "int4068cemhub", self.canvas, lambda: self.loadCourseHubContent("int4068cem")),
             "int4003cem": (r"Assets\LearningHub\ObjectOrientedProgramming.png", 160, 220,
-                           "int4003cemhub", self.canvas, lambda: print('hehe')),
+                           "int4003cemhub", self.canvas, lambda: self.loadCourseHubContent("int4003cem")),
             "int4009cem": (r"Assets\LearningHub\CSALL2.png", 160, 220,
-                           "int4009cemhub", self.canvas, lambda: print('hehe')),
+                           "int4009cemhub", self.canvas, lambda: self.loadCourseHubContent("int4009cem")),
         }
         BGFORBUTTON = r"Assets\LearningHub\BackgroundForAButton.png"
         btnCount = 0
@@ -208,10 +222,250 @@ class LearningHub(Canvas):
         self.canvas.grid()
         self.canvas.tk.call("raise", self.canvas._w)
 
+    def loadMultipleChoiceQuestionCreation(self, coursecode: str):
+        self.editSectionFrame.grid()
+        self.editSectionFrame.tkraise()
+        prisma = self.prisma
+        allModuleContent = prisma.modulehubcontent.find_many(
+            where={
+                "AND": [
+                    {
+                        "module": {
+                            "is": {
+                                "moduleCode": coursecode.upper()
+                            }
+                        },
+                        "contentType": "MULTIPLE_CHOICE"
+                    }
+                ]
+            },
+            include={
+                "attempts": True
+            }
+        )
+        h = len(allModuleContent) * 180 + 20
+        if h < 400:
+            h = 400
+        self.mcqScrolledFrame = ScrolledFrame(
+            self.editSectionFrame, width=880, height=h, autohide=True, bootstyle="rounded"
+        )
+        self.mcqScrolledFrame.place(x=20, y=180, width=880, height=400)
+        startx, starty = 20, 20
+        for c in allModuleContent:
+            rootFrame = self.mcqScrolledFrame,
+            title = c.title
+            desc = c.description if c.description else "No description"
+            numOfQuestions = c.contentInfo["numOfQuestions"]
+            questions = c.contentInfo["questions"]
+            numOfAttempts = len(c.attempts)
+            self.renderQuizWidget(
+                c.id,
+                self.mcqScrolledFrame, title, desc, numOfQuestions, questions, numOfAttempts,
+                startx, starty
+            )
+            starty += 180
+
+    def renderQuizWidget(self,
+                         id: int,
+                         rootFrame: ScrolledFrame,
+                         title: str, desc: str, numOfQuestions: int, questions: dict,
+                         numOfAttempts: int,
+                         startx: int = 20, starty: int = 20):
+        # Quiz Title Entry and Insert
+        self.controller.labelCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\Quiz Widget.png",
+            xpos=startx, ypos=starty, root=rootFrame, classname=f"{id}quizwidgetbg", isPlaced=True
+        )
+        quizTitle = self.controller.ttkEntryCreator(
+            xpos=startx+20, ypos=starty+40, width=380, height=40,
+            root=rootFrame, classname=f"{id}quiztitleentry", isPlaced=True
+        )
+        quizTitle.insert(0, title)
+        # Quiz Description Entry and Insert
+        quizDesc = self.controller.ttkEntryCreator(
+            xpos=startx+20, ypos=starty+120, width=380, height=40,
+            root=rootFrame, classname=f"{id}quizdescentry", isPlaced=True
+        )
+        quizDesc.insert(0, desc)
+        # Num Of Questions Text Element
+        self.controller.textElement(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\NumTextBg.png",
+            xpos=startx+640, ypos=starty+40, root=rootFrame, classname=f"{id}numofquestionstext",
+            font=INTERBOLD, size=32, text=f"{numOfQuestions}", isPlaced=True, fg=WHITE
+        )
+        # Num Of Attempts Text Element
+        self.controller.textElement(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\NumTextBg.png",
+            xpos=startx+640, ypos=starty+120, root=rootFrame, classname=f"{id}numofattemptstext",
+            font=INTERBOLD, size=32, text=f"{numOfAttempts}", isPlaced=True, fg=WHITE
+        )
+
+        # ID-based functions
+        # Edit Button
+        self.controller.buttonCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\Edit60x60.png",
+            xpos=startx+760, ypos=starty+20, root=rootFrame, classname=f"{id}editbutton",
+            buttonFunction=lambda: self.loadEditQuizContent(id, numOfQuestions, questions), isPlaced=True
+        )
+        # Delete Button
+        self.controller.buttonCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\Delete60x60.png",
+            xpos=startx+760, ypos=starty+100, root=rootFrame, classname=f"{id}deletebutton",
+            buttonFunction=lambda: self.deleteQuizContent(id), isPlaced=True
+        )
+
+    def addQuiz(self, modulecode:str):
+        print(modulecode)
+    def loadEditQuizContent(self, id: int, numOfQuestions: int, questions: dict):
+        h = numOfQuestions * 220 + 20
+        if h < 560:
+            h = 560
+        self.allQuestionsScrolledFrame = ScrolledFrame(
+            self.editSectionFrame, width=840, height=h, autohide=True, bootstyle="rounded"
+        )
+        self.allQuestionsScrolledFrame.place(x=940, y=20, width=840, height=560)
+        print(
+            f"Editing quiz with id {id}, the frame will be num of questions {numOfQuestions}")
+        startx, starty = 20, 20
+        print(len(questions))
+        count = 0
+        self.currentWorkingDict = questions
+        for q in self.currentWorkingDict:
+            overallIndex = count
+            # {'options': ['1010', '1100', '1110', '1001'], 'question': 'What is the binary representation of the decimal 
+            #  number 10?', 'correctAnswer': 0}
+            # print(q["question"])
+            # print(q["options"])
+            # print(q["correctAnswer"])
+            # print(
+            #     f"The correct answer is {q['options'][q['correctAnswer']]}")
+            # options is a list 
+            options = q["options"]
+            # correctAnswer is an index of the options list
+            correctAnswer = q["correctAnswer"]
+            # question is a string
+            question = q["question"]
+            # finalAnswer is accessed using q["options"][q["correctAnswer"]]
+            finalAnswer = options[correctAnswer]
+            self.renderIndividualQuestion(
+                overallIndex, options, correctAnswer, question, finalAnswer, startx, starty
+            )
+            count += 1
+            starty += 220
+    def renderIndividualQuestion(self,
+                overallIndex: int,
+                options: list, correctAnswer: int, question: str, finalAnswer: str,
+                startx: int = 20, starty: int = 20):
+        # Individual Question Widget
+        self.controller.labelCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\OneQuestionWidget.png",
+            xpos=startx, ypos=starty, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}questionwidgetbg",
+            isPlaced=True
+        )
+        #Question Number Text Element
+        self.controller.textElement(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\QuestionNumberTxtBg.png",
+            xpos=startx, ypos=starty, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}questionnumbertext",
+            font=INTERBOLD, size=32, text=f"{overallIndex+1}.", isPlaced=True, fg=WHITE
+        )
+        # Question Entry
+        qEntry = self.controller.ttkEntryCreator(
+            xpos=startx+60, ypos=starty+20, width=640, height=80,
+            root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}questionentry",
+            isPlaced=True
+        )
+        qEntry.insert(0, question)
+        # Correct Answer Entry
+        cAnswerEntry = self.controller.ttkEntryCreator(
+            xpos=startx+60, ypos=starty+120, width=640, height=60,
+            root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}correctanswerentry",
+            isPlaced=True
+        )
+        cAnswerEntry.insert(0, finalAnswer)
+        # Overall Index-based functions
+        # View Options Button
+        self.controller.buttonCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\ViewOptions.png",
+            xpos=startx+720, ypos=starty+20, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}viewoptionsbutton",
+            buttonFunction=lambda: self.loadViewOptionsContent(overallIndex, options, correctAnswer), isPlaced=True
+        )
+        # Delete Question Button        
+        self.controller.buttonCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\DeleteQuestion.png",
+            xpos=startx+720, ypos=starty+120, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}deletequestionbutton",
+            buttonFunction=lambda: self.deleteQuestion(overallIndex), isPlaced=True
+        )
+    # TODO: Add backend query to update the modulehubcontent 
+    # Where the id is of the modulehubcontent is the same as the id of the quiz
+    # Then update the contentInfo under this field
+    # Then update the quiz content
+
+    def loadViewOptionsContent(self, overallIndex: int, options: list, correctAnswer: int):
+        # questions = self.currentWorkingDict
+        # ask if the user wants to edit the question or view the options
+        parentWidget = self.controller.widgetsDict[f"{overallIndex}viewoptionsbutton"]
+        editOrViewOptions = ["Edit Question:success", "View Options:info", "Cancel:danger"]
+        askOption = MessageDialog(
+            title="Edit or View Options", 
+            message="Do you want to edit the question or view the options?",
+            buttons=editOrViewOptions,
+            parent=parentWidget
+        )
+        askOption.show()
+        if askOption.result == "Edit Question":
+            askNewQuestion = Querybox.get_string(
+                title="Edit Question", 
+                prompt="Enter the new question",
+                initialvalue=self.currentWorkingDict[overallIndex]["question"],
+                parent=parentWidget
+            )
+            askNewQuestion.show()
+            if askNewQuestion is not None and askNewQuestion.result != "":
+                self.currentWorkingDict[overallIndex]["question"] = askNewQuestion.result
+                self.controller.widgetsDict[f"{overallIndex}questionentry"].delete(0, END)
+                self.controller.widgetsDict[f"{overallIndex}questionentry"].insert(0, askNewQuestion.result)
+    def deleteQuizContent(self, id: int):
+        print(f"Deleting quiz with id {id}")
+
+    def loadCreateQuizContent(self, coursecode: str):
+        self.createContentFrame.grid()
+        self.createContentFrame.tkraise()
+        btns = [
+            (r"Assets\LearningHub\ContentCreationBg\Multiple Choice Question Creation.png",
+             980, 120, "multiplechoicequestioncreation", self.createContentFrame,
+             lambda: self.loadMultipleChoiceQuestionCreation(coursecode)),
+            (r"Assets\My Courses\exitbutton.png", 1800, 20,
+             "exitcreationofcontent", self.createContentFrame,
+             lambda: [self.createContentFrame.grid_remove(), self.editSectionFrame.grid_remove()])
+        ]
+        self.controller.settingsUnpacker(btns, "button")
+        self.quizTitle = self.controller.ttkEntryCreator(
+            xpos=320, ypos=20, width=480, height=60,
+            root=self.editSectionFrame, classname="quiztitleentry"
+        )
+        self.quizDesc = self.controller.ttkEntryCreator(
+            xpos=320, ypos=100, width=480, height=60,
+            root=self.editSectionFrame, classname="quizdescentry"
+        )
+        self.addQuizBtn = self.controller.buttonCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\AddQuiz.png",
+            xpos=840, ypos=60, root=self.editSectionFrame, classname="addquizbutton",
+            buttonFunction=lambda: self.addQuiz(coursecode)
+        )
+
     def loadCourseHubContent(self, coursecode: str):
         self.canvas.grid_remove()
         self.mainframe.grid()
         self.mainframe.tkraise()
+
+        _ = [
+            (r"Assets\LearningHub\ContentCreationBg\CreateQuizBtn.png", 1440, 60,
+             "createquizbutton", self.mainframe, lambda: self.loadCreateQuizContent(coursecode)),
+        ]
+        if self.role == "lecturer":
+            self.controller.settingsUnpacker(_, "button")
+            self.editSectionFrame.grid_remove()
+
         self.fillLists(coursecode)
         staticButtons = [
             (r"Assets\LearningHub\HomePage.png", 160, 580,
