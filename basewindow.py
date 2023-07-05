@@ -166,7 +166,7 @@ class ElementCreator(ttk.Window):
         self.updateWidgetsDict(root=root)
         return label
 
-    def frameCreator(self, xpos, ypos, framewidth, frameheight, root=None, classname=None, bg=LIGHTYELLOW, relief=FLAT, imgSettings=None):
+    def frameCreator(self, xpos, ypos, framewidth, frameheight, root=None, classname=None, bg=LIGHTYELLOW, relief=FLAT, imgSettings=None, isPlaced=False):
         classname = classname.replace(" ", "").lower()
         widthspan = int(framewidth / 20)
         heightspan = int(frameheight / 20)
@@ -175,8 +175,11 @@ class ElementCreator(ttk.Window):
 
         frame = Frame(root, width=1, height=1, bg=bg,
                       relief=relief, name=classname, autostyle=False,)
-        frame.grid(row=rowarg, column=columnarg, rowspan=heightspan,
-                   columnspan=widthspan, sticky=NSEW)
+        if isPlaced:
+            frame.place(x=xpos, y=ypos, width=framewidth, height=frameheight)
+        else:
+            frame.grid(row=rowarg, column=columnarg, rowspan=heightspan,
+                    columnspan=widthspan, sticky=NSEW)
         self.updateWidgetsDict(root=root)
         if imgSettings:
             listofimages = list(enumerate(imgSettings))
@@ -307,7 +310,7 @@ class ElementCreator(ttk.Window):
 
         return menubutton
 
-    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), fg=BLACK, validation=False, passwordchar="*", captchavar=None):
+    def ttkEntryCreator(self, xpos=None, ypos=None, width=None, height=None, root=None, classname=None, bgcolor=WHITE, relief=FLAT, font=("Helvetica", 16), fg=BLACK, validation=False, passwordchar="*", captchavar=None, isPlaced=False):
         """
         Takes in arguments xpos, ypos, width, height, from Figma, creates a frame,\n
         and places a ttk.Entry inside of it. The ttk.Entry is then returned into the global dict of widgets.\n
@@ -322,7 +325,7 @@ class ElementCreator(ttk.Window):
         # entrystyle = ttk.Style()
         # entrystyle.configure(f"{classname}.TEntry", font=font, background=bgcolor, foreground=WHITE)
         frame = self.frameCreator(xpos, ypos, width, height, root,
-                                  classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT)
+                                  classname=f"{classname}hostfr", bg=bgcolor, relief=FLAT, isPlaced=isPlaced)
 
         @validator
         def validateCaptcha(event):
