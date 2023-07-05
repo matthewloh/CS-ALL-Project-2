@@ -89,7 +89,7 @@ class SearchPage(Canvas):
             root=self, classname="helpdeskframe",
         )
         self.helpdeskLabels = [
-            (r"Assets\SearchView\HelpdeskBg.png", 0,
+            (r"Assets\SearchView\helpdeskframebg.png", 0,
              0, "helpdeskbg", self.helpdeskFrame),
         ]
         self.controller.settingsUnpacker(self.helpdeskLabels, "label")
