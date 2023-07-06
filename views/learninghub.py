@@ -395,6 +395,7 @@ class LearningHub(Canvas):
             xpos=startx+720, ypos=starty+120, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}deletequestionbutton",
             buttonFunction=lambda: self.deleteQuestion(overallIndex), isPlaced=True
         )
+        
     # TODO: Add backend query to update the modulehubcontent 
     # Where the id is of the modulehubcontent is the same as the id of the quiz
     # Then update the contentInfo under this field
@@ -404,15 +405,78 @@ class LearningHub(Canvas):
         # questions = self.currentWorkingDict
         # ask if the user wants to edit the question or view the options
         parentWidget = self.controller.widgetsDict[f"{overallIndex}viewoptionsbutton"]
-        editOrViewOptions = ["Edit Question:success", "View Options:info", "Cancel:danger"]
+        editOrViewOptions = ["Edit Question:success", "Edit Answers:info", "Cancel:danger"]
         askOption = MessageDialog(
             title="Edit or View Options", 
-            message="Do you want to edit the question or view the options?",
+            message="Do you want to edit the question or edit the answers?",
             buttons=editOrViewOptions,
             parent=parentWidget
         )
-        askOption.show()
+        hostframe = self.controller.frameCreator(
+            xpos=940, ypos=20, framewidth=840, frameheight=560,
+            root=self.editSectionFrame, classname="overallquestionframe",
+        )
+        _labels = [
+            (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\IndividualBg.png",
+            0, 0, "overallquestionbg", hostframe)
+        ]
+        for _label in _labels:
+            self.controller.labelCreator(
+                imagepath=_label[0], xpos=_label[1], ypos=_label[2], root=_label[4], classname=_label[3],
+            )
+        self.mainTextHost = ScrolledText(
+            master=hostframe, width=800, height=300, autohide=True, bootstyle="rounded"
+        )
+        self.mainTextHost.place(x=20, y=20, width=800, height=300)
+        self.mainText = self.mainTextHost.text
+        self.mainText.configure(
+            font=("Inter Bold", 24), fg=BLACK, wrap=WORD, spacing1=10, spacing2=10, spacing3=10
+        )
+        q = self.currentWorkingDict[overallIndex]["question"]
+        self.mainText.insert(
+            END, f"{overallIndex+1}. {q}")
+
+        _buttons = [
+            (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\exitindividual.png",
+            800, 0, "exitindividual", hostframe, lambda: [hostframe.grid_remove()]),
+            (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\EditQuestion.png",
+            740, 240, "editquestion", hostframe, lambda: self.editQuestion(overallIndex)),
+        ]
+
+        for _button in _buttons:
+            self.controller.buttonCreator(
+                imagepath=_button[0], xpos=_button[1], ypos=_button[2], root=_button[4], classname=_button[3],
+                buttonFunction=_button[5]
+            )
+        # 4 entries 
+        # index 0 -> 1
+        # index 2 -> 3
+        startx, starty = 40, 360
+        for i in range(4):
+            x = i % 2 # 0 , 1 , 0 , 1
+            yIndex = i // 2 # 0 , 0 , 1 , 1
+            finalX = startx + (x*420)
+            finalY = starty + (yIndex*100)
+            entry = self.controller.ttkEntryCreator(
+                xpos=finalX, ypos=finalY,
+                width=300, height=40,
+                root=hostframe, classname=f"option{i}entry",
+            )
+            entry.insert(0, options[i])
+            if i == correctAnswer:
+                self.controller.labelCreator(
+                    imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\correctanswerlabel.png",
+                    xpos=finalX+320, ypos=finalY-20, root=hostframe, classname=f"correctanswerentrylabel",
+                )
+            # The edit button to ask to change this option to the correct answer
+            self.controller.buttonCreator(
+                imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\editanoption.png",
+                xpos=finalX+320, ypos=finalY+20, root=hostframe, classname=f"editoption{i}button",
+            )
+        hostframe.place_forget()
+        # askOption.show()
         if askOption.result == "Edit Question":
+            hostframe.place(x=0, y=0, width=840, height=560)
             askNewQuestion = Querybox.get_string(
                 title="Edit Question", 
                 prompt="Enter the new question",
@@ -420,8 +484,8 @@ class LearningHub(Canvas):
                 parent=parentWidget
             )
             askNewQuestion.show()
-            if askNewQuestion is not None and askNewQuestion.result != "":
-                self.currentWorkingDict[overallIndex]["question"] = askNewQuestion.result
+            if askNewQuestion is not None and askNewQuestion != "":
+                self.currentWorkingDict[overallIndex]["question"] = askNewQuestion
                 self.controller.widgetsDict[f"{overallIndex}questionentry"].delete(0, END)
                 self.controller.widgetsDict[f"{overallIndex}questionentry"].insert(0, askNewQuestion.result)
     def deleteQuizContent(self, id: int):

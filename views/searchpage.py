@@ -101,7 +101,7 @@ class SearchPage(Canvas):
             (r"Assets\SearchView\helpdesksubmit.png", 1560, 780,
              "helpdesksubmit", self.helpdeskFrame,
              lambda: print("Submit")),
-            (r"Assets\SearchView\imagebutton.png", 1200, 359,
+            (r"Assets\SearchView\imagebutton.png", 1180, 340,
              "helpdeskimage", self.helpdeskFrame,
              lambda: print("UploadImage"))
         ]
