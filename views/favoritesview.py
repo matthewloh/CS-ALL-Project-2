@@ -7,7 +7,7 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from basewindow import gridGenerator
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -16,6 +16,7 @@ from prisma import Prisma
 from components.animatedgif import AnimatedGif
 from components.animatedstarbtn import AnimatedStarBtn
 from PIL import Image, ImageTk, ImageSequence
+
 
 class FavoritesView(Canvas):
     def __init__(self, parent, controller: ElementCreator):
@@ -37,19 +38,17 @@ class FavoritesView(Canvas):
         self.renderFavoritePosts()
         # This returns a student
 
-                
-
     def createElements(self):
         self.controller.buttonCreator(
             imagepath=r"Assets\FavoritesView\refreshfavorites.png", xpos=1720, ypos=150,
-            root=self, classname="refreshfavorites", 
+            root=self, classname="refreshfavorites",
             buttonFunction=lambda: self.refreshFavoritesView(),
-            isPlaced=True, 
+            isPlaced=True,
         )
 
     def loadFavoritePosts(self):
         prisma = self.prisma
-         # This returns a student
+        # This returns a student
         self.scrolledframe = ScrolledFrame(
             master=self, width=1680, height=580, autohide=True, bootstyle="bg-round"
         )
@@ -74,21 +73,22 @@ class FavoritesView(Canvas):
         for favPost in favPosts:
             postModule = favPost.module
             postAuthor = favPost.author
-            createdAt = kualalumpur.convert(favPost.createdAt).strftime(timestrfmt)
+            createdAt = kualalumpur.convert(
+                favPost.createdAt).strftime(timestrfmt)
             postInfo = (
-                favPost.id, favPost.title, 
+                favPost.id, favPost.title,
                 postAuthor.fullName,
                 createdAt,
                 postModule.moduleCode, postModule.moduleTitle,
             )
             self.favPostList.append(postInfo)
         return self.favPostList
-    
+
     def renderFavoritePosts(self):
         heightofFrame = len(self.favPostList) * 140
         if heightofFrame < 580:
             heightofFrame = 580
-    
+
         self.scrolledframe.config(height=heightofFrame)
 
         IMAGEPATH = r"Assets\FavoritesView\Button.png"
@@ -98,12 +98,12 @@ class FavoritesView(Canvas):
             fmttext = f"{title}\n{moduleCode} - {moduleTitle}"
             tipText = f"Created on {createdAt} by {author} in {moduleCode} - {moduleTitle}"
             t = self.controller.textElement(
-                imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1], 
+                imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
                 classname=f"favpost{id}", root=self.scrolledframe,
                 text=fmttext, fg="#5975D7", font=SFPRO, size=32,
                 isPlaced=True, xoffset=-2, yIndex=-1/2
             )
-            ToolTip(t, text=tipText, bootstyle=(INFO,INVERSE))
+            ToolTip(t, text=tipText, bootstyle=(INFO, INVERSE))
             AnimatedStarBtn(
                 parent=self.scrolledframe, controller=self.controller,
                 xpos=initCoords[0]+1540, ypos=initCoords[1]+20,
@@ -116,7 +116,7 @@ class FavoritesView(Canvas):
                 isFromFavView=True
             )
             initCoords = (initCoords[0], initCoords[1]+140)
-    
+
     def refreshFavoritesView(self):
         self.loadFavoritePosts()
         self.renderFavoritePosts()

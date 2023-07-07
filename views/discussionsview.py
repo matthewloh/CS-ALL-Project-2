@@ -26,9 +26,7 @@ class DiscussionsView(Canvas):
         self.parent = parent
         gridGenerator(self, 96, 46, WHITE)
         self.createFrames()
-
         self.createElements()
-
         self.posttitleent = self.controller.ttkEntryCreator(
             xpos=900, ypos=160, width=920, height=40, root=self.creationframe, classname="posttitleent"
         )
@@ -40,7 +38,6 @@ class DiscussionsView(Canvas):
         self.postcontenttext.grid(
             column=textxpos, row=textypos, columnspan=textcolumnspan, rowspan=textrowspan, sticky=NSEW
         )
-
         self.creationframe.grid_remove()
         self.postviewframe.grid_remove()
 
@@ -111,27 +108,12 @@ class DiscussionsView(Canvas):
         self.modulecodevar = StringVar()
         if self.role == "lecturer":
             modules = prisma.module.find_many(
-                where={
-                    "lecturer": {
-                        "is": {
-                            "userId": {
-                                "equals": self.userId
-                            }
-                        }
-                    }
-                }
+                where={"lecturer": {"is": {"userId": {"equals": self.userId}}}}
             )
         elif self.role == "student":
             modules = prisma.module.find_many(
-                where={
-                    "programme": {
-                        "is": {
-                            "programmeCode": {
-                                "equals": self.programme
-                            }
-                        }
-                    }
-                }
+                where={"programme": {
+                    "is": {"programmeCode": {"equals": self.programme}}}}
             )
         listofvalues = []
         self.valueDict = {}
@@ -159,15 +141,12 @@ class DiscussionsView(Canvas):
         # minimum height of frame is 500 for 5 posts
         if heightofframe < 500:
             heightofframe = 500
-
         self.postscrolledframe = ScrolledFrame(
             self, width=840, height=heightofframe, name="postsframescrollable", autohide=True,
             bootstyle="rounded"
         )
-
         self.postscrolledframe.place(x=100, y=320, width=840, height=500)
         self.loadDiscussionTopics(postContentList)
-        print("In discussionview, userid is: ", self.userId)
 
     def threadStart(self):
         t = threading.Thread(target=self.createPost)
@@ -283,7 +262,6 @@ class DiscussionsView(Canvas):
         posteditedAt = tupleofcontent[6]
         repliesList = tupleofcontent[7]
         authorId = tupleofcontent[8]
-
         # A host is used to remove the currently loaded scrolled frame using grid_remove()
         self.scrolledframehost = self.controller.frameCreator(
             root=self.postviewframe, framewidth=1120, frameheight=660,
@@ -491,9 +469,7 @@ class DiscussionsView(Canvas):
                 fg=BLACK,
             )
             contenttext.insert(END, replyContent)
-
             contenttext.config(state=DISABLED)
-
             scrolledtext.place(
                 x=textCoordinates[0], y=textCoordinates[1], width=1020, height=120
             )

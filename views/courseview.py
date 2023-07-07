@@ -292,18 +292,19 @@ class CourseView(Canvas):
              "exituploadcreation", self.uploadCreationFrame,
              lambda:self.exitUploadCreationAndReload(modulecode)),
         ]
-        
+
         self.controller.settingsUnpacker(buttonSettings, "button")
         print(f"Loading upload page for {modulecode}")
         self.modifyUploadFrame = ScrolledFrame(
             self.uploadCreationFrame, width=760, height=640, autohide=True,
             bootstyle="danger-rounded"
         )
-        self.modifyUploadFrame.place(x=80, y=120, width=760, height=640) 
-        t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.modifyUploadFrame, True))
+        self.modifyUploadFrame.place(x=80, y=120, width=760, height=640)
+        t = threading.Thread(target=self.frontEndModuleUploads, args=(
+            modulecode, self.modifyUploadFrame, True))
         t.daemon = True
         t.start()
-        
+
     def editModuleUploads(self, id, title, description, objKey, modulecode, filetype):
         print(id, title, description, objKey)
         self.uploadTitleEntry.delete(0, END)
@@ -312,16 +313,18 @@ class CourseView(Canvas):
         self.uploadDescEntry.insert(0, description)
         parentWidget = self.controller.widgetsDict[f"{id}editbtn"]
         if filetype == "LINK":
-            buttonsList = ["Edit Title:success", "Edit Description:info", "Edit URL:warning", "Cancel"]
+            buttonsList = ["Edit Title:success",
+                           "Edit Description:info", "Edit URL:warning", "Cancel"]
         else:
-            buttonsList = ["Edit Title:success", "Edit Description:info", "Cancel"]
+            buttonsList = ["Edit Title:success",
+                           "Edit Description:info", "Cancel"]
         askOption = MessageDialog(
             parent=parentWidget,
             message=f"What do you want to do with the {filetype} upload {title}?",
             title=f"Select an option for the {filetype} upload {title}",
             buttons=buttonsList,
         )
-        
+
         askOption.show()
         if askOption.result == "Edit Title":
             newTitle = Querybox.get_string(
@@ -338,7 +341,8 @@ class CourseView(Canvas):
                         "title": newTitle
                     }
                 )
-                t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.modifyUploadFrame, True))
+                t = threading.Thread(target=self.frontEndModuleUploads, args=(
+                    modulecode, self.modifyUploadFrame, True))
                 t.daemon = True
                 t.start()
         elif askOption.result == "Edit Description":
@@ -356,7 +360,8 @@ class CourseView(Canvas):
                         "description": newDesc
                     }
                 )
-                t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.modifyUploadFrame, True))
+                t = threading.Thread(target=self.frontEndModuleUploads, args=(
+                    modulecode, self.modifyUploadFrame, True))
                 t.daemon = True
                 t.start()
         elif askOption.result == "Edit URL":
@@ -374,12 +379,11 @@ class CourseView(Canvas):
                         "objKey": newURL
                     }
                 )
-                t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.modifyUploadFrame, True))
+                t = threading.Thread(target=self.frontEndModuleUploads, args=(
+                    modulecode, self.modifyUploadFrame, True))
                 t.daemon = True
                 t.start()
-        # elif askOption.result == "Reupload File":
-        #     self.sendUploadRequest(modulecode, filetype, id=id, objKey=objKey)
-        
+
     def deleteModuleUploads(self, id, title, description, objKey, modulecode, filetype):
         print(id, title, description, objKey)
         self.uploadTitleEntry.delete(0, END)
@@ -416,18 +420,19 @@ class CourseView(Canvas):
             bootstyle="success"
         )
         toast.show_toast()
-        t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.modifyUploadFrame, True))
+        t = threading.Thread(target=self.frontEndModuleUploads, args=(
+            modulecode, self.modifyUploadFrame, True))
         t.daemon = True
         t.start()
-        
+
     def exitUploadCreationAndReload(self, modulecode):
         self.exitUploadCreation(),
         self.focus_force()
-        t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.upframe))
+        t = threading.Thread(target=self.frontEndModuleUploads,
+                             args=(modulecode, self.upframe))
         t.daemon = True
         t.start()
-        
-        
+
     def saveObjectKey(self, modulecode, objKey, fileType):
         prisma = self.prisma
         uploadType = {
@@ -461,13 +466,12 @@ class CourseView(Canvas):
             }
         )
         self.successToast.show_toast()
-        t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.modifyUploadFrame, True))
+        t = threading.Thread(target=self.frontEndModuleUploads, args=(
+            modulecode, self.modifyUploadFrame, True))
         t.daemon = True
         t.start()
         self.uploadTitleEntry.delete(0, END)
         self.uploadDescEntry.delete(0, END)
-        # self.exitUploadCreation()
-        # self.loadModuleUploadsView(modulecode)
 
     def sendUploadRequest(self, modulecode, fileType):
         BUCKET_NAME = self.BUCKET_NAME
@@ -486,7 +490,6 @@ class CourseView(Canvas):
             )
             toast.show_toast()
             return
-
         if fileType == "url":
             entry = self.controller.entryCreator(
                 xpos=1120, ypos=360, width=680, height=60,
@@ -503,7 +506,6 @@ class CourseView(Canvas):
             )
             toast.show_toast()
             return
-        
         filetypes = {
             "pdf": ("Document Files", "*.pdf *.docx *.doc *.pptx *.ppt *.xlsx *.xls *.txt *.csv *rtf"),
             "image": ("Image Files", "*.jpg *.png *.jpeg *.gif *webp"),
@@ -513,7 +515,6 @@ class CourseView(Canvas):
             title=f"Upload {fileType} for {modulecode}",
             filetypes=[filetypes[fileType]]
         )
-
         if filename == "":
             return
         fileExt = filename.split(".")[-1].lower()
@@ -526,7 +527,6 @@ class CourseView(Canvas):
             )
             toast.show_toast()
             return
-        
         # https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
         if fileExt in ["jpg", "jpeg", "png", "gif", "webp"]:
             if fileExt in ["jpg", "jpeg"]:
@@ -570,13 +570,13 @@ class CourseView(Canvas):
         savedfilename = os.path.basename(filename)
         savedfilename = savedfilename.replace(" ", "_").split(".")[0]
         askConfirmation = messagebox.askyesno(
-            title = "Confirm Upload",
-            message = f"Are you sure you want to upload {savedfilename}.{fileExt}?"
+            title="Confirm Upload",
+            message=f"Are you sure you want to upload {savedfilename}.{fileExt}?"
         )
         if not askConfirmation:
             return
         askRename = messagebox.askyesno(
-            title = "Rename file?",
+            title="Rename file?",
             message=f"Do you want to rename {savedfilename}.{fileExt}? The file will remain a .{fileExt} file"
         )
         if askRename:
@@ -587,18 +587,18 @@ class CourseView(Canvas):
             if newfilename is not None and newfilename != "":
                 newfilename = newfilename.replace(" ", "_").strip()
                 savedfilename = f"{newfilename}"
-                
         s3 = boto3.client('s3')
-        
         # check for duplicate file names in the bucket
-        listofobjects = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=f"{savedfilename}.{fileExt}")
+        listofobjects = s3.list_objects_v2(
+            Bucket=BUCKET_NAME, Prefix=f"{savedfilename}.{fileExt}")
         numOfDuplicates = listofobjects.get("KeyCount", 0)
         if listofobjects.get("KeyCount", 0) > 0:
             if numOfDuplicates == 1:
-                numofSameFiles = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=f"{savedfilename}").get("KeyCount", 0)
+                numofSameFiles = s3.list_objects_v2(
+                    Bucket=BUCKET_NAME, Prefix=f"{savedfilename}").get("KeyCount", 0)
                 numOfDuplicates = numofSameFiles
             askDuplicate = messagebox.askyesno(
-                title = "Duplicate file name",
+                title="Duplicate file name",
                 message=f"{savedfilename}.{fileExt} already exists in the bucket. Do you want to overwrite it? Otherwise, the file will be saved as {savedfilename}({numOfDuplicates}).{fileExt}"
             )
             if askDuplicate == False:
@@ -608,21 +608,20 @@ class CourseView(Canvas):
                 savedfilename = f"{savedfilename}.{fileExt}"
                 with open(filename, "rb") as f:
                     s3.upload_fileobj(
-                            f, BUCKET_NAME, savedfilename,
-                            ExtraArgs={'ACL': 'public-read',
-                                    'ContentType': contentType}                    
+                        f, BUCKET_NAME, savedfilename,
+                        ExtraArgs={'ACL': 'public-read',
+                                   'ContentType': contentType}
                     )
                     self.successToast.message = f"Successfully updated {savedfilename}"
                     self.successToast.show_toast()
-                    t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.modifyUploadFrame, True))
+                    t = threading.Thread(target=self.frontEndModuleUploads, args=(
+                        modulecode, self.modifyUploadFrame, True))
                     t.daemon = True
                     t.start()
                 return
-                
         savedfilename = f"{savedfilename}.{fileExt}"
         with open(filename, "rb") as f:
             # rename file to prevent duplicates
-            # filename = f"{savedfilename}-{fileType.lower()}.{fileExt}"
             s3.upload_fileobj(
                 f, BUCKET_NAME, savedfilename,
                 ExtraArgs={'ACL': 'public-read',
@@ -676,8 +675,9 @@ class CourseView(Canvas):
             self.viewUploadsFrame, width=760, height=640, autohide=True,
             bootstyle="warning-rounded"
         )
-        self.upframe.place(x=40, y=120, width=760, height=640) 
-        t = threading.Thread(target=self.frontEndModuleUploads, args=(modulecode, self.upframe))
+        self.upframe.place(x=40, y=120, width=760, height=640)
+        t = threading.Thread(target=self.frontEndModuleUploads,
+                             args=(modulecode, self.upframe))
         t.daemon = True
         t.start()
 
@@ -700,7 +700,7 @@ class CourseView(Canvas):
             }
         )
         return uploads
-    
+
     def frontEndModuleUploads(self, modulecode, rootFrame: ScrolledFrame, withModifyBtns=False):
         uploads = self.loadModuleUploads(modulecode)
         h = len(uploads) * 100 + 40
@@ -708,7 +708,8 @@ class CourseView(Canvas):
             h = 640
         rootFrame.config(height=h)
         # White BG
-        Label(rootFrame, bg="white", width=760, height=h, relief=FLAT, bd=0).place(x=0, y=0, width=760, height=h)
+        Label(rootFrame, bg="white", width=760, height=h,
+              relief=FLAT, bd=0).place(x=0, y=0, width=760, height=h)
         startx = 20
         starty = 40
         kl = timezone("Asia/Kuala_Lumpur")
@@ -726,12 +727,12 @@ class CourseView(Canvas):
             starty += 100
 
     def renderModuleUploads(self,
-        rootFrame : ScrolledFrame, 
-        filetype, id, title, description, objKey, 
-        createdat, editedat, x, y, 
-        uploadername, uploaderemail,
-        withModifyBtns=False, modulecode=None
-        ):
+                            rootFrame: ScrolledFrame,
+                            filetype, id, title, description, objKey,
+                            createdat, editedat, x, y,
+                            uploadername, uploaderemail,
+                            withModifyBtns=False, modulecode=None
+                            ):
         btnImgDict = {
             "PDF": r"Assets\My Courses\pdfbtn.png",
             "VIDEO": r"Assets\My Courses\videobtn.png",
@@ -749,7 +750,8 @@ class CourseView(Canvas):
         b = c.buttonCreator(
             imagepath=btnImgDict[filetype], xpos=x, ypos=y,
             classname=f"{id}btn", root=rootFrame,
-            buttonFunction=lambda: self.loadAndOpenObject(objKey, fileType=filetype),
+            buttonFunction=lambda: self.loadAndOpenObject(
+                objKey, fileType=filetype),
             isPlaced=True,
         )
         titleandfile = f"{title} | {objKey}"
@@ -758,7 +760,8 @@ class CourseView(Canvas):
             imagepath=textBgDict[filetype], xpos=x+20, ypos=y,
             classname=f"{id}title", root=rootFrame,
             text=titleandfile, fg=BLACK, size=20, font=INTERBOLD,
-            buttonFunction=lambda: self.loadAndOpenObject(objKey, fileType=filetype),
+            buttonFunction=lambda: self.loadAndOpenObject(
+                objKey, fileType=filetype),
             isPlaced=True, xoffset=-1,
         )
         ToolTip(t1, text=tiptext, bootstyle=(INFO, INVERSE))
@@ -772,25 +775,28 @@ class CourseView(Canvas):
             imagepath=textBgDict[filetype], xpos=x+20, ypos=y+40,
             classname=f"{id}time", root=rootFrame,
             text=strTime, fg=BLACK, size=16, font=INTER,
-            buttonFunction=lambda: self.loadAndOpenObject(objKey, fileType=filetype),
+            buttonFunction=lambda: self.loadAndOpenObject(
+                objKey, fileType=filetype),
             isPlaced=True, xoffset=-1,
         )
         ToolTip(t2, text=tiptext, bootstyle=(INFO, INVERSE))
-        
+
         if withModifyBtns:
             c.buttonCreator(
                 imagepath=r"Assets\DiscussionsView\edit.png", xpos=x+500, ypos=y+20,
                 classname=f"{id}editbtn", root=rootFrame,
-                buttonFunction=lambda: self.editModuleUploads(id, title, description, objKey, modulecode, filetype),
+                buttonFunction=lambda: self.editModuleUploads(
+                    id, title, description, objKey, modulecode, filetype),
                 isPlaced=True,
             )
             c.buttonCreator(
                 imagepath=r"Assets\DiscussionsView\Trash.png", xpos=x+560, ypos=y+20,
                 classname=f"{id}deletebtn", root=rootFrame,
-                buttonFunction=lambda: self.deleteModuleUploads(id, title, description, objKey, modulecode, filetype),
+                buttonFunction=lambda: self.deleteModuleUploads(
+                    id, title, description, objKey, modulecode, filetype),
                 isPlaced=True,
             )
-        
+
     def loadAndOpenObject(self, objKey, fileType):
         BUCKET_NAME = self.BUCKET_NAME
         if fileType == "LINK":
@@ -798,6 +804,7 @@ class CourseView(Canvas):
             return
         url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{objKey}"
         self.webview.load_url(url)
+
     # FUNCTIONS THAT NAVIGATE OUT OF COURSEVIEW
     def loadDiscussionsView(self, modulecode, moduletitle):
         toast = ToastNotification(
@@ -821,7 +828,7 @@ class CourseView(Canvas):
         discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
         toast2.show_toast()
         self.controller.show_canvas(DiscussionsView)
-        
+
     def loadAppointmentsView(self, modulecode, moduletitle, lecturerName):
         WD = self.controller.widgetsDict
         appView = WD["appointmentsview"]
@@ -837,10 +844,9 @@ class CourseView(Canvas):
             appView.loadTimeslotMenuBtns(appView.module.get(), lecturerName)
             WD["modules"].configure(text=f"{modulecode} - {moduletitle}")
             WD["lecturersaptmenu"].configure(text=lecturerName)
-            
+
     def loadLearningHubView(self, modulecode):
         WD = self.controller.widgetsDict
         learningHub = WD["learninghub"]
         learningHub.loadCourseHubContent(modulecode)
         self.controller.show_canvas(LearningHub)
-            

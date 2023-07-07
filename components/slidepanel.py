@@ -7,7 +7,7 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from basewindow import gridGenerator
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -17,7 +17,11 @@ from nonstandardimports import *
 
 
 class SlidePanel(Frame):
-    def __init__(self, parent=None, controller: ElementCreator = None, startcolumn=0, startrow=0, endrow=0, endcolumn=0, startcolumnspan=0, endcolumnspan=0, rowspan=0, columnspan=0, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name=None):
+    def __init__(self, parent=None, controller: ElementCreator = None,
+                 startcolumn=0, startrow=0, endrow=0, endcolumn=0,
+                 startcolumnspan=0, endcolumnspan=0, rowspan=0,
+                 columnspan=0, relief=FLAT, width=1, height=1,
+                 bg=TRANSPARENTGREEN, name=None):
         super().__init__(parent, width=1, height=1, bg=TRANSPARENTGREEN, name=name)
         self.controller = controller
         gridGenerator(self, width, height, bg)
@@ -73,10 +77,8 @@ class SlidePanel(Frame):
         self.sidebarlabel.tk.call('raise', self.sidebarlabel._w)
         self.sidebarpfp.tk.call('raise', self.sidebarpfp._w)
         self.signoutbutton.tk.call('raise', self.signoutbutton._w)
-        # self.parseObjectsFromFrame(self)
         if self.startcolumnspan < self.endcolumnspan+1:
             self.grid(columnspan=self.startcolumnspan)
-            # self.sidebarlabel.grid(columnspan=self.startcolumnspan)
             self.startcolumnspan += 1
             self.after(6, self.animate_forward)
         else:
@@ -85,7 +87,6 @@ class SlidePanel(Frame):
     def animate_backward(self):
         if self.startcolumnspan > 1:
             self.grid(columnspan=self.startcolumnspan)
-            # self.sidebarlabel.grid(columnspan=self.startcolumnspan)
             self.startcolumnspan -= 1
             self.after(15, self.animate_backward)
         else:

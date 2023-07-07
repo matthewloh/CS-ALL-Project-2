@@ -9,18 +9,19 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from basewindow import gridGenerator
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
 from prisma import Prisma
 from PIL import Image, ImageTk, ImageSequence
 
+
 class AnimatedStarBtn(Frame):
     def __init__(self,
                  parent=None, controller: ElementCreator = None,
                  xpos=0, ypos=0, framewidth=0, frameheight=0, isPlaced=False,
-                 classname=None, imagexpos=0, imageypos=0, resizeWidth=0, resizeHeight=0, 
+                 classname=None, imagexpos=0, imageypos=0, resizeWidth=0, resizeHeight=0,
                  bg=WHITE,
                  prisma: Prisma = None, postId=None, userId=None,
                  isFavorited=False, postTitle=None,
@@ -55,7 +56,8 @@ class AnimatedStarBtn(Frame):
                 reversedsequence = [frame.copy() for frame in sequence]
                 reversedsequence.reverse()
                 # resize each frame
-                reversedsequence = [frame.resize((resizeWidth, resizeHeight)) for frame in reversedsequence]
+                reversedsequence = [frame.resize(
+                    (resizeWidth, resizeHeight)) for frame in reversedsequence]
                 self.images = [ImageTk.PhotoImage(
                     sequence_frame) for sequence_frame in reversedsequence]
                 self.image_cycle = cycle(self.images)
@@ -65,7 +67,8 @@ class AnimatedStarBtn(Frame):
                 # sequence
                 sequence = ImageSequence.Iterator(im)
                 # resize each frame
-                sequence = [frame.resize((resizeWidth, resizeHeight)) for frame in sequence]
+                sequence = [frame.resize((resizeWidth, resizeHeight))
+                            for frame in sequence]
                 self.images = [ImageTk.PhotoImage(
                     sequence_frame) for sequence_frame in sequence]
                 self.image_cycle = cycle(self.images)
@@ -246,12 +249,11 @@ class AnimatedStarBtn(Frame):
                 self.after(20, self.animate)
             else:
                 self.animation_status.set("start")
-                
 
     def refreshFavoritesView(self):
         self.favoritesView = self.controller.widgetsDict["favoritesview"]
         self.favoritesView.refreshFavoritesView()
-    
+
     def refreshPostsFromFavoritesView(self):
         self.discussionsView = self.controller.widgetsDict["discussionsview"]
         var = self.discussionsView.modulecodevar

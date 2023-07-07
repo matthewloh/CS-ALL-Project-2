@@ -7,7 +7,7 @@ from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
 from basewindow import gridGenerator
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -16,6 +16,7 @@ from prisma import Prisma
 from components.animatedgif import AnimatedGif
 from components.animatedstarbtn import AnimatedStarBtn
 from PIL import Image, ImageTk, ImageSequence
+
 
 class TopBar(Frame):
     def __init__(self, parent, controller: ElementCreator, name="topbarframe"):
@@ -37,7 +38,8 @@ class TopBar(Frame):
              self.framereference, lambda: self.animatedpanel.animate()),
             (r"Assets\Dashboard\HomeButton.png", 760, 0, "homebutton",
              self.framereference, lambda: [
-                 self.controller.widgetsDict["dashboardcanvas"].tk.call('raise', self.controller.widgetsDict["dashboardcanvas"]._w),
+                 self.controller.widgetsDict["dashboardcanvas"].tk.call(
+                     'raise', self.controller.widgetsDict["dashboardcanvas"]._w),
              ]),
             (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar",
              self.framereference, lambda: self.searchBarLogic()),

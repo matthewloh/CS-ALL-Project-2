@@ -314,8 +314,9 @@ class LearningHub(Canvas):
             buttonFunction=lambda: self.deleteQuizContent(id), isPlaced=True
         )
 
-    def addQuiz(self, modulecode:str):
+    def addQuiz(self, modulecode: str):
         print(modulecode)
+
     def loadEditQuizContent(self, id: int, numOfQuestions: int, questions: dict):
         h = numOfQuestions * 220 + 20
         if h < 560:
@@ -323,7 +324,8 @@ class LearningHub(Canvas):
         self.allQuestionsScrolledFrame = ScrolledFrame(
             self.editSectionFrame, width=840, height=h, autohide=True, bootstyle="rounded"
         )
-        self.allQuestionsScrolledFrame.place(x=940, y=20, width=840, height=560)
+        self.allQuestionsScrolledFrame.place(
+            x=940, y=20, width=840, height=560)
         print(
             f"Editing quiz with id {id}, the frame will be num of questions {numOfQuestions}")
         startx, starty = 20, 20
@@ -332,14 +334,7 @@ class LearningHub(Canvas):
         self.currentWorkingDict = questions
         for q in self.currentWorkingDict:
             overallIndex = count
-            # {'options': ['1010', '1100', '1110', '1001'], 'question': 'What is the binary representation of the decimal 
-            #  number 10?', 'correctAnswer': 0}
-            # print(q["question"])
-            # print(q["options"])
-            # print(q["correctAnswer"])
-            # print(
-            #     f"The correct answer is {q['options'][q['correctAnswer']]}")
-            # options is a list 
+            # options is a list
             options = q["options"]
             # correctAnswer is an index of the options list
             correctAnswer = q["correctAnswer"]
@@ -352,17 +347,18 @@ class LearningHub(Canvas):
             )
             count += 1
             starty += 220
+
     def renderIndividualQuestion(self,
-                overallIndex: int,
-                options: list, correctAnswer: int, question: str, finalAnswer: str,
-                startx: int = 20, starty: int = 20):
+                                 overallIndex: int,
+                                 options: list, correctAnswer: int, question: str, finalAnswer: str,
+                                 startx: int = 20, starty: int = 20):
         # Individual Question Widget
         self.controller.labelCreator(
             imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\OneQuestionWidget.png",
             xpos=startx, ypos=starty, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}questionwidgetbg",
             isPlaced=True
         )
-        #Question Number Text Element
+        # Question Number Text Element
         self.controller.textElement(
             imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\QuestionNumberTxtBg.png",
             xpos=startx, ypos=starty, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}questionnumbertext",
@@ -389,14 +385,14 @@ class LearningHub(Canvas):
             xpos=startx+720, ypos=starty+20, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}viewoptionsbutton",
             buttonFunction=lambda: self.loadViewOptionsContent(overallIndex, options, correctAnswer), isPlaced=True
         )
-        # Delete Question Button        
+        # Delete Question Button
         self.controller.buttonCreator(
             imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\DeleteQuestion.png",
             xpos=startx+720, ypos=starty+120, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}deletequestionbutton",
             buttonFunction=lambda: self.deleteQuestion(overallIndex), isPlaced=True
         )
-        
-    # TODO: Add backend query to update the modulehubcontent 
+
+    # TODO: Add backend query to update the modulehubcontent
     # Where the id is of the modulehubcontent is the same as the id of the quiz
     # Then update the contentInfo under this field
     # Then update the quiz content
@@ -405,9 +401,10 @@ class LearningHub(Canvas):
         # questions = self.currentWorkingDict
         # ask if the user wants to edit the question or view the options
         parentWidget = self.controller.widgetsDict[f"{overallIndex}viewoptionsbutton"]
-        editOrViewOptions = ["Edit Question:success", "Edit Answers:info", "Cancel:danger"]
+        editOrViewOptions = ["Edit Question:success",
+                             "Edit Answers:info", "Cancel:danger"]
         askOption = MessageDialog(
-            title="Edit or View Options", 
+            title="Edit or View Options",
             message="Do you want to edit the question or edit the answers?",
             buttons=editOrViewOptions,
             parent=parentWidget
@@ -418,7 +415,7 @@ class LearningHub(Canvas):
         )
         _labels = [
             (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\IndividualBg.png",
-            0, 0, "overallquestionbg", hostframe)
+             0, 0, "overallquestionbg", hostframe)
         ]
         for _label in _labels:
             self.controller.labelCreator(
@@ -438,9 +435,9 @@ class LearningHub(Canvas):
 
         _buttons = [
             (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\exitindividual.png",
-            800, 0, "exitindividual", hostframe, lambda: [hostframe.grid_remove()]),
+             800, 0, "exitindividual", hostframe, lambda: [hostframe.grid_remove()]),
             (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\EditQuestion.png",
-            740, 240, "editquestion", hostframe, lambda: self.editQuestion(overallIndex)),
+             740, 240, "editquestion", hostframe, lambda: self.editQuestion(overallIndex)),
         ]
 
         for _button in _buttons:
@@ -448,13 +445,13 @@ class LearningHub(Canvas):
                 imagepath=_button[0], xpos=_button[1], ypos=_button[2], root=_button[4], classname=_button[3],
                 buttonFunction=_button[5]
             )
-        # 4 entries 
+        # 4 entries
         # index 0 -> 1
         # index 2 -> 3
         startx, starty = 40, 360
         for i in range(4):
-            x = i % 2 # 0 , 1 , 0 , 1
-            yIndex = i // 2 # 0 , 0 , 1 , 1
+            x = i % 2  # 0 , 1 , 0 , 1
+            yIndex = i // 2  # 0 , 0 , 1 , 1
             finalX = startx + (x*420)
             finalY = starty + (yIndex*100)
             entry = self.controller.ttkEntryCreator(
@@ -478,7 +475,7 @@ class LearningHub(Canvas):
         if askOption.result == "Edit Question":
             hostframe.place(x=0, y=0, width=840, height=560)
             askNewQuestion = Querybox.get_string(
-                title="Edit Question", 
+                title="Edit Question",
                 prompt="Enter the new question",
                 initialvalue=self.currentWorkingDict[overallIndex]["question"],
                 parent=parentWidget
@@ -486,8 +483,11 @@ class LearningHub(Canvas):
             askNewQuestion.show()
             if askNewQuestion is not None and askNewQuestion != "":
                 self.currentWorkingDict[overallIndex]["question"] = askNewQuestion
-                self.controller.widgetsDict[f"{overallIndex}questionentry"].delete(0, END)
-                self.controller.widgetsDict[f"{overallIndex}questionentry"].insert(0, askNewQuestion.result)
+                self.controller.widgetsDict[f"{overallIndex}questionentry"].delete(
+                    0, END)
+                self.controller.widgetsDict[f"{overallIndex}questionentry"].insert(
+                    0, askNewQuestion.result)
+
     def deleteQuizContent(self, id: int):
         print(f"Deleting quiz with id {id}")
 

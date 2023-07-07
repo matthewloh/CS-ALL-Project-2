@@ -9,7 +9,7 @@ from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
-from static import * 
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
@@ -74,26 +74,24 @@ class UserForms(Frame):
              f"{self.name}confpassent", "isConfPass"),
             (420, 320, 340, 60, self.frameref,
              f"{self.name}contactnumber", "isContactNo"),
-            (420, 500, 340, 40, self.frameref, f"{self.name}captcha", "isCaptcha", self.captchavar),
+            (420, 500, 340, 40, self.frameref,
+             f"{self.name}captcha", "isCaptcha", self.captchavar),
         ]
 
     def loadRegThread(self, role):
         t = threading.Thread(target=self.loadReg, args=(role,))
         t.daemon = True
         t.start()
-        
+
     def loadReg(self, role):
         toast = ToastNotification(
-            title="Please be patient",
-            message="We are loading the Registration Form for you",
-            bootstyle=INFO,
-        )
+            title="Please be patient", message="We are loading the Registration Form for you", bootstyle=INFO)
         toast.show_toast()
         self.userReg()
-        lectBgPath = (r"Assets\Login Page with Captcha\LecturerForm.png"
-                      , 0, 600, f"{self.name}Lecturer", self.frameref)
+        lectBgPath = (r"Assets\Login Page with Captcha\LecturerForm.png",
+                      0, 600, f"{self.name}Lecturer", self.frameref)
         studBgPath = (r"Assets\Login Page with Captcha\StudentForm.png",
-                    0, 600, f"{self.name}Student", self.frameref)
+                      0, 600, f"{self.name}Student", self.frameref)
         if role == "teacher":
             self.imgLabels.append(lectBgPath)
         elif role == "student":
@@ -111,11 +109,7 @@ class UserForms(Frame):
         self.fullInfo = self.loadAllDetailsForRegistration()
         toast.hide_toast()
         successtoast = ToastNotification(
-            title="Success!",
-            message="You can now register.",
-            bootstyle=SUCCESS,
-            duration=1000,
-        )
+            title="Success!", message="You can now register.", bootstyle=SUCCESS, duration=1000)
         successtoast.show_toast()
         for inst in self.fullInfo:
             schoolsDict = {}
@@ -214,6 +208,7 @@ class UserForms(Frame):
             "contactnumber": self.controller.widgetsDict[f"{self.name}contactnumber"],
             "captcha": self.controller.widgetsDict[f"{self.name}captcha"]
         }
+
         def checkCaptchaCorrect():
             if self.validate_captcha(entries["captcha"].get()):
                 toast = ToastNotification(
@@ -225,14 +220,13 @@ class UserForms(Frame):
                 toast.show_toast()
             else:
                 pass
-                
+
         self.controller.buttonCreator(r"Assets\Login Page with Captcha\ValidateInfoButton.png", 600, 560, classname="validateinfobtn", root=self.frameref,
                                       buttonFunction=lambda: [
-                                          checkCaptchaCorrect()],
-                                      pady=5)
-        self.controller.buttonCreator(r"Assets\Login Page with Captcha\regeneratecaptcha.png", 680, 420, 
-                classname="regeneratecaptcha", root=self.frameref,
-                buttonFunction=lambda: self.generateCaptchaChallenge())
+                                          checkCaptchaCorrect()])
+        self.controller.buttonCreator(r"Assets\Login Page with Captcha\regeneratecaptcha.png", 680, 420,
+                                      classname="regeneratecaptcha", root=self.frameref,
+                                      buttonFunction=lambda: self.generateCaptchaChallenge())
         if role == "teacher":
             self.controller.buttonCreator(
                 r"Assets\Login Page with Captcha\CompleteRegSignIn.png", 1240, 980,
@@ -276,12 +270,12 @@ class UserForms(Frame):
             )
             self.controller.widgetsDict["skipbutton"].grid()
 
-
     def generateCaptchaChallenge(self):
         # fonts=[r"Fonts\AvenirNext-Regular.ttf", r"Fonts\SF-Pro.ttf"]
         image = ImageCaptcha(width=260, height=80, )
         # random alphanumeric string of length 6
-        captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        captcha_text = ''.join(random.choices(
+            string.ascii_uppercase + string.digits, k=6))
         data = image.generate(captcha_text)
         image.write(captcha_text, r"Assets\Login Page with Captcha\captcha.png")
         self.captchavar.set(captcha_text)
@@ -403,7 +397,7 @@ class UserForms(Frame):
                         command=lambda c=f"course{i}": [
                             self.checkDuplicateModules(c, vars[c].get(), modules)]
                     )
-    
+
     def encryptPassword(self, password: str) -> str:
         return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -427,7 +421,7 @@ class UserForms(Frame):
             )
             toast.show_toast()
             self.gif.grid_forget()
-            return 
+            return
         try:
             if data["role"] == "STUDENT":
                 school = prisma.school.find_first(
@@ -583,7 +577,7 @@ class UserForms(Frame):
             toast.show_toast()
             return
         self.controller.loadSignIn()
-    
+
     def validate_captcha(self, captcha: str):
         captchaToast = ToastNotification(
             title="Error",
@@ -596,7 +590,7 @@ class UserForms(Frame):
             captchaToast.show_toast()
             return False
         return True
-    
+
     def validate_password(self, password: str, confirmpassword: str):
         pwToast = ToastNotification(
             title="Error",
@@ -624,8 +618,8 @@ class UserForms(Frame):
         pwToast.message = msg
         pwToast.show_toast()
         return False
-   
-    def validate_email(self, email: str, role:str):
+
+    def validate_email(self, email: str, role: str):
         emailToast = ToastNotification(
             title="Error",
             message="",
@@ -644,7 +638,7 @@ class UserForms(Frame):
             emailToast.message = f"Please enter a valid {addressedAs} email."
             emailToast.show_toast()
             return False
-        
+
     def validate_contactNo(self, contactNo: str):
         contactToast = ToastNotification(
             title="Error",
@@ -652,20 +646,22 @@ class UserForms(Frame):
             duration=3000,
             bootstyle=DANGER
         )
-        phoneregex = re.compile(r"^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
+        phoneregex = re.compile(
+            r"^(\+?6?01)[02-46-9]-*[0-9]{7}$|^(\+?6?01)[1]-*[0-9]{8}$")
         if re.match(phoneregex, contactNo):
             return True
         else:
             contactToast.message = "Please enter a valid contact number."
             contactToast.show_toast()
             return False
-    
+
     def validateData(self, data: dict):
         fullname = data["fullName"]
         email = data["email"]
         contactNo = data["contactNo"]
         password = self.controller.widgetsDict[f"{self.name}passent"].get()
-        confirmpassword = self.controller.widgetsDict[f"{self.name}confpassent"].get()
+        confirmpassword = self.controller.widgetsDict[f"{self.name}confpassent"].get(
+        )
         captcha = self.controller.widgetsDict[f"{self.name}captcha"].get()
         entries = [fullname, email, contactNo, password, confirmpassword]
         mainToast = ToastNotification(
@@ -674,7 +670,8 @@ class UserForms(Frame):
             duration=3000,
             bootstyle=DANGER
         )
-        field_names = ["Full Name", "Email", "Contact Number", "Password", "Confirm Password"]
+        field_names = ["Full Name", "Email",
+                       "Contact Number", "Password", "Confirm Password"]
         for i, info in enumerate(entries):
             if info == "":
                 field_name = field_names[i]

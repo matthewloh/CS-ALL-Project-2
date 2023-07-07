@@ -108,16 +108,11 @@ class AppointmentsView(Canvas):
         date = dialog.date_selected.strftime('%A, %d %B %Y')
         entry.insert(0, date)
         entry.configure(state=READONLY)
-        print(self.dayString.get())
-        print(textvar1.get())
         dayOfTextVar1 = datetime.strptime(
             textvar1.get(), '%A, %d %B %Y').strftime('%A')
         # check the day of the textvar1 and compare it with the self.dayString.get()
         print(dayOfTextVar1)
-        if self.dayString.get() == dayOfTextVar1.upper():
-            print("same day")
-        # if the dayOfTextVar1 is before the current time, then revert the textvar1 to the original date
-        elif datetime.strptime(textvar1.get(), '%A, %d %B %Y') < datetime.now():
+        if datetime.strptime(textvar1.get(), '%A, %d %B %Y') <= datetime.now():
             # revert textvar1 to the original date
             textvar1.set(self.formatString)
             ToastNotification(
@@ -126,11 +121,14 @@ class AppointmentsView(Canvas):
                 duration=5000,
                 bootstyle=DANGER
             ).show_toast()
+        elif self.dayString.get() == dayOfTextVar1.upper():
+            print("same day")
+        # if the dayOfTextVar1 is before the current time, then revert the textvar1 to the original date
         else:
             # revert textvar1 to the original date
             ToastNotification(
                 title="Invalid Date",
-                message=f"The timeslot you have selected, {dayOfTextVar1.upper()} falls only on a {self.dayString.get()}. Please select a date which is on a {self.dayString.get()}.",
+                message=f"The day of the date you have selected, {dayOfTextVar1.upper()} is invalid. Please select a date which is on a {self.dayString.get()}.",
                 duration=5000,
                 bootstyle=DANGER
             ).show_toast()
@@ -1104,10 +1102,10 @@ class AppointmentsView(Canvas):
                 "studentId": student.id
             },
         )
-        options = ["Create Another Appointment:success", "Return to Main Menu:info"]
+        options = ["Create Another Appointment:success",
+                   "Return to Main Menu:info"]
         ask = MessageDialog(
             title="Appointment Created",
-            message=f"Your appointment has been created with {self.lecturer.get()} at {self.locationString.get()} on {self.startDateString.get()} from {self.appStartTimeVar.get()} to {self.appEndTimeVar.get()}.\nWould you like to create another appointment or return to the main menu?",
             parent=self.controller.widgetsDict["confirmapptcreation"],
             buttons=options,
         )

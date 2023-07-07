@@ -84,28 +84,24 @@ class Window(ElementCreator):
         self.settingsUnpacker(self.buttonSettingsPSF, "button")
 
         self.openDevWindow()
-        # self.bind("<Configure>", self.resizeEvent)
 
         for F in (Dashboard, ):
             frame = F(parent=self.parentFrame, controller=self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, columnspan=96, rowspan=54, sticky=NSEW)
-            frame.grid_propagate(False)
             self.maincanvas = self.canvasCreator(0, 80, 1920, 920, root=frame, classname="maincanvas",
                                                  bgcolor=WHITE, isTransparent=True, transparentcolor=LIGHTYELLOW)
-            self.updateWidgetsDict(frame)
             frame.grid_remove()
+
         self.canvasTuple = (DashboardCanvas, SearchPage, Chatbot,
                             LearningHub, CourseView, DiscussionsView,
                             FavoritesView, AppointmentsView)
+
         for CANVAS in self.canvasTuple:
-            canvas = CANVAS(
-                parent=self.maincanvas, controller=self)
+            canvas = CANVAS(parent=self.maincanvas, controller=self)
             self.canvasInDashboard[CANVAS] = canvas
-            self.updateWidgetsDict(canvas)
             canvas.grid(row=0, column=0, columnspan=96,
                         rowspan=46, sticky=NSEW)
-            canvas.grid_propagate(False)
             canvas.grid_remove()
 
         self.postSelectFrame.tkraise()
@@ -266,11 +262,10 @@ class Window(ElementCreator):
         self.widgetsDict["gofullscreenbtn"].grid()
 
     def loadSignInPage(self):
-        self.frameCreator(
+        self.signinformref = self.frameCreator(
             xpos=1140, ypos=240, framewidth=600, frameheight=600,
             root=self.postSelectFrame, classname="signinform",
         )
-        self.signinformref = self.widgetsDict["signinform"]
         self.signInLabels = [
             (r"Assets\Login Page with Captcha\LoginForm.png",
              0, 0, f"loginformbg", self.signinformref),
@@ -593,35 +588,29 @@ class Dashboard(Frame):
                        bg=LIGHTYELLOW, name="dashboard", autostyle=False)
         self.controller = controller
         self.parent = parent
-        self.framereference = self
         gridGenerator(self, 96, 54, LIGHTYELLOW)
         self.animatedpanel = SlidePanel(self, self.controller, startcolumn=0, startrow=4, endrow=3, endcolumn=15, rowspan=46,
                                         startcolumnspan=1, endcolumnspan=16, relief=FLAT, width=1, height=1, bg=TRANSPARENTGREEN, name="animatedpanel")
         topbar = TopBar(parent=self, controller=self.controller)
         self.staticImgBtns = [
-            (r"Assets\Dashboard\01DashboardChip.png", 20, 1020, "DashboardChip",
-             self.framereference, lambda: self.controller.show_canvas(DashboardCanvas)),
-            (r"Assets\Dashboard\02SearchChip.png", 160, 1020, "SearchChip",
-             self.framereference, lambda: [self.controller.show_canvas(SearchPage),]),
-            (r"Assets\Dashboard\03ChatbotChip.png", 300, 1020, "ChatbotChip", self.framereference,
-                lambda: [self.controller.show_canvas(Chatbot), self.chatbottoast.show_toast()]),
-            (r"Assets\Dashboard\05MyCoursesChip.png", 440, 1020, "MyCoursesChip",
-             self.framereference, lambda: self.controller.show_canvas(CourseView)),
-            (r"Assets\Dashboard\04LearningHubChip.png", 580, 1020, "LearningHubChip",
-             self.framereference, lambda: self.controller.show_canvas(LearningHub)),
-            (r"Assets\Dashboard\06MyDiscussionsChip.png", 720, 1020, "MyDiscussionsChip",
-             self.framereference, lambda: self.controller.show_canvas(DiscussionsView)),
-            (r"Assets\Dashboard\07MyFavoritesChip.png", 860, 1020, "MyFavoritesChip",
-             self.framereference, lambda: self.controller.show_canvas(FavoritesView)),
-            (r"Assets\Dashboard\08MyAppointmentsChip.png", 1000, 1020, "MyAppointmentsChip",
-             self.framereference, lambda: self.controller.show_canvas(AppointmentsView)),
+            (r"Assets\Dashboard\01DashboardChip.png", 20, 1020,
+             "DashboardChip", self, lambda: self.controller.show_canvas(DashboardCanvas)),
+            (r"Assets\Dashboard\02SearchChip.png", 160, 1020,
+             "SearchChip", self, lambda: [self.controller.show_canvas(SearchPage)]),
+            (r"Assets\Dashboard\03ChatbotChip.png", 300, 1020,
+             "ChatbotChip", self, lambda: self.controller.show_canvas(Chatbot)),
+            (r"Assets\Dashboard\05MyCoursesChip.png", 440, 1020,
+             "MyCoursesChip", self, lambda: self.controller.show_canvas(CourseView)),
+            (r"Assets\Dashboard\04LearningHubChip.png", 580, 1020,
+             "LearningHubChip", self, lambda: self.controller.show_canvas(LearningHub)),
+            (r"Assets\Dashboard\06MyDiscussionsChip.png", 720, 1020,
+             "MyDiscussionsChip", self, lambda: self.controller.show_canvas(DiscussionsView)),
+            (r"Assets\Dashboard\07MyFavoritesChip.png", 860, 1020,
+             "MyFavoritesChip", self, lambda: self.controller.show_canvas(FavoritesView)),
+            (r"Assets\Dashboard\08MyAppointmentsChip.png", 1000, 1020,
+             "MyAppointmentsChip", self, lambda: self.controller.show_canvas(AppointmentsView)),
         ]
-        self.chatbottoast = ToastNotification(
-            title="You have entered the webbrowser view",
-            message="You will not be able to use the keyboard for the application until you exit the webbrowser view. You can exit the webbrowser view by clicking the exit button on the top right corner of the webbrowser view.",
-            duration=3000,
-        )
-        self.maincanvasref = self.controller.canvasCreator(0, 80, 1920, 920, root=self.framereference, classname="maincanvas",
+        self.maincanvasref = self.controller.canvasCreator(0, 80, 1920, 920, root=self, classname="maincanvas",
                                                            bgcolor=LIGHTYELLOW, isTransparent=True, transparentcolor=LIGHTYELLOW)
         self.dashboardcanvasref = self.controller.canvasCreator(0, 0, 1920, 920, root=self.maincanvasref, classname="dashboardcanvas",
                                                                 bgcolor=NICEBLUE, isTransparent=True, transparentcolor=LIGHTYELLOW)
@@ -653,24 +642,23 @@ class Dashboard(Frame):
             self.dashboardcanvasref, width=600, height=h, bootstyle="success-rounded", autohide=True,
         )
         self.dashboardScrolledFrame.place(x=740, y=0, width=600, height=920)
-
-        Label(self.dashboardScrolledFrame, bg="#dee8e0", width=600, height=h, relief=FLAT, bd=0, autostyle=False).place(x=0, y=0, width=600, height=h)
+        Label(self.dashboardScrolledFrame, bg="#dee8e0", width=600, height=h,
+              relief=FLAT, bd=0, autostyle=False).place(x=0, y=0, width=600, height=h)
         for m in modules:
             cont.labelCreator(
                 imagepath=r"Assets\Dashboard\ModuleTile.png", xpos=0, ypos=initialypos+20,
                 classname=f"{m[0]}tile", root=self.dashboardScrolledFrame, isPlaced=True
             )
-            if m[1] == "Computer Science Activity Led Learning Project 2": # too long to display properly
+            if m[1] == "Computer Science Activity Led Learning Project 2":  # too long to display properly
                 cont.textElement(
                     imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=20, ypos=initialypos,
                     classname=f"{m[0]}title", root=self.dashboardScrolledFrame, text="Computer Science\nActivity Led Learning Project 2", size=28,
                     buttonFunction=lambda e=m[0]: self.navigateToModuleView(e), isPlaced=True, yIndex=-1/2
                 )
-                
             else:
                 cont.textElement(
                     imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=20, ypos=initialypos,
-                    classname=f"{m[0]}title", root=self.dashboardScrolledFrame, text=m[1], size=28, 
+                    classname=f"{m[0]}title", root=self.dashboardScrolledFrame, text=m[1], size=28,
                     buttonFunction=lambda e=m[0]: self.navigateToModuleView(e), isPlaced=True
                 )
             initialypos += 300
@@ -688,7 +676,7 @@ class Dashboard(Frame):
         courseview.viewUploadsFrame.grid_remove()
         courseview.uploadCreationFrame.grid_remove()
         self.controller.show_canvas(CourseView)
-        
+
 
 class DashboardCanvas(Canvas):
     def __init__(self, parent, controller: Window):
@@ -703,12 +691,14 @@ def runGui():
     window = Window()
     window.mainloop()
 
+
 def runGuiThreaded():
     t = Thread(ThreadStart(runGui))
     t.ApartmentState = ApartmentState.STA
     t.Start()
     t.Daemon = True
     t.Join()
+
 
 if __name__ == "__main__":
     # runGui()
