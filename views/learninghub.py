@@ -2,6 +2,7 @@ import json
 import threading
 from tkinter import *
 from tkinter import filedialog
+from tkinter import messagebox
 import uuid
 import boto3
 import ttkbootstrap as ttk
@@ -17,7 +18,7 @@ from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
-from prisma import Prisma
+from prisma.errors import UniqueViolationError
 from prisma import Json
 from win32gui import GetWindowText, GetForegroundWindow
 
@@ -185,15 +186,8 @@ class LearningHub(Canvas):
             dictObject = c.contentInfo
             questions = dictObject["questions"]
             numOfQuestions = dictObject["numOfQuestions"]
-            # for q in questions:
-            #     print(q["question"])
-            #     print(q["options"])
-            #     print(q["correctAnswer"])
-            #     print(
-            #         f"The correct answer is {q['options'][q['correctAnswer']]}")
             if typeOfContent == "GAME":
                 dictOfDetails = {
-                    # details is (title, description, creationTime, author)
                     "detailsOfContent": (title, description, creationTime, author),
                     "numOfQuestions": numOfQuestions,
                     "questions": questions,
@@ -201,7 +195,6 @@ class LearningHub(Canvas):
                 self.moduleGames[f"{title}"] = dictOfDetails
             elif typeOfContent == "ACTIVITY":
                 dictOfDetails = {
-                    # details is (title, description, creationTime, author)
                     "detailsOfContent": (title, description, creationTime, author),
                     "numOfQuestions": numOfQuestions,
                     "questions": questions,
@@ -209,7 +202,6 @@ class LearningHub(Canvas):
                 self.moduleActivities[f"{title}"] = dictOfDetails
             elif typeOfContent == "MULTIPLE_CHOICE" or typeOfContent == "FILL_IN_THE_BLANK":
                 dictOfDetails = {
-                    # details is (title, description, creationTime, author)
                     "typeOfContent": typeOfContent,  # "MULTIPLE_CHOICE" or "FILL_IN_THE_BLANK
                     "detailsOfContent": (title, description, creationTime, author),
                     "numOfQuestions": numOfQuestions,
@@ -226,6 +218,25 @@ class LearningHub(Canvas):
         self.editSectionFrame.grid()
         self.editSectionFrame.tkraise()
         prisma = self.prisma
+        try:
+            widgets = []
+            for widgetname, widget in self.mcqScrolledFrame.children.items():
+                widgets.append(widget)
+            [widget.destroy() for widget in widgets]
+        except:
+            pass
+        try:
+            widgets = []
+            for widgetname, widget in self.allQuestionsScrolledFrame.children.items():
+                widgets.append(widget)
+            [widget.destroy() for widget in widgets]
+        except:
+            pass
+        try:
+            self.allQuestionsScrolledFrame.place_forget()
+            self.hostframe.grid_remove()
+        except:
+            pass
         allModuleContent = prisma.modulehubcontent.find_many(
             where={
                 "AND": [
@@ -243,7 +254,7 @@ class LearningHub(Canvas):
                 "attempts": True
             }
         )
-        h = len(allModuleContent) * 180 + 20
+        h = len(allModuleContent) * 200 + 20
         if h < 400:
             h = 400
         self.mcqScrolledFrame = ScrolledFrame(
@@ -263,7 +274,7 @@ class LearningHub(Canvas):
                 self.mcqScrolledFrame, title, desc, numOfQuestions, questions, numOfAttempts,
                 startx, starty
             )
-            starty += 180
+            starty += 200
 
     def renderQuizWidget(self,
                          id: int,
@@ -276,11 +287,11 @@ class LearningHub(Canvas):
             imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\Quiz Widget.png",
             xpos=startx, ypos=starty, root=rootFrame, classname=f"{id}quizwidgetbg", isPlaced=True
         )
-        quizTitle = self.controller.ttkEntryCreator(
+        singleQuizTitle = self.controller.ttkEntryCreator(
             xpos=startx+20, ypos=starty+40, width=380, height=40,
             root=rootFrame, classname=f"{id}quiztitleentry", isPlaced=True
         )
-        quizTitle.insert(0, title)
+        singleQuizTitle.insert(0, title)
         # Quiz Description Entry and Insert
         quizDesc = self.controller.ttkEntryCreator(
             xpos=startx+20, ypos=starty+120, width=380, height=40,
@@ -292,6 +303,12 @@ class LearningHub(Canvas):
             imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\NumTextBg.png",
             xpos=startx+640, ypos=starty+40, root=rootFrame, classname=f"{id}numofquestionstext",
             font=INTERBOLD, size=32, text=f"{numOfQuestions}", isPlaced=True, fg=WHITE
+        )
+        # Add A Question Button
+        self.controller.buttonCreator(
+            imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IncreaseQuestionNum.png",
+            xpos=startx+700, ypos=starty+40, root=rootFrame, classname=f"{id}addquestionbutton",
+            buttonFunction=lambda: self.addQuestionToQuiz(id, numOfQuestions, questions), isPlaced=True
         )
         # Num Of Attempts Text Element
         self.controller.textElement(
@@ -315,9 +332,118 @@ class LearningHub(Canvas):
         )
 
     def addQuiz(self, modulecode: str):
-        print(modulecode)
+        btnLocation = self.controller.widgetsDict["addquizbutton"]
+        if self.quizTitle.get() in [content.title for content in self.prisma.modulehubcontent.find_many()]:
+            Messagebox.show_error(
+                title="Error", message="Quiz title already exists", parent=self.quizTitle)
+            return
+        if self.quizTitle.get() == "":
+            Messagebox.show_error(
+                title="Error", message="Quiz title cannot be empty", parent=self.quizTitle)
+            return
+        if self.quizDesc.get() == "":
+            Messagebox.show_error(
+                title="Error", message="Quiz description cannot be empty", parent=self.quizDesc)
+            return
+        numOfQuestions = Querybox.get_integer(
+            title="Number of Questions",
+            prompt="Enter the number of questions for this quiz (1-20)",
+            parent=btnLocation,
+            minvalue=1,
+            maxvalue=20
+        )
+        # generic template for questions
+        """ 
+            # list comprehension to get 
+            {
+                "question": "Please enter your question here",
+                "options": ["Enter Option 1", "Enter Option 2", "Enter Option 3", "Enter Option 4"],
+                "correctAnswer": 0 # by default, correct answer is the first option
+            }
+            questions = [ { "question": f"Please enter your question here {i}", "options": [f"Enter Option {i}" for i in range(1, 5)] } for i in range(1, numOfQuestions+1) ]
+            {
+                "numOfQuestions": numOfQuestions,
+                "questions": questions
+            }
+        """
+        title = self.quizTitle.get()
+        questions = [
+            {
+                "question": f"Please enter question {i} for quiz {title}.",
+                "options": [f"Enter Option {i}" for i in range(1, 5)],
+                "correctAnswer": 0
+            } for i in range(1, numOfQuestions+1)]
+        finalDict = {
+            "numOfQuestions": numOfQuestions,
+            "questions": questions
+        }
+        c = self.prisma.modulehubcontent.create(
+            data={
+                "title": self.quizTitle.get(),
+                "description": self.quizDesc.get(),
+                "contentType": "MULTIPLE_CHOICE",
+                "contentInfo": Json(finalDict),
+                "author": {
+                    "connect": {
+                        "id": self.prisma.lecturer.find_first(
+                            where={
+                                "userId": self.userId
+                            }
+                        ).id
+                    }
+                },
+                "module": {
+                    "connect": {
+                        "moduleCode": modulecode.upper()
+                    }
+                }
+            }
+        )
+        overallIndex = 0
+        id = c.id
+        self.loadMultipleChoiceQuestionCreation(modulecode.lower())
+        numOfQuestions = c.contentInfo["numOfQuestions"]
+        questions = c.contentInfo["questions"]
+        options = c.contentInfo["questions"][overallIndex]["options"]
+        correctAnswer = c.contentInfo["questions"][overallIndex]["correctAnswer"]
+        self.loadEditQuizContent(id, numOfQuestions, questions)
+        self.loadViewOptionsContent(
+            id, overallIndex, options, correctAnswer)
+        self.loadMenuButtons(self.currentCourseCode)
+
+    def addQuestionToQuiz(self, id: int, numOfQuestions: int, questions: dict):
+        overallIndex = numOfQuestions
+        questions.append(
+            {
+                "question": f"Please enter question {overallIndex+1} for quiz {self.quizTitle.get()}.",
+                "options": [f"Enter Option {i}" for i in range(1, 5)],
+                "correctAnswer": 0
+            }
+        )
+        newDict = {
+            "numOfQuestions": numOfQuestions+1,
+            "questions": questions
+        }
+        self.prisma.modulehubcontent.update(
+            where={
+                "id": id
+            },
+            data={
+                "contentInfo": Json(newDict)
+            }
+        )
+        self.loadMultipleChoiceQuestionCreation(self.currentCourseCode)
+        self.loadMenuButtons(self.currentCourseCode)
+        self.loadEditQuizContent(id, numOfQuestions+1, questions)
 
     def loadEditQuizContent(self, id: int, numOfQuestions: int, questions: dict):
+        try:
+            widgets = []
+            for widgetname, widget in self.allQuestionsScrolledFrame.children.items():
+                widgets.append(widget)
+            [widget.destroy() for widget in widgets]
+        except Exception as e:
+            pass
         h = numOfQuestions * 220 + 20
         if h < 560:
             h = 560
@@ -326,10 +452,7 @@ class LearningHub(Canvas):
         )
         self.allQuestionsScrolledFrame.place(
             x=940, y=20, width=840, height=560)
-        print(
-            f"Editing quiz with id {id}, the frame will be num of questions {numOfQuestions}")
         startx, starty = 20, 20
-        print(len(questions))
         count = 0
         self.currentWorkingDict = questions
         for q in self.currentWorkingDict:
@@ -343,12 +466,13 @@ class LearningHub(Canvas):
             # finalAnswer is accessed using q["options"][q["correctAnswer"]]
             finalAnswer = options[correctAnswer]
             self.renderIndividualQuestion(
-                overallIndex, options, correctAnswer, question, finalAnswer, startx, starty
+                id, overallIndex, options, correctAnswer, question, finalAnswer, startx, starty
             )
             count += 1
             starty += 220
 
     def renderIndividualQuestion(self,
+                                 id: int,
                                  overallIndex: int,
                                  options: list, correctAnswer: int, question: str, finalAnswer: str,
                                  startx: int = 20, starty: int = 20):
@@ -383,13 +507,13 @@ class LearningHub(Canvas):
         self.controller.buttonCreator(
             imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\ViewOptions.png",
             xpos=startx+720, ypos=starty+20, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}viewoptionsbutton",
-            buttonFunction=lambda: self.loadViewOptionsContent(overallIndex, options, correctAnswer), isPlaced=True
+            buttonFunction=lambda: self.loadViewOptionsContent(id, overallIndex, options, correctAnswer), isPlaced=True
         )
         # Delete Question Button
         self.controller.buttonCreator(
             imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\DeleteQuestion.png",
             xpos=startx+720, ypos=starty+120, root=self.allQuestionsScrolledFrame, classname=f"{overallIndex}deletequestionbutton",
-            buttonFunction=lambda: self.deleteQuestion(overallIndex), isPlaced=True
+            buttonFunction=lambda: self.deleteQuestion(id, overallIndex), isPlaced=True
         )
 
     # TODO: Add backend query to update the modulehubcontent
@@ -397,7 +521,7 @@ class LearningHub(Canvas):
     # Then update the contentInfo under this field
     # Then update the quiz content
 
-    def loadViewOptionsContent(self, overallIndex: int, options: list, correctAnswer: int):
+    def loadViewOptionsContent(self, id: int, overallIndex: int, options: list, correctAnswer: int):
         # questions = self.currentWorkingDict
         # ask if the user wants to edit the question or view the options
         parentWidget = self.controller.widgetsDict[f"{overallIndex}viewoptionsbutton"]
@@ -409,20 +533,20 @@ class LearningHub(Canvas):
             buttons=editOrViewOptions,
             parent=parentWidget
         )
-        hostframe = self.controller.frameCreator(
+        self.hostframe = self.controller.frameCreator(
             xpos=940, ypos=20, framewidth=840, frameheight=560,
             root=self.editSectionFrame, classname="overallquestionframe",
         )
         _labels = [
             (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\IndividualBg.png",
-             0, 0, "overallquestionbg", hostframe)
+             0, 0, "overallquestionbg", self.hostframe)
         ]
         for _label in _labels:
             self.controller.labelCreator(
                 imagepath=_label[0], xpos=_label[1], ypos=_label[2], root=_label[4], classname=_label[3],
             )
         self.mainTextHost = ScrolledText(
-            master=hostframe, width=800, height=300, autohide=True, bootstyle="rounded"
+            master=self.hostframe, width=800, height=300, autohide=True, bootstyle="rounded"
         )
         self.mainTextHost.place(x=20, y=20, width=800, height=300)
         self.mainText = self.mainTextHost.text
@@ -435,9 +559,9 @@ class LearningHub(Canvas):
 
         _buttons = [
             (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\exitindividual.png",
-             800, 0, "exitindividual", hostframe, lambda: [hostframe.grid_remove()]),
+             800, 0, "exitindividual", self.hostframe, lambda: [self.hostframe.grid_remove()]),
             (r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\EditQuestion.png",
-             740, 240, "editquestion", hostframe, lambda: self.editQuestion(overallIndex)),
+             740, 240, "editquestion", self.hostframe, lambda: self.editQuestion(id, overallIndex)),
         ]
 
         for _button in _buttons:
@@ -457,23 +581,24 @@ class LearningHub(Canvas):
             entry = self.controller.ttkEntryCreator(
                 xpos=finalX, ypos=finalY,
                 width=300, height=40,
-                root=hostframe, classname=f"option{i}entry",
+                root=self.hostframe, classname=f"option{i}entry",
             )
             entry.insert(0, options[i])
             if i == correctAnswer:
-                self.controller.labelCreator(
+                self.correctAnsLabel = self.controller.labelCreator(
                     imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\correctanswerlabel.png",
-                    xpos=finalX+320, ypos=finalY-20, root=hostframe, classname=f"correctanswerentrylabel",
+                    xpos=finalX+320, ypos=finalY-20, root=self.hostframe, classname=f"correctanswerentrylabel",
                 )
             # The edit button to ask to change this option to the correct answer
             self.controller.buttonCreator(
                 imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\editanoption.png",
-                xpos=finalX+320, ypos=finalY+20, root=hostframe, classname=f"editoption{i}button",
+                xpos=finalX+320, ypos=finalY+20, root=self.hostframe, classname=f"editoption{i}button",
+                buttonFunction=lambda i=(id, overallIndex, i, options[i]): self.editOption(
+                    i[0], i[1], i[2], i[3])
             )
-        hostframe.place_forget()
         # askOption.show()
         if askOption.result == "Edit Question":
-            hostframe.place(x=0, y=0, width=840, height=560)
+            self.hostframe.place(x=0, y=0, width=840, height=560)
             askNewQuestion = Querybox.get_string(
                 title="Edit Question",
                 prompt="Enter the new question",
@@ -486,10 +611,186 @@ class LearningHub(Canvas):
                 self.controller.widgetsDict[f"{overallIndex}questionentry"].delete(
                     0, END)
                 self.controller.widgetsDict[f"{overallIndex}questionentry"].insert(
-                    0, askNewQuestion.result)
+                    0, askNewQuestion)
+
+    def editQuestion(self, id: int, overallIndex: int):
+        parentWidget = self.mainTextHost
+        askNewQuestion = Querybox.get_string(
+            title="Edit Question",
+            prompt="Enter the new question",
+            initialvalue=self.currentWorkingDict[overallIndex]["question"],
+            parent=parentWidget
+        )
+        if askNewQuestion is not None and askNewQuestion != "":
+            self.currentWorkingDict[overallIndex]["question"] = askNewQuestion
+            self.mainText.delete("1.0", END)
+            self.mainText.insert(END, f"{overallIndex+1}. {askNewQuestion}")
+            newDict = {
+                "numOfQuestions": len(self.currentWorkingDict),
+                "questions": self.currentWorkingDict
+            }
+            c = self.prisma.modulehubcontent.update(
+                where={
+                    "id": id
+                },
+                data={
+                    "contentInfo": Json(newDict)
+                }
+            )
+            numOfQuestions = c.contentInfo["numOfQuestions"]
+            questions = c.contentInfo["questions"]
+            options = c.contentInfo["questions"][overallIndex]["options"]
+            correctAnswer = c.contentInfo["questions"][overallIndex]["correctAnswer"]
+            self.loadEditQuizContent(id, numOfQuestions, questions)
+            self.loadViewOptionsContent(
+                id, overallIndex, options, correctAnswer)
+            self.loadMenuButtons(self.currentCourseCode)
+
+    def deleteQuestion(self, id: int, overallIndex: int):
+        parentWidget = self.controller.widgetsDict[f"{overallIndex}deletequestionbutton"]
+        askConfirm = Messagebox.yesno(
+            title="Delete Quiz Question?",
+            message="Are you sure you want to delete this question?",
+            parent=parentWidget
+        )
+        if askConfirm == "Yes":
+            if len(self.currentWorkingDict) == 1:
+                deleteQuestion = messagebox.askyesno(
+                    title="Delete Quiz Question?",
+                    message="This is the last question in the quiz. Are you sure you want to delete this quiz content?",
+                )
+                if deleteQuestion:
+                    self.prisma.modulehubcontent.delete(where={
+                        "id": id
+                    })
+                    self.loadMultipleChoiceQuestionCreation(
+                        self.currentCourseCode)
+                    self.loadMenuButtons(self.currentCourseCode)
+                    self.allQuestionsScrolledFrame.place_forget()
+                    return
+                else:
+                    return
+            self.currentWorkingDict.pop(overallIndex)
+            newDict = {
+                "numOfQuestions": len(self.currentWorkingDict),
+                "questions": self.currentWorkingDict
+            }
+            c = self.prisma.modulehubcontent.update(
+                where={
+                    "id": id
+                },
+                data={
+                    "contentInfo": Json(newDict)
+                }
+            )
+            numOfQuestions = c.contentInfo["numOfQuestions"]
+            questions = c.contentInfo["questions"]
+            self.loadMultipleChoiceQuestionCreation(self.currentCourseCode)
+            self.loadEditQuizContent(id, numOfQuestions, questions)
+            self.loadMenuButtons(self.currentCourseCode)
+
+    def editOption(self, id: int,  overallIndex: int, optionIndex: int, option: str):
+        # ask if the user wants to edit the option's content or change this option to the correct answer
+        parentWidget = self.controller.widgetsDict[f"editoption{optionIndex}button"]
+        editOrViewOptions = ["Edit Option:success",
+                             "Change to Correct Answer:info", "Cancel:danger"]
+        askOption = MessageDialog(
+            title="Edit or View Options",
+            message="Do you want to edit the option's content or change this option to the correct answer?",
+            buttons=editOrViewOptions,
+            parent=parentWidget
+        )
+        # print("Current question: ", self.currentWorkingDict[overallIndex])
+        # print("Current option index: ", optionIndex)
+        # print("Current option: ",
+        #       self.currentWorkingDict[overallIndex]["options"][optionIndex])
+        # print("Current correct answer index: ",
+        #       self.currentWorkingDict[overallIndex]["correctAnswer"])
+        # print("Current correct answer: ", self.currentWorkingDict[overallIndex]
+        #       ["options"][self.currentWorkingDict[overallIndex]["correctAnswer"]])
+        askOption.show()
+        if askOption.result == "Edit Option":
+            askNewOption = Querybox.get_string(
+                title="Edit Option",
+                prompt="Enter the new option",
+                initialvalue=option,
+                parent=parentWidget
+            )
+            if askNewOption is not None and askNewOption != "":
+                self.currentWorkingDict[overallIndex]["options"][optionIndex] = askNewOption
+                self.controller.widgetsDict[f"option{optionIndex}entry"].delete(
+                    0, END)
+                self.controller.widgetsDict[f"option{optionIndex}entry"].insert(
+                    0, askNewOption)
+                newDict = {
+                    "numOfQuestions": len(self.currentWorkingDict),
+                    "questions": self.currentWorkingDict
+                }
+                c = self.prisma.modulehubcontent.update(
+                    where={
+                        "id": id
+                    },
+                    data={
+                        "contentInfo": Json(newDict)
+                    }
+                )
+                numOfQuestions = c.contentInfo["numOfQuestions"]
+                questions = c.contentInfo["questions"]
+                options = c.contentInfo["questions"][overallIndex]["options"]
+                correctAnswer = c.contentInfo["questions"][overallIndex]["correctAnswer"]
+                self.loadEditQuizContent(id, numOfQuestions, questions)
+                self.loadViewOptionsContent(
+                    id, overallIndex, options, correctAnswer)
+                self.loadMenuButtons(self.currentCourseCode)
+        elif askOption.result == "Change to Correct Answer":
+            if self.currentWorkingDict[overallIndex]["correctAnswer"] == optionIndex:
+                Messagebox.show_error(
+                    title="Error", message="This option is already the correct answer",
+                    parent=parentWidget
+                )
+                return
+            self.currentWorkingDict[overallIndex]["correctAnswer"] = optionIndex
+            newDict = {
+                "numOfQuestions": len(self.currentWorkingDict),
+                "questions": self.currentWorkingDict
+            }
+            c = self.prisma.modulehubcontent.update(
+                where={
+                    "id": id
+                },
+                data={
+                    "contentInfo": Json(newDict)
+                }
+            )
+            numOfQuestions = c.contentInfo["numOfQuestions"]
+            questions = c.contentInfo["questions"]
+            options = c.contentInfo["questions"][overallIndex]["options"]
+            correctAnswer = c.contentInfo["questions"][overallIndex]["correctAnswer"]
+            self.loadEditQuizContent(id, numOfQuestions, questions)
+            self.loadViewOptionsContent(
+                id, overallIndex, options, correctAnswer)
+            self.correctAnsLabel = self.controller.labelCreator(
+                imagepath=r"Assets\LearningHub\ContentCreationBg\QuizWidget\IndividualQuestionWidget\correctanswerlabel.png",
+                xpos=360+(optionIndex % 2)*420, ypos=340+(optionIndex//2)*100,
+                root=self.hostframe, classname=f"correctanswerentrylabel",
+            )
+            self.loadMenuButtons(self.currentCourseCode)
 
     def deleteQuizContent(self, id: int):
-        print(f"Deleting quiz with id {id}")
+        parentWidget = self.controller.widgetsDict[f"{id}deletebutton"]
+        askConfirm = Messagebox.yesno(
+            title="Delete Quiz Content?",
+            message="Are you sure you want to delete this quiz content?",
+            parent=parentWidget
+        )
+        if askConfirm == "Yes":
+            self.prisma.modulehubcontent.delete(where={
+                "id": id
+            })
+            self.loadMultipleChoiceQuestionCreation(self.currentCourseCode)
+            self.loadMenuButtons(self.currentCourseCode)
+        else:
+            return
 
     def loadCreateQuizContent(self, coursecode: str):
         self.createContentFrame.grid()
@@ -521,7 +822,7 @@ class LearningHub(Canvas):
         self.canvas.grid_remove()
         self.mainframe.grid()
         self.mainframe.tkraise()
-
+        self.currentCourseCode = coursecode
         _ = [
             (r"Assets\LearningHub\ContentCreationBg\CreateQuizBtn.png", 1440, 60,
              "createquizbutton", self.mainframe, lambda: self.loadCreateQuizContent(coursecode)),
@@ -530,7 +831,6 @@ class LearningHub(Canvas):
             self.controller.settingsUnpacker(_, "button")
             self.editSectionFrame.grid_remove()
 
-        self.fillLists(coursecode)
         staticButtons = [
             (r"Assets\LearningHub\HomePage.png", 160, 580,
              "learninghubhome", self.mainframe,
@@ -547,12 +847,15 @@ class LearningHub(Canvas):
         ]
         self.controller.settingsUnpacker(staticButtons, "button")
 
+        self.loadMenuButtons(coursecode)
+
+    def loadMenuButtons(self, coursecode):
+        self.fillLists(coursecode)
         pos = {
             "learninghubgamesmb": {"x": 180, "y": 380, "width": 360, "height": 60},
             "learninghubactivitiesmb": {"x": 1380, "y": 380, "width": 360, "height": 60},
             "learninghubquizzesmb": {"x": 1380, "y": 740, "width": 360, "height": 60},
         }
-
         self.listOfGames = list(self.moduleGames.keys())
         self.listOfActivities = list(self.moduleActivities.keys())
         self.listOfQuizzes = list(self.moduleQuizzes.keys())

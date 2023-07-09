@@ -1123,43 +1123,9 @@ class AppointmentsView(Canvas):
                 }
             }
         )
-        self.KL = timezone("Asia/Kuala_Lumpur")
-        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
-        humandate = r"%A, %B %d %Y"
         if appointments == []:
             return None
-        for app in appointments:
-            appContentList = [
-                app.id,
-                self.KL.convert(app.startTime).strftime(humanreadable),
-                self.KL.convert(app.endTime).strftime(humanreadable),
-                self.KL.convert(app.startTime).strftime(humandate),
-                self.KL.convert(app.endTime).strftime(humandate),
-                app.location,
-                app.student.userProfile.fullName,
-                app.lecturer.userProfile.fullName,
-                app.isCompleted,
-                self.KL.convert(app.createdAt).strftime(
-                    humanreadable),
-                self.KL.convert(app.updatedAt).strftime(
-                    humanreadable),
-                app.studAccept, app.lectAccept
-            ]
-            try:
-                appContentList.append(
-                    app.studAcceptAt.strftime(humanreadable)
-                )
-                appContentList.append(
-                    app.lectAcceptAt.strftime(humanreadable)
-                )
-            except:
-                appContentList.append(
-                    "Not accepted yet by student"
-                )
-                appContentList.append(
-                    "Not accepted yet by lecturer"
-                )
-        return appContentList
+        return appointments
 
     def loadLatestAppointmentsStudent(self):
         prisma = self.prisma
@@ -1184,46 +1150,27 @@ class AppointmentsView(Canvas):
                 }
             }
         )
-        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
-        humandate = r"%A, %B %d %Y"
         if appointments == []:
             return None
-        for app in appointments:
-            appContentList = [
-                app.id,
-                self.KL.convert(app.startTime).strftime(humanreadable),
-                self.KL.convert(app.endTime).strftime(humanreadable),
-                self.KL.convert(app.startTime).strftime(humandate),
-                self.KL.convert(app.endTime).strftime(humandate),
-                app.location,
-                app.student.userProfile.fullName,
-                app.lecturer.userProfile.fullName,
-                app.isCompleted,
-                self.KL.convert(app.createdAt).strftime(
-                    humanreadable),
-                self.KL.convert(app.updatedAt).strftime(
-                    humanreadable),
-                app.studAccept, app.lectAccept
-            ]
-            try:
-                appContentList.append(
-                    app.studAcceptAt.strftime(humanreadable)
-                )
-                appContentList.append(
-                    app.lectAcceptAt.strftime(humanreadable)
-                )
-            except:
-                appContentList.append(
-                    "Not accepted yet by student"
-                )
-                appContentList.append(
-                    "Not accepted yet by lecturer"
-                )
         return appointments
 
     def loadAppView(self):
+        WD = self.controller.widgetsDict
         self.viewFrame.grid()
         self.viewFrame.tkraise()
+        try: 
+            staticList = ["viewappname",
+            "viewappemail",
+            "viewappcontact",
+            "viewapplocation",
+            "viewappstartdate",
+            "viewappstarttime",
+            "viewappenddate",
+            "viewappendtime"]
+            for i in staticList:
+                WD[i].grid_remove()
+        except:
+            pass
         self.appContentList = self.loadLatestAppointmentsStudent(
         ) if self.role == "student" else self.loadLatestAppointmentsLecturer()
         if self.appContentList == None:
@@ -1315,7 +1262,7 @@ class AppointmentsView(Canvas):
                     app.lectAcceptAt.strftime(humanreadable))
             except:
                 texts.append("Not accepted yet by lecturer")
-        else:
+        elif self.role == "lecturer":
             texts = [
                 f"{app.student.userProfile.fullName}",
                 f"{app.student.userProfile.email}",
