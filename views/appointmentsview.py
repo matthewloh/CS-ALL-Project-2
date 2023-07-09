@@ -4,6 +4,7 @@ import threading
 from tkinter import *
 from tkinter import messagebox
 import ttkbootstrap as ttk
+from prisma.models import Appointment
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
@@ -34,6 +35,8 @@ class AppointmentsView(Canvas):
         self.createElements()
         self.creationFrame.grid_remove()
         self.viewFrame.grid_remove()
+        self.KL = timezone("Asia/Kuala_Lumpur")
+        self.UTC = timezone("UTC")
 
     def createFrames(self):
         self.creationFrame = self.controller.frameCreator(
@@ -138,132 +141,7 @@ class AppointmentsView(Canvas):
         self.prisma = self.controller.mainPrisma
         self.userId = data["id"]
         self.role = data["role"]
-        self.appContentList = self.loadLatestAppointmentsStudent(
-        ) if self.role == "student" else self.loadLatestAppointmentsLecturer()
         self.loadAllDetailsForCreation()
-
-    def loadLatestAppointmentsLecturer(self):
-        prisma = self.prisma
-        appointments = prisma.appointment.find_many(
-            where={
-                "lecturer": {
-                    "is": {
-                        "userId": self.userId
-                    }
-                }
-            },
-            include={
-                "lecturer": {
-                    "include": {
-                        "userProfile": True
-                    }
-                },
-                "student": {
-                    "include": {
-                        "userProfile": True
-                    }
-                }
-            }
-        )
-        kualalumpur = timezone("Asia/Kuala_Lumpur")
-        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
-        humandate = r"%A, %B %d %Y"
-        if appointments == []:
-            return None
-        for app in appointments:
-            appContentList = [
-                app.id,
-                kualalumpur.convert(app.startTime).strftime(humanreadable),
-                kualalumpur.convert(app.endTime).strftime(humanreadable),
-                kualalumpur.convert(app.startTime).strftime(humandate),
-                kualalumpur.convert(app.endTime).strftime(humandate),
-                app.location,
-                app.student.userProfile.fullName,
-                app.lecturer.userProfile.fullName,
-                app.isCompleted,
-                kualalumpur.convert(app.createdAt).strftime(
-                    humanreadable),
-                kualalumpur.convert(app.updatedAt).strftime(
-                    humanreadable),
-                app.studAccept, app.lectAccept
-            ]
-            try:
-                appContentList.append(
-                    app.studAcceptAt.strftime(humanreadable)
-                )
-                appContentList.append(
-                    app.lectAcceptAt.strftime(humanreadable)
-                )
-            except:
-                appContentList.append(
-                    "Not accepted yet by student"
-                )
-                appContentList.append(
-                    "Not accepted yet by lecturer"
-                )
-        return appContentList
-
-    def loadLatestAppointmentsStudent(self):
-        prisma = self.prisma
-        appointments = prisma.appointment.find_many(
-            where={
-                "student": {
-                    "is": {
-                        "userId": self.userId
-                    }
-                }
-            },
-            include={
-                "lecturer": {
-                    "include": {
-                        "userProfile": True
-                    }
-                },
-                "student": {
-                    "include": {
-                        "userProfile": True
-                    }
-                }
-            }
-        )
-
-        kualalumpur = timezone("Asia/Kuala_Lumpur")
-        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
-        humandate = r"%A, %B %d %Y"
-        if appointments == []:
-            return None
-        for app in appointments:
-            appContentList = [
-                app.id,
-                kualalumpur.convert(app.startTime).strftime(humanreadable),
-                kualalumpur.convert(app.endTime).strftime(humanreadable),
-                kualalumpur.convert(app.startTime).strftime(humandate),
-                kualalumpur.convert(app.endTime).strftime(humandate),
-                app.location,
-                app.student.userProfile.fullName,
-                app.lecturer.userProfile.fullName,
-                app.isCompleted,
-                kualalumpur.convert(app.createdAt).strftime(
-                    humanreadable),
-                kualalumpur.convert(app.updatedAt).strftime(
-                    humanreadable),
-                app.studAccept, app.lectAccept
-            ]
-            try:
-                appContentList.append(
-                    app.studAcceptAt.strftime(humanreadable)
-                )
-                appContentList.append(
-                    app.lectAcceptAt.strftime(humanreadable)
-                )
-            except:
-                appContentList.append(
-                    "Not accepted yet by student"
-                )
-                appContentList.append(
-                    "Not accepted yet by lecturer"
-                )
-        return appContentList
 
     def loadForLecturer(self):
         prisma = self.prisma
@@ -868,7 +746,7 @@ class AppointmentsView(Canvas):
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~ START OF STUDENT APPOINTMENT CREATION ~~~~~~~~~~~~~~~~~~~~~~~~~
     def loadAsStudent(self):
-        kualalumpur = timezone("Asia/Kuala_Lumpur")
+        self.KL = timezone("Asia/Kuala_Lumpur")
         humanreadable = r"%I:%M%p"
         for me in self.fullinfo:
             lecturerDict = {}
@@ -877,9 +755,9 @@ class AppointmentsView(Canvas):
             for apptStg in me.module.lecturer.apptSettings:
                 day = apptStg.day
                 location = apptStg.location
-                starttime = kualalumpur.convert(
+                starttime = self.KL.convert(
                     apptStg.startTime).strftime(humanreadable)
-                endtime = kualalumpur.convert(
+                endtime = self.KL.convert(
                     apptStg.endTime).strftime(humanreadable)
                 # 10:00AM - 11:00AM
                 formattedTime = f"{day}, {starttime} - {endtime} at {location}"
@@ -1107,6 +985,7 @@ class AppointmentsView(Canvas):
         ask = MessageDialog(
             title="Appointment Created",
             parent=self.controller.widgetsDict["confirmapptcreation"],
+            message="Appointment has been created successfully, what would you like to do now?",
             buttons=options,
         )
         ask.show()
@@ -1221,15 +1100,289 @@ class AppointmentsView(Canvas):
     def unloadAppCreationDetails(self):
         self.apptCreateFrame.grid_remove()
 
+    def loadLatestAppointmentsLecturer(self):
+        prisma = self.prisma
+        appointments = prisma.appointment.find_many(
+            where={
+                "lecturer": {
+                    "is": {
+                        "userId": self.userId
+                    }
+                }
+            },
+            include={
+                "lecturer": {
+                    "include": {
+                        "userProfile": True
+                    }
+                },
+                "student": {
+                    "include": {
+                        "userProfile": True
+                    }
+                }
+            }
+        )
+        self.KL = timezone("Asia/Kuala_Lumpur")
+        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
+        humandate = r"%A, %B %d %Y"
+        if appointments == []:
+            return None
+        for app in appointments:
+            appContentList = [
+                app.id,
+                self.KL.convert(app.startTime).strftime(humanreadable),
+                self.KL.convert(app.endTime).strftime(humanreadable),
+                self.KL.convert(app.startTime).strftime(humandate),
+                self.KL.convert(app.endTime).strftime(humandate),
+                app.location,
+                app.student.userProfile.fullName,
+                app.lecturer.userProfile.fullName,
+                app.isCompleted,
+                self.KL.convert(app.createdAt).strftime(
+                    humanreadable),
+                self.KL.convert(app.updatedAt).strftime(
+                    humanreadable),
+                app.studAccept, app.lectAccept
+            ]
+            try:
+                appContentList.append(
+                    app.studAcceptAt.strftime(humanreadable)
+                )
+                appContentList.append(
+                    app.lectAcceptAt.strftime(humanreadable)
+                )
+            except:
+                appContentList.append(
+                    "Not accepted yet by student"
+                )
+                appContentList.append(
+                    "Not accepted yet by lecturer"
+                )
+        return appContentList
+
+    def loadLatestAppointmentsStudent(self):
+        prisma = self.prisma
+        appointments = prisma.appointment.find_many(
+            where={
+                "student": {
+                    "is": {
+                        "userId": self.userId
+                    }
+                }
+            },
+            include={
+                "lecturer": {
+                    "include": {
+                        "userProfile": True
+                    }
+                },
+                "student": {
+                    "include": {
+                        "userProfile": True
+                    }
+                }
+            }
+        )
+        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
+        humandate = r"%A, %B %d %Y"
+        if appointments == []:
+            return None
+        for app in appointments:
+            appContentList = [
+                app.id,
+                self.KL.convert(app.startTime).strftime(humanreadable),
+                self.KL.convert(app.endTime).strftime(humanreadable),
+                self.KL.convert(app.startTime).strftime(humandate),
+                self.KL.convert(app.endTime).strftime(humandate),
+                app.location,
+                app.student.userProfile.fullName,
+                app.lecturer.userProfile.fullName,
+                app.isCompleted,
+                self.KL.convert(app.createdAt).strftime(
+                    humanreadable),
+                self.KL.convert(app.updatedAt).strftime(
+                    humanreadable),
+                app.studAccept, app.lectAccept
+            ]
+            try:
+                appContentList.append(
+                    app.studAcceptAt.strftime(humanreadable)
+                )
+                appContentList.append(
+                    app.lectAcceptAt.strftime(humanreadable)
+                )
+            except:
+                appContentList.append(
+                    "Not accepted yet by student"
+                )
+                appContentList.append(
+                    "Not accepted yet by lecturer"
+                )
+        return appointments
+
     def loadAppView(self):
         self.viewFrame.grid()
         self.viewFrame.tkraise()
+        self.appContentList = self.loadLatestAppointmentsStudent(
+        ) if self.role == "student" else self.loadLatestAppointmentsLecturer()
+        if self.appContentList == None:
+            self.appContentList = []
+        h = 760 if len(self.appContentList) * 200 + \
+            20 < 760 else len(self.appContentList) * 200 + 20
         self.viewScrolledFrame = ScrolledFrame(
-            self.viewFrame, width=520, height=740, autohide=True,
+            self.viewFrame, width=520, height=h, autohide=True, bootstyle="bg-rounded"
         )
         self.viewScrolledFrame.place(
-            x=60, y=120, width=520, height=740
+            x=60, y=120, width=520, height=760
         )
+        startx, starty = 20, 20
+        for i in self.appContentList:
+            # convert timestamp to human readable
+            self.KL.convert(i.startTime).strftime(
+                r"%A, %B %d %Y at %I:%M:%S %p")
+            self.KL.convert(i.endTime).strftime(r"%A, %B %d %Y at %I:%M:%S %p")
+            # Appointment Card Widget
+            self.loadAppointmentCard(i, startx, starty)
+            starty += 200
+
+    def loadAppointmentCard(self, app: Appointment, startx, starty):
+        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
+        humandate = r"%A, %B %d %Y"
+        self.controller.labelCreator(
+            imagepath=r"Assets\AppointmentsView\ManageApp\AppointmentCard.png",
+            xpos=startx, ypos=starty, root=self.viewScrolledFrame,
+            classname=f"{app.id}appcardbg", isPlaced=True
+        )
+        # title
+        self.controller.textElement(
+            imagepath=r"Assets\AppointmentsView\ManageApp\AppTitleTextBg.png",
+            xpos=startx+20, ypos=starty+20, root=self.viewScrolledFrame,
+            classname=f"{app.id}apptitlebg",
+            font=SFPRO, size=32, fg="#000000",
+            text=f"{app.title}", isPlaced=True
+        )
+        # description
+        textHost = ScrolledText(
+            master=self.viewScrolledFrame, autohide=True, bootstyle="success-rounded"
+        )
+        mainText = textHost.text
+        mainText.configure(
+            font=("Helvetica", 18), fg=BLACK, wrap=WORD
+        )
+        mainText.insert(END, f"{app.description}")
+        mainText.configure(state=DISABLED)
+        textHost.place(
+            x=startx+20, y=starty+80, width=360, height=80
+        )
+        # view button
+        self.controller.buttonCreator(
+            imagepath=r"Assets\AppointmentsView\ManageApp\viewapp.png",
+            xpos=startx+400, ypos=starty+20, root=self.viewScrolledFrame,
+            classname=f"{app.id}viewappbtn",
+            buttonFunction=lambda: self.viewAppointment(app),
+            isPlaced=True
+        )
+        # delete button
+        self.controller.buttonCreator(
+            imagepath=r"Assets\AppointmentsView\ManageApp\deleteapp.png",
+            xpos=startx+400, ypos=starty+100, root=self.viewScrolledFrame,
+            classname=f"{app.id}deleteappbtn",
+            buttonFunction=lambda: self.deleteAppointment(app),
+            isPlaced=True
+        )
+
+    def viewAppointment(self, app: Appointment):
+        VBG = r"Assets\AppointmentsView\ManageApp\AppWithTextBg.png"
+        ACCEPT = r"Assets\AppointmentsView\ManageApp\Accept.png"
+        NOTACCEPT = r"Assets\AppointmentsView\ManageApp\NotAccept.png"
+        LOCATIONDETAILS = r"Assets\AppointmentsView\ManageApp\LocationDetailsBg.png"
+        DATEDETAILS = r"Assets\AppointmentsView\ManageApp\DateDetailsText.png"
+        TIMEDETAILS = r"Assets\AppointmentsView\ManageApp\TimeDetailsBg.png"
+        humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
+        if self.role == "student":
+            texts = [
+                f"{app.lecturer.userProfile.fullName}",
+                f"{app.lecturer.userProfile.email}",
+                f"{app.lecturer.userProfile.contactNo}",
+            ]
+            try:
+                texts.append(app.studAcceptAt.strftime(humanreadable))
+            except:
+                texts.append("Not accepted yet by student")
+            try:
+                texts.append(
+                    app.lectAcceptAt.strftime(humanreadable))
+            except:
+                texts.append("Not accepted yet by lecturer")
+        else:
+            texts = [
+                f"{app.student.userProfile.fullName}",
+                f"{app.student.userProfile.email}",
+                f"{app.student.userProfile.contactNo}",
+            ]
+            try:
+                texts.append(
+                    app.studAcceptAt.strftime(humanreadable))
+            except:
+                texts.append("Not accepted yet by student")
+            try:
+                texts.append(
+                    app.lectAcceptAt.strftime(humanreadable))
+            except:
+                texts.append("Not accepted yet by lecturer")
+        self.controller.textElement(
+            imagepath=VBG, xpos=680, ypos=160,
+            root=self.viewFrame, classname="viewappname",
+            text=f"{texts[0]}", font=SFPRO, size=32, fg=BLACK,
+        )
+        self.controller.textElement(
+            imagepath=VBG, xpos=680, ypos=340,
+            root=self.viewFrame, classname="viewappemail",
+            text=f"{texts[1]}", font=SFPRO, size=24, fg=BLACK,
+        )
+        self.controller.textElement(
+            imagepath=VBG, xpos=680, ypos=500,
+            root=self.viewFrame, classname="viewappcontact",
+            text=f"{texts[2]}", font=SFPRO, size=32, fg=BLACK,
+        )
+        # Status Checks
+        # If student has accepted
+        # If lecturer has accepted
+        # Appointment Details, Location and Time
+        # Location
+        self.controller.textElement(
+            imagepath=LOCATIONDETAILS, xpos=1520, ypos=120,
+            root=self.viewFrame, classname="viewapplocation",
+            text=f"{app.location}", font=SFPRO, size=40, fg=BLACK,
+        )
+        # Start Date and Time
+        humandate = "%a, %d %b %Y"
+        humantime = "%I:%M:%S %p"
+        startTime = self.KL.convert(app.startTime)
+        endTime = self.KL.convert(app.endTime)
+        self.controller.textElement(
+            imagepath=DATEDETAILS, xpos=1360, ypos=240,
+            root=self.viewFrame, classname="viewappstartdate",
+            text=f"{startTime.strftime(humandate)}", font=SFPRO, size=24, fg=BLACK,
+        )
+        self.controller.textElement(
+            imagepath=TIMEDETAILS, xpos=1680, ypos=240,
+            root=self.viewFrame, classname="viewappstarttime",
+            text=f"{startTime.strftime(humantime)}", font=SFPRO, size=24, fg=BLACK,
+        )
+        # End Date and Time
+        self.controller.textElement(
+            imagepath=DATEDETAILS, xpos=1360, ypos=320,
+            root=self.viewFrame, classname="viewappenddate",
+            text=f"{endTime.strftime(humandate)}", font=SFPRO, size=24, fg=BLACK,
+        )
+        self.controller.textElement(
+            imagepath=TIMEDETAILS, xpos=1680, ypos=320,
+            root=self.viewFrame, classname="viewappendtime",
+            text=f"{endTime.strftime(humantime)}", font=SFPRO, size=24, fg=BLACK,
+        )
+        
 
     def unloadAppView(self):
         self.viewFrame.grid_remove()

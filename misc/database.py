@@ -1518,6 +1518,24 @@ def createJson():
             print(q["correctAnswer"])
             print("\n")
 
+def findManyAppointments():
+    prisma.connect()
+    appointments = prisma.appointment.find_many(
+        where={
+            "student": {
+                "is": {
+                    "userProfile": {
+                        "is": {
+                            "email": "p21013568@student.newinti.edu.my"
+                        }
+                    }
+                }
+            }
+        }
+    )
+    for i in appointments:
+        print(i.json(indent=2))
+    # print(f"Appointments:\n{appointments.json(indent=2)}\n")
 
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
@@ -1540,4 +1558,5 @@ if __name__ == "__main__":
     # uploadFiles()
     # makeStructures()
     # checkLecturerHours()
-    createJson()
+    # createJson()
+    findManyAppointments()
