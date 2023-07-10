@@ -8,21 +8,24 @@ from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
-from elementcreator import gridGenerator
-from static import * 
+from basewindow import gridGenerator
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
 from prisma import Prisma
 from PIL import Image, ImageTk, ImageSequence
 
+
 class AnimatedStarBtn(Frame):
     def __init__(self,
                  parent=None, controller: ElementCreator = None,
                  xpos=0, ypos=0, framewidth=0, frameheight=0, isPlaced=False,
-                 classname=None, imagexpos=0, imageypos=0, bg=WHITE,
+                 classname=None, imagexpos=0, imageypos=0, resizeWidth=0, resizeHeight=0,
+                 bg=WHITE,
                  prisma: Prisma = None, postId=None, userId=None,
-                 isFavorited=False, postTitle=None):
+                 isFavorited=False, postTitle=None,
+                 isFromFavView=False):
         super().__init__(parent, width=1, bg=bg, autostyle=False, name=classname)
         self.controller = controller
         self.grid_propagate(False)
@@ -30,6 +33,7 @@ class AnimatedStarBtn(Frame):
         self.userId = userId
         self.prisma = prisma
         self.isFavorited = isFavorited
+        self.isFromFavView = isFromFavView
         self.postTitle = postTitle
         classname = classname.replace(" ", "").lower()
         widthspan = int(framewidth / 20)
@@ -51,6 +55,9 @@ class AnimatedStarBtn(Frame):
                 sequence = ImageSequence.Iterator(im)
                 reversedsequence = [frame.copy() for frame in sequence]
                 reversedsequence.reverse()
+                # resize each frame
+                reversedsequence = [frame.resize(
+                    (resizeWidth, resizeHeight)) for frame in reversedsequence]
                 self.images = [ImageTk.PhotoImage(
                     sequence_frame) for sequence_frame in reversedsequence]
                 self.image_cycle = cycle(self.images)
@@ -59,6 +66,9 @@ class AnimatedStarBtn(Frame):
             with Image.open(file_path) as im:
                 # sequence
                 sequence = ImageSequence.Iterator(im)
+                # resize each frame
+                sequence = [frame.resize((resizeWidth, resizeHeight))
+                            for frame in sequence]
                 self.images = [ImageTk.PhotoImage(
                     sequence_frame) for sequence_frame in sequence]
                 self.image_cycle = cycle(self.images)
@@ -68,8 +78,8 @@ class AnimatedStarBtn(Frame):
         self.frame_index = 0
         self.end_index = len(self.images) - 1
         imagetogetdetails = ImageTk.PhotoImage(Image.open(file_path))
-        self.imgwidth = 40
-        self.imgheight = 40
+        self.imgwidth = resizeWidth if resizeWidth != 0 else imagetogetdetails.width()
+        self.imgheight = resizeHeight if resizeHeight != 0 else imagetogetdetails.height()
         imgrow = int(imageypos / 20)
         imgcolumn = int(imagexpos / 20)
         imgrowspan = int(self.imgheight / 20)
@@ -171,7 +181,9 @@ class AnimatedStarBtn(Frame):
             self.tooltip = ToolTip(
                 self.img_container, f"Click to unfavorite post {self.postTitle}", bootstyle=(DANGER, INVERSE))
             self.tooltip.show_tip()
-
+            self.refreshFavoritesView()
+            if self.isFromFavView:
+                self.refreshPostsFromFavoritesView()
         t = threading.Thread(target=updateuser)
         t.daemon = True
         t.start()
@@ -212,6 +224,10 @@ class AnimatedStarBtn(Frame):
             self.tooltip = ToolTip(
                 self.img_container, f"Click to favorite {self.postTitle}", bootstyle=(INFO, INVERSE))
             self.tooltip.show_tip()
+            self.refreshFavoritesView()
+            if self.isFromFavView:
+                self.refreshPostsFromFavoritesView()
+
         t = threading.Thread(target=updateuser)
         t.daemon = True
         t.start()
@@ -233,3 +249,12 @@ class AnimatedStarBtn(Frame):
                 self.after(20, self.animate)
             else:
                 self.animation_status.set("start")
+
+    def refreshFavoritesView(self):
+        self.favoritesView = self.controller.widgetsDict["favoritesview"]
+        self.favoritesView.refreshFavoritesView()
+
+    def refreshPostsFromFavoritesView(self):
+        self.discussionsView = self.controller.widgetsDict["discussionsview"]
+        var = self.discussionsView.modulecodevar
+        self.discussionsView.callLoadLatestPosts(var.get())

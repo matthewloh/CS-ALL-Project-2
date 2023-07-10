@@ -8,13 +8,14 @@ from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.tooltip import ToolTip
-from elementcreator import gridGenerator
-from static import * 
+from basewindow import gridGenerator
+from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 from pendulum import timezone
 from prisma import Prisma
 from PIL import Image, ImageTk, ImageSequence
+
 
 class AnimatedGif(Frame):
     def __init__(self, parent=None, controller: ElementCreator = None,
