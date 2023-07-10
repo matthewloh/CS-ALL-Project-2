@@ -120,7 +120,7 @@ class Window(ElementCreator):
 
     def test(self):
         def foo():
-            baz = self.mainPrisma.execute_raw(
+            self.mainPrisma.execute_raw(
                 """
                     SELECT 1;
                     """
@@ -360,7 +360,6 @@ class Window(ElementCreator):
                 )
                 toast.show_toast()
                 return
-            print("Is teacher? ", isTeacher, "or is Student?", isStudent)
             if isStudent:
                 student, moduleenrollments = self.setUserContext(
                     userId=user.id, role="student", prisma=self.prisma)
@@ -430,7 +429,7 @@ class Window(ElementCreator):
             dashboard.loadSpecificAssets(data["role"])
             dashboard.postLogin(data)
             postLoginCanvases = [
-                "courseview", "discussionsview", "appointmentsview", "favoritesview", "learninghub"]
+                "courseview", "learninghub", "discussionsview", "appointmentsview", "favoritesview", "searchpage"]
             for canvas in postLoginCanvases:
                 canvas = self.widgetsDict[canvas]
                 canvas.postLogin(data)

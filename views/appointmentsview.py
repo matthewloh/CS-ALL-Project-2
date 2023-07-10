@@ -1158,15 +1158,15 @@ class AppointmentsView(Canvas):
         WD = self.controller.widgetsDict
         self.viewFrame.grid()
         self.viewFrame.tkraise()
-        try: 
+        try:
             staticList = ["viewappname",
-            "viewappemail",
-            "viewappcontact",
-            "viewapplocation",
-            "viewappstartdate",
-            "viewappstarttime",
-            "viewappenddate",
-            "viewappendtime"]
+                          "viewappemail",
+                          "viewappcontact",
+                          "viewapplocation",
+                          "viewappstartdate",
+                          "viewappstarttime",
+                          "viewappenddate",
+                          "viewappendtime"]
             for i in staticList:
                 WD[i].grid_remove()
         except:
@@ -1329,7 +1329,6 @@ class AppointmentsView(Canvas):
             root=self.viewFrame, classname="viewappendtime",
             text=f"{endTime.strftime(humantime)}", font=SFPRO, size=24, fg=BLACK,
         )
-        
 
     def unloadAppView(self):
         self.viewFrame.grid_remove()

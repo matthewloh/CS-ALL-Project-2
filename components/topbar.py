@@ -17,6 +17,8 @@ from components.animatedgif import AnimatedGif
 from components.animatedstarbtn import AnimatedStarBtn
 from PIL import Image, ImageTk, ImageSequence
 
+from views.searchpage import SearchPage
+
 
 class TopBar(Frame):
     def __init__(self, parent, controller: ElementCreator, name="topbarframe"):
@@ -78,26 +80,27 @@ class TopBar(Frame):
 
     # TODO: redo this from the ground up
     def searchBarLogic(self):
-        searchbg = self.openSearchSettings[0]
-        exitbtn = self.openSearchSettings[1]
+        self.controller.show_canvas(SearchPage)
+        # searchbg = self.openSearchSettings[0]
+        # exitbtn = self.openSearchSettings[1]
 
-        self.controller.labelCreator(**self.controller.tupleToDict(searchbg))
-        self.controller.buttonCreator(**self.controller.tupleToDict(exitbtn))
-        self.controller.entryCreator(
-            160, 0, 940, 80, self.parent, "SearchBarResults", pady=10)
-        try:
-            for widgetname, widget in self.parent.children.items():
-                if widgetname == "searchbarentrycanvas":
-                    widget.destroy()
-        except RuntimeError:
-            print("no searchbarentrycanvas")
-        for widgetname, widget in self.parent.children.items():
-            if widgetname == "searchbarresults":
-                widget.after(100, lambda: widget.focus_set())
-                widget.bind(
-                    "<Return>", lambda e: self.searchByQuery(widget.get()))
-                widget.bind("<FocusIn>", lambda e: widget.delete(0, END))
-                widget.bind("<Tab>", lambda e: self.closeSearchBarLogic())
+        # self.controller.labelCreator(**self.controller.tupleToDict(searchbg))
+        # self.controller.buttonCreator(**self.controller.tupleToDict(exitbtn))
+        # self.controller.entryCreator(
+        #     160, 0, 940, 80, self.parent, "SearchBarResults", pady=10)
+        # try:
+        #     for widgetname, widget in self.parent.children.items():
+        #         if widgetname == "searchbarentrycanvas":
+        #             widget.destroy()
+        # except RuntimeError:
+        #     print("no searchbarentrycanvas")
+        # for widgetname, widget in self.parent.children.items():
+        #     if widgetname == "searchbarresults":
+        #         widget.after(100, lambda: widget.focus_set())
+        #         widget.bind(
+        #             "<Return>", lambda e: self.searchByQuery(widget.get()))
+        #         widget.bind("<FocusIn>", lambda e: widget.delete(0, END))
+        #         widget.bind("<Tab>", lambda e: self.closeSearchBarLogic())
 
     def searchByQuery(self, query):
         self.controller.canvasCreator(160, 60, 940, 240, self.parent, classname="SearchBarEntryCanvas",
