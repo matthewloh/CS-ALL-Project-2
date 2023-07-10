@@ -1,3 +1,4 @@
+from typing import List
 from components.slidepanel import SlidePanel
 from components.topbar import TopBar
 from static import *
@@ -7,12 +8,15 @@ from tkinter import *
 # A drop in replacement for ttk that uses bootstrap styles
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from dotenv import load_dotenv
 from prisma import Prisma
+from prisma.models import ModuleEnrollment, Module
 from basewindow import gridGenerator
 import bcrypt
+from pendulum import timezone
 # TODO: please stop formatting my imports you're breaking my code
 # this contains my pywin32 imports, PIL imports, pythonnet
 from nonstandardimports import *
@@ -627,41 +631,15 @@ class Dashboard(Frame):
                                          classname="TeacherDashboardLabel", root=self.dashboardcanvasref)
 
     def postLogin(self, data: dict):
+        self.prisma = self.controller.mainPrisma
+        prisma = self.prisma
         role = data["role"]
+        self.role = role
         id = data["id"]
         fullName = data["fullName"]
         email = data["email"]
         modules = data["modules"]
-        # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
         cont = self.controller
-        initialypos = 20
-        h = len(modules) * 300 + 20
-        if h < 920:
-            h = 920
-        self.dashboardScrolledFrame = ScrolledFrame(
-            self.dashboardcanvasref, width=600, height=h, bootstyle="success-rounded", autohide=True,
-        )
-        self.dashboardScrolledFrame.place(x=740, y=0, width=600, height=920)
-        Label(self.dashboardScrolledFrame, bg="#dee8e0", width=600, height=h,
-              relief=FLAT, bd=0, autostyle=False).place(x=0, y=0, width=600, height=h)
-        for m in modules:
-            cont.labelCreator(
-                imagepath=r"Assets\Dashboard\ModuleTile.png", xpos=0, ypos=initialypos+20,
-                classname=f"{m[0]}tile", root=self.dashboardScrolledFrame, isPlaced=True
-            )
-            if m[1] == "Computer Science Activity Led Learning Project 2":  # too long to display properly
-                cont.textElement(
-                    imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=20, ypos=initialypos,
-                    classname=f"{m[0]}title", root=self.dashboardScrolledFrame, text="Computer Science\nActivity Led Learning Project 2", size=28,
-                    buttonFunction=lambda e=m[0]: self.navigateToModuleView(e), isPlaced=True, yIndex=-1/2
-                )
-            else:
-                cont.textElement(
-                    imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=20, ypos=initialypos,
-                    classname=f"{m[0]}title", root=self.dashboardScrolledFrame, text=m[1], size=28,
-                    buttonFunction=lambda e=m[0]: self.navigateToModuleView(e), isPlaced=True
-                )
-            initialypos += 300
         cont.textElement(
             imagepath=r"Assets\Dashboard\NameBg.png", xpos=160, ypos=120,
             classname="usernamedash", root=self.dashboardcanvasref, text=fullName, size=32, xoffset=-1
@@ -670,7 +648,213 @@ class Dashboard(Frame):
             imagepath=r"Assets\Dashboard\NameBg.png", xpos=160, ypos=160,
             classname="useremaildash", root=self.dashboardcanvasref, text=email, size=24, xoffset=-1
         )
+        # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
+        initialypos = 20
+        h = len(modules) * 380 + 20
+        if h < 920:
+            h = 920
+        self.dashboardScrolledFrame = ScrolledFrame(
+            self.dashboardcanvasref, width=620, height=h, bootstyle="success-rounded", autohide=True,
+        )
+        self.dashboardScrolledFrame.place(x=720, y=0, width=640, height=920)
+        if role == "student":
+            modules = prisma.module.find_many(
+                where={
+                    "moduleEnrollments": {
+                        "some": {
+                            "student": {
+                                "is": {
+                                    "userId": id
+                                }
+                            }
+                        }
+                    }
+                },
+                include={
+                    "moduleHubContent": True,
+                    "modulePosts": True,
+                    "moduleUploads": True,
+                }
+            )
+        elif role == "lecturer":
+            modules = prisma.module.find_many(
+                where={
+                    "lecturer": {
+                        "is": {
+                            "userId": id
+                        }
+                    }
+                },
+                include={
+                    "moduleHubContent": True,
+                    "modulePosts": True,
+                    "moduleUploads": True,
+                }
+            )
+        self.loadDashboard(modules, initialypos)
+
+    def loadDashboard(self, modules: List[Module], initialypos):
+        KL = timezone("Asia/Kuala_Lumpur")
+        prisma = self.prisma
+        cont = self.controller
+        for module in modules:
+            cont.labelCreator(
+                imagepath=r"Assets\Dashboard\ModuleTile.png", xpos=20, ypos=initialypos+20,
+                classname=f"{module.moduleCode}tile", root=self.dashboardScrolledFrame, isPlaced=True
+            )
+            if module.moduleTitle == "Computer Science Activity Led Learning Project 2":  # too long to display properly
+                ti = cont.textElement(
+                    imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=40, ypos=initialypos,
+                    classname=f"{module.moduleCode}title", root=self.dashboardScrolledFrame, text="Computer Science\nActivity Led Learning Project 2", size=28,
+                    buttonFunction=lambda e=module.moduleCode: self.navigateToModuleView(e), isPlaced=True, yIndex=-1/2
+                )
+            else:
+                ti = cont.textElement(
+                    imagepath=r"Assets\Dashboard\coursetitlebg.png", xpos=40, ypos=initialypos,
+                    classname=f"{module.moduleCode}title", root=self.dashboardScrolledFrame, text=module.moduleTitle, size=28,
+                    buttonFunction=lambda e=module.moduleCode: self.navigateToModuleView(e), isPlaced=True
+                )
+            tiptext = f"Click to view {module.moduleTitle}"
+            ToolTip(ti, text=tiptext, bootstyle=(INFO, INVERSE))
+            moduleContent = prisma.modulehubcontent.find_many(
+                where={
+                    "module": {
+                        "is": {
+                            "moduleCode": module.moduleCode
+                        }
+                    }
+                },
+                include={
+                    "attempts": True
+                },
+                order={
+                    "updatedAt": "desc"
+                },
+                take=3
+            )
+            modulePosts = prisma.modulepost.find_many(
+                where={
+                    "module": {
+                        "is": {
+                            "moduleCode": module.moduleCode
+                        }
+                    }
+                },
+                include={
+                    "replies": True,
+                    "author": True
+                },
+                order={
+                    "updatedAt": "desc"
+                },
+                take=3
+            )
+            moduleUploads = prisma.moduleupload.find_many(
+                where={
+                    "module": {
+                        "is": {
+                            "moduleCode": module.moduleCode
+                        }
+                    }
+                },
+                order={
+                    "updatedAt": "desc"
+                },
+                take=3
+            )
+            mainList = []
+            mainList.extend(moduleContent)
+            mainList.extend(modulePosts)
+            mainList.extend(moduleUploads)
+            initinteriorYpos = 20
+            h = len(mainList) * 80 + 20
+            if h < 240:
+                h = 240
+            fr = ScrolledFrame(
+                master=self.dashboardScrolledFrame, width=560, height=h, bootstyle="primary-rounded", autohide=True,
+            )
+            fr.place(x=40, y=initialypos+100, width=560, height=240)
+            for content in moduleContent:
+                c = cont.textElement(
+                    imagepath=r"Assets\Dashboard\contentnamebg.png", xpos=20, ypos=initinteriorYpos,
+                    classname=f"{content.title}contentname", root=fr, text=f"Content: {content.title} - {content.contentType}",
+                    size=20,
+                    buttonFunction=lambda e=(module.moduleCode, content.title): self.navigateToModuleContentView(e[0], e[1]), isPlaced=True
+                )
+                tiptext = f"Last updated: {KL.convert(content.updatedAt).strftime('%d/%m/%Y %H:%M')}\nAttempts: {len(content.attempts)}\nDescription:{content.description}\nClick to view content"
+                ToolTip(c, text=tiptext, bootstyle=(INFO, INVERSE))
+                initinteriorYpos += 80
+            for post in modulePosts:
+                p = cont.textElement(
+                    imagepath=r"Assets\Dashboard\postnamebg.png", xpos=20, ypos=initinteriorYpos,
+                    classname=f"{post.title}postname", root=fr, text=f"Post: {post.title} by {post.author.fullName}",
+                    size=20,
+                    buttonFunction=lambda e=(module.moduleCode, module.moduleTitle): self.navigateToModulePostView(e[0], e[1]), isPlaced=True
+                )
+                tiptext = f"Last updated: {KL.convert(post.updatedAt).strftime('%d/%m/%Y %H:%M')}\nReplies: {len(post.replies)}\nClick to view post"
+                ToolTip(p, text=tiptext, bootstyle=(INFO, INVERSE))
+                initinteriorYpos += 80
+            for upload in moduleUploads:
+                u = cont.textElement(
+                    imagepath=r"Assets\Dashboard\uploadbg.png", xpos=20, ypos=initinteriorYpos,
+                    classname=f"{upload.title}uploadname", root=fr, text=f"Upload: {upload.title} -> {upload.objKey}",
+                    size=20, fg=WHITE,
+                    buttonFunction=lambda e=(module.moduleCode, upload.objKey, upload.uploadType): self.navigateToModuleUploadView(e[0], e[1], e[2]), isPlaced=True
+                )
+                tiptext = f"Last updated: {KL.convert(upload.updatedAt).strftime('%d/%m/%Y %H:%M')}\nDescription: {upload.description}\nClick to view upload -> {upload.objKey}"
+                ToolTip(u, text=tiptext, bootstyle=(INFO, INVERSE))
+                initinteriorYpos += 80
+            initialypos += 380
+
+    def navigateToModuleContentView(self, courseCode, contentTitle, hub: LearningHub = None):
+        hub = self.controller.widgetsDict["learninghub"]
+        hub.role = self.role
+        hub.prisma = self.controller.mainPrisma
+        hub.loadCourseHubContent(courseCode)
+        hub.learninghubquizzesvar.set(contentTitle)
+        self.controller.widgetsDict["learninghubquizzesmb"].config(
+            text=contentTitle)
+        hub.loadQuizHubContent(contentTitle)
+        self.controller.show_canvas(LearningHub)
+
+    def navigateToModulePostView(self, modulecode, moduletitle, discview: DiscussionsView = None):
+        toast = ToastNotification(
+            title=f"Loading Discussions for {modulecode}",
+            message="Please wait while we load the discussions for this module",
+            bootstyle="info"
+        )
+        toast.show_toast()
+        discview = self.controller.widgetsDict["discussionsview"]
+        discview.role = self.role
+        discview.prisma = self.controller.mainPrisma
+        discview.callLoadLatestPosts(modulecode)
+        toast.hide_toast()
+        toast2 = ToastNotification(
+            title=f"Discussions for {modulecode} loaded",
+            message="The discussions for this module have been loaded",
+            bootstyle="success",
+            duration=500,
+        )
+        discview.creationframe.grid_remove()
+        discview.postviewframe.grid_remove()
+        discview.modulecodevar.set(modulecode)
+        discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
+        toast2.show_toast()
+        self.controller.show_canvas(DiscussionsView)
+
+    def navigateToModuleUploadView(self, modulecode, objKey, filetype, courseview: CourseView = None):
+        courseview = self.controller.widgetsDict["courseview"]
+        courseview.role = self.role
+        courseview.prisma = self.controller.mainPrisma
+        courseview.loadCourses(f"{modulecode.upper()}")
+        courseview.viewUploadsFrame.grid_remove()
+        courseview.uploadCreationFrame.grid_remove()
+        courseview.loadModuleUploadsView(modulecode.lower())
+        courseview.loadAndOpenObject(objKey, filetype)
+        self.controller.show_canvas(CourseView)
+
     def navigateToModuleView(self, moduleCode):
+
         courseview = self.controller.widgetsDict["courseview"]
         courseview.loadCourses(f"{moduleCode.upper()}")
         courseview.viewUploadsFrame.grid_remove()

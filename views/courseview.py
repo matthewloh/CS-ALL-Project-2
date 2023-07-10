@@ -306,11 +306,6 @@ class CourseView(Canvas):
         t.start()
 
     def editModuleUploads(self, id, title, description, objKey, modulecode, filetype):
-        print(id, title, description, objKey)
-        self.uploadTitleEntry.delete(0, END)
-        self.uploadDescEntry.delete(0, END)
-        self.uploadTitleEntry.insert(0, title)
-        self.uploadDescEntry.insert(0, description)
         parentWidget = self.controller.widgetsDict[f"{id}editbtn"]
         if filetype == "LINK":
             buttonsList = ["Edit Title:success",
@@ -385,11 +380,6 @@ class CourseView(Canvas):
                 t.start()
 
     def deleteModuleUploads(self, id, title, description, objKey, modulecode, filetype):
-        print(id, title, description, objKey)
-        self.uploadTitleEntry.delete(0, END)
-        self.uploadDescEntry.delete(0, END)
-        self.uploadTitleEntry.insert(0, title)
-        self.uploadDescEntry.insert(0, description)
         s3 = boto3.client('s3')
         BUCKET_NAME = self.BUCKET_NAME
         # get all items in the bucket
