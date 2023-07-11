@@ -73,6 +73,7 @@ class ElementCreator(ttk.Window):
         image = ImageTk.PhotoImage(Image.open(imagepath))
         # stores a key value pair of "classname" : "image" to prevent garbage collection
         self.imageDict[classname] = image
+        return image
 
     def settingsUnpacker(self, listoftuples, typeoftuple):
         """

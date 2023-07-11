@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 import logging
 from datetime import datetime, timedelta
@@ -61,10 +63,10 @@ from pendulum import timezone
 #     connection.close()
 
 # ~~~~ PRISMA ~~~~
-from prisma import Prisma, Json
+from prisma import Prisma, Json, Base64
 from prisma.models import UserProfile
 from prisma.bases import BaseUserProfile, BaseModule, BaseModuleEnrollment
-
+from PIL import Image, ImageOps
 
 load_dotenv()
 
@@ -1451,7 +1453,7 @@ def createJson():
         ]
     }
     convertedData = Json(quizData)
-    #converting dictionary to json using Prisma's Json Class
+    # converting dictionary to json using Prisma's Json Class
     submitQuiz = prisma.modulehubcontent.create(
         data={
             "title": "Quiz Title 1",
@@ -1518,6 +1520,7 @@ def createJson():
             print(q["correctAnswer"])
             print("\n")
 
+
 def findManyAppointments():
     prisma.connect()
     appointments = prisma.appointment.find_many(
@@ -1536,6 +1539,72 @@ def findManyAppointments():
     for i in appointments:
         print(i.json(indent=2))
     # print(f"Appointments:\n{appointments.json(indent=2)}\n")
+
+
+def testUploadBlob():
+    prisma.connect()
+    # byteIMGIO = io.BytesIO()
+    # byteIMG = Image.open(r"Assets\signinguplabel.png")
+    # byteIMG.save(byteIMGIO, format="PNG")
+    # byteIMGIO.seek(0)
+    # byteIMG = byteIMGIO.read()
+    # b64 = Base64.encode(byteIMG)
+    # decoded = Base64.decode(b64)
+    # dataBytesIO = io.BytesIO(decoded)
+    # print(dataBytesIO)
+    # im = Image.open(dataBytesIO)
+    # im.show()
+    # image = r"Assets\signinguplabel.png"
+    # with open(image, "rb") as f:
+    #     # fit the image using PIL and ImageOps
+    #     image = Image.open(f)
+    #     image = ImageOps.fit(image, (500, 500), Image.ANTIALIAS)
+    #     # convert the image to bytes
+    #     image = image.convert("RGB")
+    #     image = image.tobytes()
+    #     # encode the image using base64
+    #     image = f.read()
+    # print(type(image))
+    # finalBytes = image.tobytes()
+    # print(type(finalBytes))
+    # author = prisma.userprofile.find_first(
+    #     where={
+    #         "id": "clhrvvvmm0001vts06psqzlye"
+    #     }
+    # )
+    # t = prisma.helpdeskticket.create(
+    #     data={
+    #         "author": {
+    #             "connect": {
+    #                 "id": author.id
+    #             }
+    #         },
+    #         "title": "Test Ticket",
+    #         "image": Base64.encode(image)
+    #     }
+    # )
+    # print(t.json(indent=2))
+    t = prisma.helpdeskticket.find_first(
+        where={
+            "id": 4
+        }
+    )
+    print(t.image)
+    bytes = Base64.decode(t.image)  # -> a bytes object
+    # print(bytes)
+    img_io = io.BytesIO(bytes)
+    img = Image.open(img_io)
+    img.show()
+    # # Opening the bytes object as an image in PIL
+    # imgdata = base64.b64decode(bytes)
+    # image = Image.open(io.BytesIO(imgdata))
+    # image.show()
+    # print(type(bytes))
+    # b64 = base64.b64decode(bytes)
+    # print(b64)
+    # im = io.BytesIO(base64.b64decode(bytes))
+    # print(type(im))
+
 
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
@@ -1559,4 +1628,5 @@ if __name__ == "__main__":
     # makeStructures()
     # checkLecturerHours()
     # createJson()
-    findManyAppointments()
+    # findManyAppointments()
+    testUploadBlob()
