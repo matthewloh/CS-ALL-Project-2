@@ -17,10 +17,12 @@ from datetime import datetime, timedelta
 from pendulum import timezone
 from prisma import Prisma
 from win32gui import GetWindowText, GetForegroundWindow
-
+from views.courseview import CourseView
 from views.discussionsview import DiscussionsView
 from PIL import Image, ImageTk, ImageSequence
 from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
+
+from views.learninghub import LearningHub
 
 
 class SearchPage(Canvas):
@@ -56,7 +58,7 @@ class SearchPage(Canvas):
         self.searchEntry.bind(
             "<FocusIn>", lambda event: [
                 self.searchEntry.delete(0, END)] if self.searchEntry.get() == "Enter Keyword Here" else None
-            )
+        )
         self.searchEntry.bind("<FocusOut>", lambda event: [
             [self.searchEntry.delete(0, END),
              self.searchEntry.insert(0, "Enter Keyword Here")
@@ -81,14 +83,14 @@ class SearchPage(Canvas):
         )
         self.searchInPosts.place(x=780, y=340, width=140, height=40)
         self.searchInUploads = ttk.Checkbutton(
-            master=self, bootstyle="success-outline-toolbutton",
+            master=self, bootstyle="info-outline-toolbutton",
             onvalue=1, offvalue=0, text="Module Uploads",
             width=140, variable=self.inUploads,
             cursor="hand2"
         )
         self.searchInUploads.place(x=940, y=340, width=140, height=40)
         self.searchInHubContent = ttk.Checkbutton(
-            master=self, bootstyle="success-outline-toolbutton",
+            master=self, bootstyle="secondary-outline-toolbutton",
             onvalue=1, offvalue=0, text="Hub Content",
             width=140, variable=self.inHubContent,
             cursor="hand2"
@@ -105,6 +107,7 @@ class SearchPage(Canvas):
         self.controller.settingsUnpacker(self.staticBtns, "button")
 
     def searchByQuery(self, query: str):
+        KL = timezone("Asia/Kuala_Lumpur")
         prisma = self.prisma
         if query == "" or query == "Enter Keyword Here":
             return
@@ -132,7 +135,7 @@ class SearchPage(Canvas):
                         }
                     }
                 ],
-                
+
             },
             include={
                 "modulePosts": {
@@ -150,25 +153,32 @@ class SearchPage(Canvas):
             }
         )
         finalList = []
-        query = query.lower() # convert query to lowercase
+        query = query.lower()  # convert query to lowercase
         for m in modules:
             if self.inPosts.get():
                 for p in m.modulePosts:
-                    if query in p.title.lower() or query in p.content.lower(): # convert title and content to lowercase before searching
-                        finalList.append((m.moduleCode, p.id, p.title, "post"))
+                    # convert title and content to lowercase before searching
+                    if query in p.title.lower() or query in p.content.lower():
+                        finalList.append(
+                            (m.moduleCode, p.id, p.title, p.author.fullName, "post"))
             if self.inHubContent.get():
                 for h in m.moduleHubContent:
-                    if query in h.title.lower() or query in h.description.lower(): # convert title and description to lowercase before searching
-                        finalList.append((m.moduleCode, h.id, h.title, "hubcontent"))
+                    # convert title and description to lowercase before searching
+                    if query in h.title.lower() or query in h.description.lower():
+                        finalList.append(
+                            (m.moduleCode, h.id, h.title, "hubcontent"))
             if self.inUploads.get():
                 for u in m.moduleUploads:
-                    if query in u.title.lower() or query in u.description.lower(): # convert title and description to lowercase before searching
-                        finalList.append((m.moduleCode, u.id, u.title, "upload"))
-        print(finalList)
+                    # convert title and description to lowercase before searching
+                    if query in u.title.lower() or query in u.description.lower():
+                        finalList.append(
+                            (m.moduleCode, u.id, u.title, u.objKey, u.uploadType, "upload"))
         self.loadSearchResults(finalList)
 
     def loadSearchResults(self, results: list):
-        IMAGEPATH = r"Assets\SearchView\Button.png"
+        POSTPATH = r"Assets\SearchView\discpostsbutton.png"
+        CONTENTPATH = r"Assets\SearchView\contentbutton.png"
+        UPLOADPATH = r"Assets\SearchView\uploadsbutton.png"
         # Scrolled Frame
         self.scrolledframe = ScrolledFrame(
             master=self, width=1160, height=480, autohide=True, bootstyle="bg-round"
@@ -180,49 +190,41 @@ class SearchPage(Canvas):
         self.scrolledframe.configure(height=h)
         initCoords = (20, 20)
         for result in results:
-            typeOfResult = result[3]
+            typeOfResult = result[-1]
             if typeOfResult == "post":
                 p = self.controller.textElement(
-                    imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
-                    classname=f"searchresult{result[0]}{result[1]}{result[3]}",
+                    imagepath=POSTPATH, xpos=initCoords[0], ypos=initCoords[1],
+                    classname=f"searchresult{result[0]}{typeOfResult}{result[1]}",
                     root=self.scrolledframe,
-                    text=f"{result[0]} - {result[2]}",
-                    fg=WHITE, font=URBANIST, size=40, isPlaced=True,
-                    xoffset=-2,
-                    buttonFunction=lambda i = result[1]: print(i)
+                    text=f"{result[0]} - {result[2]}\nA {typeOfResult.title()} by {result[3]}",
+                    fg=WHITE, font=URBANIST, size=30, isPlaced=True,
+                    xoffset=-2, yIndex=-0.4,
+                    buttonFunction=lambda i=(
+                        result[0], result[2]): self.navigateToModulePostView(i[0], i[1])
                 )
             elif typeOfResult == "hubcontent":
                 h = self.controller.textElement(
-                    imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
-                    classname=f"searchresult{result[0]}{result[1]}{result[3]}",
+                    imagepath=CONTENTPATH, xpos=initCoords[0], ypos=initCoords[1],
+                    classname=f"searchresult{result[0]}{typeOfResult}{result[1]}",
                     root=self.scrolledframe,
-                    text=f"{result[0]} - {result[2]}",
-                    fg=WHITE, font=URBANIST, size=40, isPlaced=True,
-                    xoffset=-2,
-                    buttonFunction=lambda i = result[1]: print(i)
+                    text=f"{result[0]} - {result[2]}\n{typeOfResult.title()}",
+                    fg=WHITE, font=URBANIST, size=30, isPlaced=True,
+                    xoffset=-2, yIndex=-0.4,
+                    buttonFunction=lambda i=(
+                        result[0], result[2]): self.navigateToModuleContentView(i[0], i[1])
                 )
             elif typeOfResult == "upload":
                 u = self.controller.textElement(
-                    imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
-                    classname=f"searchresult{result[0]}{result[1]}{result[3]}",
+                    imagepath=UPLOADPATH, xpos=initCoords[0], ypos=initCoords[1],
+                    classname=f"searchresult{result[0]}{typeOfResult}{result[1]}",
                     root=self.scrolledframe,
-                    text=f"{result[0]} - {result[2]}",
-                    fg=WHITE, font=URBANIST, size=40, isPlaced=True,
-                    xoffset=-2,
-                    buttonFunction=lambda i = result[1]: print(i)
+                    text=f"{result[0]} - {result[2]}\nHub Content",
+                    fg=WHITE, font=URBANIST, size=30, isPlaced=True,
+                    xoffset=-2, yIndex=-0.4,
+                    buttonFunction=lambda i=(result[0], result[3], result[4]): self.navigateToModuleUploadView(
+                        i[0], i[1], i[2])
                 )
             initCoords = (initCoords[0], initCoords[1] + 120)
-        # initCoords = (20, 0)
-        # Set your imagepath here
-        # for i in exampleOfSearchItems:
-        #     t = self.controller.textElement(
-        #         imagepath=IMAGEPATH, xpos=initCoords[0], ypos=initCoords[1],
-        #         classname=f"searchitem{i}", root=self.scrolledframe,
-        #         text=i, fg="#000000", font=INTER, size=32,
-        #         isPlaced=True, xoffset=-2, yIndex=-1/2,
-        #         buttonFunction=lambda i=i: print(i)
-        #     )
-        #     initCoords = (initCoords[0], initCoords[1] + 120)
 
     def loadHelpdeskElements(self):
         # Entry
@@ -260,3 +262,50 @@ class SearchPage(Canvas):
              lambda: print("UploadImage"))
         ]
         self.controller.settingsUnpacker(self.helpdeskButtons, "button")
+
+    def navigateToModuleContentView(self, courseCode, contentTitle, hub: LearningHub = None):
+        hub = self.controller.widgetsDict["learninghub"]
+        hub.role = self.role
+        hub.prisma = self.controller.mainPrisma
+        hub.loadCourseHubContent(courseCode)
+        hub.learninghubquizzesvar.set(contentTitle)
+        self.controller.widgetsDict["learninghubquizzesmb"].config(
+            text=contentTitle)
+        hub.loadQuizHubContent(contentTitle)
+        self.controller.show_canvas(LearningHub)
+
+    def navigateToModulePostView(self, modulecode, moduletitle, discview: DiscussionsView = None):
+        toast = ToastNotification(
+            title=f"Loading Discussions for {modulecode}",
+            message="Please wait while we load the discussions for this module",
+            bootstyle="info"
+        )
+        toast.show_toast()
+        discview = self.controller.widgetsDict["discussionsview"]
+        discview.role = self.role
+        discview.prisma = self.controller.mainPrisma
+        discview.callLoadLatestPosts(modulecode)
+        toast.hide_toast()
+        toast2 = ToastNotification(
+            title=f"Discussions for {modulecode} loaded",
+            message="The discussions for this module have been loaded",
+            bootstyle="success",
+            duration=500,
+        )
+        discview.creationframe.grid_remove()
+        discview.postviewframe.grid_remove()
+        discview.modulecodevar.set(modulecode)
+        discview.menubutton.configure(text=f"{modulecode} - {moduletitle}")
+        toast2.show_toast()
+        self.controller.show_canvas(DiscussionsView)
+
+    def navigateToModuleUploadView(self, modulecode, objKey, filetype, courseview: CourseView = None):
+        courseview = self.controller.widgetsDict["courseview"]
+        courseview.role = self.role
+        courseview.prisma = self.controller.mainPrisma
+        courseview.loadCourses(f"{modulecode.upper()}")
+        courseview.viewUploadsFrame.grid_remove()
+        courseview.uploadCreationFrame.grid_remove()
+        courseview.loadModuleUploadsView(modulecode.lower())
+        courseview.loadAndOpenObject(objKey, filetype)
+        self.controller.show_canvas(CourseView)
