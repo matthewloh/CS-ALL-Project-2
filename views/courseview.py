@@ -156,6 +156,7 @@ class CourseView(Canvas):
             (r"Assets\My Courses\exituploadsview.png", 1780, 20,
              "exituploadsview", self.viewUploadsFrame,
              lambda:[self.exitUploadsView(), self.focus_force()]),
+
         ]
         self.controller.settingsUnpacker(buttonsList, "button")
         coursecode = coursecode.lower()
@@ -175,6 +176,39 @@ class CourseView(Canvas):
                 if widgetname.startswith(f"{coursecode}"):
                     # print("Getting loaded", widgetname)
                     widget.grid()
+
+    def refreshAllCourseContent(self, coursecode: str):
+        prisma = self.prisma
+        module = prisma.module.find_first(
+            where={
+                "moduleCode": coursecode.upper()
+            },
+            include={
+                "lecturer": {
+                    "include": {
+                        "userProfile": True
+                    }
+                },
+                "moduleEnrollments": {
+                    "include": {
+                        "student": {
+                            "include": {
+                                "userProfile": True
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        modulecode = module.moduleCode
+        moduletitle = module.moduleTitle
+        moduledesc = module.moduleDesc
+        lecturername = module.lecturer.userProfile.fullName
+        lectureremail = module.lecturer.userProfile.email
+        lecturerphone = module.lecturer.userProfile.contactNo
+        self.detailsCreator(modulecode, moduletitle, moduledesc,
+                            lecturername, lectureremail, lecturerphone)
+        self.loadCourses(coursecode)
 
     def detailsCreator(self, modulecode, moduletitle, moduledesc, lecturername, lectureremail, lecturerphone):
         tupleofinfo = (modulecode, moduletitle, moduledesc,
@@ -218,9 +252,11 @@ class CourseView(Canvas):
             (r"Assets\My Courses\go_to_discussions.png", 700, 780,
              f"{modulecode}_discussions", self.mainframe,
              lambda:[self.loadDiscussionsView(modulecode, moduletitle), self.focus_force()]),
+            (r"Assets\My Courses\refreshentirecourse.png", 1300, 20,
+             f"{modulecode}refreshallcoursecontent", self.mainframe,
+             lambda:[self.refreshAllCourseContent(modulecode), self.focus_force()]),
         ]
         self.controller.settingsUnpacker(buttonsList, "button")
-
         self.defaulturl = r"https://newinti.edu.my/campuses/inti-international-college-penang/"
         self.urlbar = self.controller.ttkEntryCreator(
             xpos=820, ypos=120, width=980, height=40,

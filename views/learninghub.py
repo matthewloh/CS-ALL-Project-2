@@ -844,9 +844,15 @@ class LearningHub(Canvas):
             (r"Assets\LearningHub\INT4004CEM\MultipleChoiceQuizNumSystem.png", 1360, 580,
              "learninghubquizzesbutton", self.mainframe,
              lambda:self.loadQuizHubContent(self.learninghubquizzesvar.get())),
+            (r"Assets\LearningHub\refreshallcontent.png", 1000, 20,
+             "refreshallcontent", self.mainframe,
+             lambda: self.reloadMenuButtons(coursecode))
         ]
         self.controller.settingsUnpacker(staticButtons, "button")
 
+        self.loadMenuButtons(coursecode)
+
+    def reloadMenuButtons(self, coursecode: str):
         self.loadMenuButtons(coursecode)
 
     def loadMenuButtons(self, coursecode):

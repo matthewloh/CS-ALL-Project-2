@@ -80,6 +80,8 @@ class AppointmentsView(Canvas):
              lambda: self.unloadAppCreation()),
             (r"Assets\My Courses\exitbutton.png", 1820, 20, "appviewexitbtn", self.viewFrame,
              lambda: self.unloadAppView()),
+            (r"Assets\AppointmentsView\refreshviewappointments.png", 520, 60,
+             "refreshviewappointmentsbtn", self.viewFrame, lambda: self.loadFullDetails()),
             (r"Assets\AppointmentsView\DateTimeDialog.png", 1800, 160, "datepickerdialogbtn", self,
              lambda: self.selectingDate())
         ]
@@ -1201,6 +1203,9 @@ class AppointmentsView(Canvas):
                 WD[i].grid_remove()
         except:
             pass
+        self.loadFullDetails()
+
+    def loadFullDetails(self):
         self.appContentList = self.loadLatestAppointmentsStudent(
         ) if self.role == "student" else self.loadLatestAppointmentsLecturer()
         if self.appContentList == None:
