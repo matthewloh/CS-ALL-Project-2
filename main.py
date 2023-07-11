@@ -87,7 +87,7 @@ class Window(ElementCreator):
         self.settingsUnpacker(self.labelSettingsParentFrame, "label")
         self.settingsUnpacker(self.buttonSettingsPSF, "button")
 
-        self.openDevWindow()
+        # self.openDevWindow()
 
         for F in (Dashboard, ):
             frame = F(parent=self.parentFrame, controller=self)

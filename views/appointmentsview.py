@@ -184,7 +184,8 @@ class AppointmentsView(Canvas):
             }
         )
         return modules
-
+    def refreshAppCreationStudent(self):
+        self.loadAllDetailsForCreation()
     def loadAllDetailsForCreation(self):
         # MODULE -> LECTURER -> TIMESLOT
         for widgetname, widget in self.creationFrame.children.items():
@@ -748,10 +749,27 @@ class AppointmentsView(Canvas):
     def loadAsStudent(self):
         self.KL = timezone("Asia/Kuala_Lumpur")
         humanreadable = r"%I:%M%p"
+        self.studentRefreshBtn = self.controller.buttonCreator(
+            imagepath=r"Assets\AppointmentsView\refreshforstudents.png",
+            xpos=560, ypos=540, root=self.creationFrame, classname="studentRefreshBtn",
+            buttonFunction=lambda: self.refreshAppCreationStudent()
+        )
         for me in self.fullinfo:
             lecturerDict = {}
+            if me.module.lecturer == None:
+                lecturerDict = {
+                    "No lecturer": []
+                }
+                self.moduleDict[f"{me.module.moduleCode} - {me.module.moduleTitle}"] = lecturerDict
+                continue
             lecturer = me.module.lecturer.userProfile.fullName
             apptStgTimes = []
+            if me.module.lecturer.apptSettings == []:
+                lecturerDict = {
+                    f"{lecturer}": ["No timeslots provided"]
+                }
+                self.moduleDict[f"{me.module.moduleCode} - {me.module.moduleTitle}"] = lecturerDict
+                continue 
             for apptStg in me.module.lecturer.apptSettings:
                 day = apptStg.day
                 location = apptStg.location
@@ -807,16 +825,19 @@ class AppointmentsView(Canvas):
             "lecturer": {"x": 540, "y": 620, "width": 320, "height": 60},
         }
         # self.moduleDict[modCode] returns
-        timeslotlist = list(self.moduleDict[modCode].keys())
-        self.controller.menubuttonCreator(
+        lecturerList = list(self.moduleDict[modCode].keys())
+        l = self.controller.menubuttonCreator(
             xpos=positions["lecturer"]["x"], ypos=positions["lecturer"]["y"], width=positions[
                 "lecturer"]["width"], height=positions["lecturer"]["height"],
-            root=self.creationFrame, classname="lecturersaptmenu", text="Select Lecturer", listofvalues=timeslotlist,
+            root=self.creationFrame, classname="lecturersaptmenu", text="Select Lecturer", listofvalues=lecturerList,
             variable=self.lecturer, font=("Helvetica", 12),
             command=lambda: self.loadTimeslotMenuBtns(
                 modCode, self.lecturer.get())
         )
-
+        if lecturerList == ["No lecturer"]:
+            self.lecturer.set("No lecturer")
+            l.configure(text="No lecturer", state="disabled")             
+               
     def loadTimeslotMenuBtns(self, modCode, lecturer):
         for widgetname, widget in self.creationFrame.children.items():
             if not widgetname.startswith("!la"):
@@ -829,15 +850,24 @@ class AppointmentsView(Canvas):
             "timeslot": {"x": 920, "y": 620, "width": 320, "height": 60},
         }
         timeslotlist = self.moduleDict[modCode][lecturer]
-        self.controller.menubuttonCreator(
+        if timeslotlist == ["No timeslots provided"]:
+            timeslotlist = ["No available timeslots"]
+            textForBtn = "No available timeslots"
+        else:
+            textForBtn = "Select Timeslot"
+        t = self.controller.menubuttonCreator(
             xpos=positions["timeslot"]["x"], ypos=positions["timeslot"]["y"], width=positions[
                 "timeslot"]["width"], height=positions["timeslot"]["height"],
-            root=self.creationFrame, classname="timeslotmenu", text="Select Timeslot", listofvalues=timeslotlist,
+            root=self.creationFrame, classname="timeslotmenu", text=textForBtn, listofvalues=timeslotlist,
             variable=self.timeslot, font=("Helvetica", 12),
             command=lambda: [
                 print(f"timeslot selected: {self.timeslot.get()}"),
                 self.setVars()]
         )
+        if timeslotlist == ["No available timeslots"]:
+            self.timeslot.set("No available timeslots")
+            t.configure(state="disabled")
+            return
 
     def setVars(self):
         # self.timeslot.get returns the formattedTime

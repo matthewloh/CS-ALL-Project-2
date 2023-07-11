@@ -1,6 +1,7 @@
 import threading
 from tkinter import *
 from tkinter import filedialog
+from tkinter import messagebox
 import uuid
 import boto3
 import ttkbootstrap as ttk
@@ -8,6 +9,7 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
+from ttkbootstrap.dialogs import Messagebox, MessageDialog, Querybox
 from ttkbootstrap.tooltip import ToolTip
 from components.animatedgif import AnimatedGif
 from basewindow import gridGenerator
@@ -75,6 +77,9 @@ class SearchPage(Canvas):
         )
         self.sortByVar.set(self.sortByOptions[0])
         self.inPosts, self.inUploads, self.inHubContent = IntVar(), IntVar(), IntVar()
+        self.inPosts.set(1)
+        self.inUploads.set(1)
+        self.inHubContent.set(1)
         self.searchInPosts = ttk.Checkbutton(
             master=self, bootstyle="success-outline-toolbutton",
             onvalue=1, offvalue=0, text="Discussion Posts",
@@ -110,8 +115,10 @@ class SearchPage(Canvas):
         KL = timezone("Asia/Kuala_Lumpur")
         prisma = self.prisma
         if query == "" or query == "Enter Keyword Here":
+            messagebox.showerror(
+                title="Error", message="Please enter a keyword to search!"
+            )
             return
-        print(query)
         # print(self.inPosts.get(), self.inUploads.get(), self.inHubContent.get())
         modules = prisma.module.find_many(
             where={
@@ -173,6 +180,11 @@ class SearchPage(Canvas):
                     if query in u.title.lower() or query in u.description.lower():
                         finalList.append(
                             (m.moduleCode, u.id, u.title, u.objKey, u.uploadType, "upload"))
+        if len(finalList) == 0:
+            messagebox.showinfo(
+                title="No Results Found", message="No results found for your search."
+            )
+            return
         self.loadSearchResults(finalList)
 
     def loadSearchResults(self, results: list):
