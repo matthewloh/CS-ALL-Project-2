@@ -1190,6 +1190,10 @@ class AppointmentsView(Canvas):
         WD = self.controller.widgetsDict
         self.viewFrame.grid()
         self.viewFrame.tkraise()
+        self.loadFullDetails()
+
+    def loadFullDetails(self):
+        WD = self.controller.widgetsDict
         try:
             staticList = ["viewappname",
                           "viewappemail",
@@ -1203,9 +1207,6 @@ class AppointmentsView(Canvas):
                 WD[i].grid_remove()
         except:
             pass
-        self.loadFullDetails()
-
-    def loadFullDetails(self):
         self.appContentList = self.loadLatestAppointmentsStudent(
         ) if self.role == "student" else self.loadLatestAppointmentsLecturer()
         if self.appContentList == None:

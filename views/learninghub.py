@@ -851,11 +851,56 @@ class LearningHub(Canvas):
         self.controller.settingsUnpacker(staticButtons, "button")
 
         self.loadMenuButtons(coursecode)
-
+        
+    def loadLeaderboard(self, coursecode: str):
+        prisma = self.prisma
+        attempts = prisma.hubcontentattempt.find_many(
+            where={
+                "content": {
+                    "is": {
+                        "module": {
+                            "is": {
+                                "moduleCode": coursecode.upper()
+                            }
+                        }
+                    }
+                }
+            },
+            include={
+                "user": True,
+                "content": True
+            },
+            order={
+                "createdAt": "desc"
+            }
+        )
+        self.leaderboardScrolledFrame = ScrolledFrame(
+            master=self.mainframe, width=560, height = 260, bootstyle="success-rounded", autohide=True
+        )
+        self.leaderboardScrolledFrame.place(x=680, y=640, width=560, height=260)
+        h = len(attempts) * 100 + 20
+        if h < 260:
+            h = 260
+        self.leaderboardScrolledFrame.config(height=h)
+        initCoords = (20,20)
+        for attempt in attempts:
+            nameOfPlayer = attempt.user.fullName
+            text = f"{nameOfPlayer} has scored\n{attempt.contentScore} / {attempt.content.contentInfo['numOfQuestions']} points in {attempt.content.title}!"
+            t = self.controller.textElement(
+                imagepath=r"Assets\LearningHub\leaderboardtextbg.png",
+                xpos=initCoords[0], ypos=initCoords[1],
+                classname=f"{attempt.id}leaderboardtxt", root=self.leaderboardScrolledFrame,
+                fg=WHITE, text=text,
+                size=28, font=INTER, yIndex=-0.5, xoffset=-0.5,
+                isPlaced=True
+            )
+            initCoords = (initCoords[0], initCoords[1] + 100)
+        
     def reloadMenuButtons(self, coursecode: str):
         self.loadMenuButtons(coursecode)
 
     def loadMenuButtons(self, coursecode):
+        self.loadLeaderboard(coursecode)
         self.fillLists(coursecode)
         pos = {
             "learninghubgamesmb": {"x": 180, "y": 380, "width": 360, "height": 60},
@@ -1205,6 +1250,9 @@ class LearningHub(Canvas):
                             "contentScore": correctScore
                         }
                     )
+                    self.playingFrame.grid_remove()
+                    self.rulesFrame.grid_remove()
+                    self.loadMenuButtons(self.currentCourseCode)
                 else:
                     return
             else:
@@ -1215,6 +1263,9 @@ class LearningHub(Canvas):
                         "userId": self.userId
                     }
                 )
+                self.playingFrame.grid_remove()
+                self.rulesFrame.grid_remove()
+                self.loadMenuButtons(self.currentCourseCode)
         elif askOption.result == "Return to the main menu":
             self.playingFrame.grid_remove()
             self.rulesFrame.grid_remove()
