@@ -83,25 +83,35 @@ class AppointmentsView(Canvas):
             (r"Assets\AppointmentsView\refreshviewappointments.png", 520, 60,
              "refreshviewappointmentsbtn", self.viewFrame, lambda: self.loadFullDetails()),
             (r"Assets\AppointmentsView\DateTimeDialog.png", 1800, 160, "datepickerdialogbtn", self,
-             lambda: self.selectingDate())
+             lambda: self.selectDateOnMain(
+                 self.controller.widgetsDict["datepickerdialogbtn"]
+             ))
         ]
         self.controller.settingsUnpacker(self.staticImgLabels, "label")
         self.controller.settingsUnpacker(self.staticBtns, "button")
 
-        self.scrolledframe = ScrolledFrame(
-            self, width=460, height=660, name="appointmentscrolledframe", autohide=True,
-            bootstyle="dark-rounded"
-        )
-        self.scrolledframe.place(
-            x=1420, y=260, width=460, height=620
-        )
+        # self.scrolledframe = ScrolledFrame(
+        #     self, width=460, height=660, name="appointmentscrolledframe", autohide=True,
+        #     bootstyle="dark-rounded"
+        # )
+        # self.scrolledframe.place(
+        #     x=1420, y=260, width=460, height=620
+        # )
         self.mainDateEntry = self.controller.ttkEntryCreator(
             root=self, xpos=1420, ypos=180, width=360, height=40, classname="maindateentry",
             font=("Inter", 16), fg=BLACK,
         )
         self.mainDateEntry.insert(0, datetime.now().strftime('%A, %d %B %Y'))
         self.mainDateEntry.configure(state=READONLY)
-
+    def selectDateOnMain(self, btn):
+        dialog = DatePickerDialog(
+            parent=btn, title="Select Date", firstweekday=0,
+        )
+        date = dialog.date_selected.strftime('%A, %d %B %Y')
+        self.mainDateEntry.configure(state=NORMAL)
+        self.mainDateEntry.delete(0, END)
+        self.mainDateEntry.insert(0, date)
+        self.mainDateEntry.configure(state=READONLY)
     def selectingDate(self, btn: Button, entry: Entry):
         # the pairs of variables
         textvar1 = self.startDateString

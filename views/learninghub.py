@@ -188,6 +188,7 @@ class LearningHub(Canvas):
             numOfQuestions = dictObject["numOfQuestions"]
             if typeOfContent == "GAME":
                 dictOfDetails = {
+                    "typeOfContent": "GAME",  # "GAME
                     "detailsOfContent": (title, description, creationTime, author),
                     "numOfQuestions": numOfQuestions,
                     "questions": questions,
@@ -851,7 +852,7 @@ class LearningHub(Canvas):
         self.controller.settingsUnpacker(staticButtons, "button")
 
         self.loadMenuButtons(coursecode)
-        
+
     def loadLeaderboard(self, coursecode: str):
         prisma = self.prisma
         attempts = prisma.hubcontentattempt.find_many(
@@ -875,14 +876,15 @@ class LearningHub(Canvas):
             }
         )
         self.leaderboardScrolledFrame = ScrolledFrame(
-            master=self.mainframe, width=560, height = 260, bootstyle="success-rounded", autohide=True
+            master=self.mainframe, width=560, height=260, bootstyle="success-rounded", autohide=True
         )
-        self.leaderboardScrolledFrame.place(x=680, y=640, width=560, height=260)
+        self.leaderboardScrolledFrame.place(
+            x=680, y=640, width=560, height=260)
         h = len(attempts) * 100 + 20
         if h < 260:
             h = 260
         self.leaderboardScrolledFrame.config(height=h)
-        initCoords = (20,20)
+        initCoords = (20, 20)
         for attempt in attempts:
             nameOfPlayer = attempt.user.fullName
             text = f"{nameOfPlayer} has scored\n{attempt.contentScore} / {attempt.content.contentInfo['numOfQuestions']} points in {attempt.content.title}!"
@@ -895,7 +897,7 @@ class LearningHub(Canvas):
                 isPlaced=True
             )
             initCoords = (initCoords[0], initCoords[1] + 100)
-        
+
     def reloadMenuButtons(self, coursecode: str):
         self.loadMenuButtons(coursecode)
 
@@ -955,26 +957,34 @@ class LearningHub(Canvas):
         # )
         # self.playingFrame.grid()
         # self.playingFrame.tkraise()
+        typeOfContent = self.moduleGames[titleKey]["typeOfContent"]
         title = self.moduleGames[titleKey]["detailsOfContent"][0]
         description = self.moduleGames[titleKey]["detailsOfContent"][1]
         creationTime = self.moduleGames[titleKey]["detailsOfContent"][2]
         author = self.moduleGames[titleKey]["detailsOfContent"][3]
         numOfQuestions = self.moduleGames[titleKey]["numOfQuestions"]
         questions = self.moduleGames[titleKey]["questions"]
+        print(numOfQuestions)
         for q in questions:
             print(q["question"])
-
+        IMGPATH = r"Assets\LearningHub\RulesFrame\WordleRules.png"
+        self.rulesFrameBg = self.controller.labelCreator(
+            imagepath=IMGPATH, xpos=220, ypos=160,
+            classname="rulesframebg", root=self.rulesFrame,
+        )
+        buttonsForRules = [
+            (r"Assets\LearningHub\RulesFrame\returnbutton.png", 360, 220,
+             "returnbtnrulesframe", self.rulesFrame,
+             lambda: self.rulesFrame.grid_remove()),
+            (r"Assets\LearningHub\RulesFrame\startbutton.png", 1220, 220,
+             "startbtnrulesframe", self.rulesFrame,
+             lambda: self.loadWordlePlayingFrameContent(questions)),
+        ]
+        self.controller.settingsUnpacker(buttonsForRules, "button")
 
     def loadActivityHubContent(self, titleKey):
         if titleKey == "":
             return
-        # IMGPATH = r"Assets\LearningHub\PlayingFrame\ActivityPlayingBG.png"
-        # self.playingFrameBg = self.controller.labelCreator(
-        #     imagepath=IMGPATH, xpos=0, ypos=0,
-        #     classname="playingframebg", root=self.playingFrame,
-        # )
-        # self.playingFrame.grid()
-        # self.playingFrame.tkraise()
         print(titleKey)
         print(self.moduleActivities[titleKey])
 
@@ -999,9 +1009,174 @@ class LearningHub(Canvas):
         self.rulesFrame.grid()
         self.rulesFrame.tkraise()
 
-    def loadGamePlayingFrameContent(self, titleKey):
-        pass
+    def loadWordlePlayingFrameContent(self, words: list):
+        # words = [word["question"] for word in words]
+        INCORRECTLETTER = r"Assets\LearningHub\PlayingFrame\WordleAssets\wrongbg.png"
+        CORRECTLETTER = r"Assets\LearningHub\PlayingFrame\WordleAssets\correctletterandposition.png"
+        INCORRECTPOSITION = r"Assets\LearningHub\PlayingFrame\WordleAssets\wrongpositionbg.png"
+        IMGPATH = r"Assets\LearningHub\PlayingFrame\WordleAssets\WordlePlayingBG.png"
+        self.playingFrame.grid()
+        self.playingFrame.tkraise()
+        self.playingFrameBg = self.controller.labelCreator(
+            imagepath=IMGPATH, xpos=0, ypos=0,
+            classname="playingframebg", root=self.playingFrame,
+        )
+        # 6 rows, 5 columns
+        self.currentWordleWord = IntVar()
+        self.currentWordleWord.set(0)
+        for i in range(6):
+            for j in range(5):
+                self.controller.textElement(
+                    imagepath=INCORRECTLETTER, xpos=680 + j * 100 + (j*20), ypos=100 + i * 100 + (i*20),
+                    classname=f"wordleletter{i}{j}", root=self.playingFrame,
+                    text="", font=SOLWAY, size=64, fg=WHITE,
+                    xoffset=0.9, yIndex=-0.1
+                )
+        # initialize the letter entering buttons
+        # using string library to get the alphabets
+        self.mainEntry = self.controller.ttkEntryCreator(
+            xpos=680, ypos=820, width=480, height=80,
+            classname="wordlemainentry", root=self.playingFrame,
+        )
+        self.submitWordleAttempt = self.controller.buttonCreator(
+            imagepath=r"Assets\LearningHub\PlayingFrame\WordleAssets\submitattempt.png",
+            xpos=1180, ypos=820, classname="submitwordleattempt", root=self.playingFrame,
+            buttonFunction=lambda: self.submitWordleAttemptFunc(
+                self.mainEntry.get(), words)
+        )
+        vcmd = (self.playingFrame.register(self.validateWordleEntry), '%P')
+        self.mainEntry.config(validate="all", validatecommand=vcmd)
+        self.mainEntry.bind("<Return>", lambda e: self.submitWordleAttemptFunc(
+            self.mainEntry.get(), words
+        ))
 
+    def validateWordleEntry(self, attempt):
+        if len(attempt) > 5:
+            return False
+        elif str.isalpha(attempt) or attempt == "":
+            return True
+        else:
+            return False
+
+    def submitWordleAttemptFunc(self, attempt: str, words: list):
+        currentQuestion = words[self.currentWordleWord.get()]
+        word = currentQuestion["question"]
+        print(attempt)
+        print(word)
+        # currentWordleWord is an int that ranges from 0 to 5
+        # check if the attempt is correct
+        # if correct, then show the correct letters
+        # if letter is correct and in the correct position, then show the letter and the position
+        # if letter is correct but in the wrong position, then show the letter but not the position
+        INCORRECTLETTER = r"Assets\LearningHub\PlayingFrame\WordleAssets\wrongbg.png"
+        CORRECTLETTER = r"Assets\LearningHub\PlayingFrame\WordleAssets\correctletterandposition.png"
+        INCORRECTPOSITION = r"Assets\LearningHub\PlayingFrame\WordleAssets\wrongpositionbg.png"
+        # parse the input, and check if the letter is correct
+        #TODO: fix the bug where the letter is duplicated
+        for i in attempt:
+            if i in word:
+                # count the number of occurences of the letter
+                # if the letter is duplicated, classname will be wordleletter{currentWordleWord}{index}
+                # so enumerate the word, and check if the letter is in the word
+                for x, y in enumerate(word):
+                    if i == y and i == attempt[x]:
+                        # show the letter
+                        self.controller.textElement(
+                            imagepath=CORRECTLETTER,
+                            classname=f"wordleletter{self.currentWordleWord.get()}{x}",
+                            root=self.playingFrame,
+                            xpos=680 + x * 100 + (x*20),
+                            ypos=100 + self.currentWordleWord.get() * 100 + (self.currentWordleWord.get()*20),
+                            font=SOLWAY, size=64, fg=WHITE,
+                            xoffset=0.9, yIndex=-0.1,
+                            text=i.upper()
+                        )
+                    elif i == y and i != attempt[x]:
+                        # show the letter
+                        self.controller.textElement(
+                            imagepath=INCORRECTPOSITION,
+                            classname=f"wordleletter{self.currentWordleWord.get()}{x}",
+                            root=self.playingFrame,
+                            xpos=680 + x * 100 + (x*20),
+                            ypos=100 + self.currentWordleWord.get() * 100 + (self.currentWordleWord.get()*20),
+                            font=SOLWAY, size=64, fg=WHITE,
+                            xoffset=0.9, yIndex=-0.1,
+                            text=i.upper()
+                        )
+            else:
+                # show the letter
+                self.controller.textElement(
+                    imagepath=INCORRECTLETTER,
+                    classname=f"wordleletter{self.currentWordleWord.get()}{attempt.index(i)}",
+                    root=self.playingFrame,
+                    xpos=680 + attempt.index(i) *
+                    100 + (attempt.index(i)*20),
+                    ypos=100 + self.currentWordleWord.get() * 100 + (self.currentWordleWord.get()*20),
+                    font=SOLWAY, size=64, fg=WHITE,
+                    xoffset=0.9, yIndex=-0.1,
+                    text=i.upper()
+                )
+        # check if the letter is in the correct position
+        for i in attempt:
+            if i in word:
+                # check if the letter is in the correct position
+                if attempt.index(i) == word.index(i):
+                    # show the letter
+                    self.controller.textElement(
+                        imagepath=CORRECTLETTER,
+                        classname=f"wordleletter{self.currentWordleWord.get()}{attempt.index(i)}",
+                        root=self.playingFrame,
+                        xpos=680 + attempt.index(i) *
+                        100 + (attempt.index(i)*20),
+                        ypos=100 + self.currentWordleWord.get() * 100 + (self.currentWordleWord.get()*20),
+                        font=SOLWAY, size=64, fg=WHITE,
+                        xoffset=0.9, yIndex=-0.1,
+                        text=i.upper()
+                    )
+                else:
+                    # show the letter
+                    self.controller.textElement(
+                        imagepath=INCORRECTPOSITION,
+                        classname=f"wordleletter{self.currentWordleWord.get()}{attempt.index(i)}",
+                        root=self.playingFrame,
+                        xpos=680 + attempt.index(i) *
+                        100 + (attempt.index(i)*20),
+                        ypos=100 + self.currentWordleWord.get() * 100 + (self.currentWordleWord.get()*20),
+                        font=SOLWAY, size=64, fg=WHITE,
+                        xoffset=0.9, yIndex=-0.1,
+                        text=i.upper()
+                    )
+        # check if the word is correct
+        if attempt == word:
+            # show the word as correct
+            self.controller.textElement(
+                imagepath=CORRECTLETTER,
+                classname=f"wordleletter{self.currentWordleWord.get()}{attempt.index(i)}",
+                root=self.playingFrame,
+                xpos=680 + attempt.index(i) *
+                100 + (attempt.index(i)*20),
+                ypos=100 + self.currentWordleWord.get() * 100 + (self.currentWordleWord.get()*20),
+                font=SOLWAY, size=64, fg=WHITE,
+                xoffset=0.9, yIndex=-0.1,
+                text=i.upper()
+            )
+            # increment the currentWordleWord
+            self.currentWordleWord.set(self.currentWordleWord.get() + 1)
+            # clear the entry
+            self.mainEntry.delete(0, END)
+            # check if the currentWordleWord is 6
+            if self.currentWordleWord.get() == 6:
+                # show the next button
+                self.nextWordleBtn = self.controller.buttonCreator(
+                    imagepath=r"Assets\LearningHub\PlayingFrame\WordleAssets\nextwordlebtn.png",
+                    classname="nextwordlebtn", root=self.playingFrame,
+                    xpos=1180, ypos=820,
+                    buttonFunction=lambda: self.nextWordleFunc(words)
+                )
+        else:
+            # clear the entry
+            self.mainEntry.delete(0, END)
+            
     def loadActivityPlayingFrameContent(self, titleKey):
         pass
 

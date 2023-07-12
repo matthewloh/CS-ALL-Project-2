@@ -13,7 +13,7 @@ from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from dotenv import load_dotenv
 from prisma import Prisma
-from prisma.models import ModuleEnrollment, Module
+from prisma.models import ModuleEnrollment, Module, Appointment
 from basewindow import gridGenerator
 import bcrypt
 from pendulum import timezone
@@ -629,12 +629,17 @@ class Dashboard(Frame):
             self.controller.labelCreator(r"Assets\Dashboard\TeacherDashboard.png", 0, 0,
                                          classname="TeacherDashboardLabel", root=self.dashboardcanvasref)
 
+    def refreshDashboard(self, data):
+        self.postLogin(data)
+
     def postLogin(self, data: dict):
+        self.data = data
         self.prisma = self.controller.mainPrisma
         prisma = self.prisma
         role = data["role"]
         self.role = role
         id = data["id"]
+        self.userId = id
         fullName = data["fullName"]
         email = data["email"]
         modules = data["modules"]
@@ -647,6 +652,10 @@ class Dashboard(Frame):
             imagepath=r"Assets\Dashboard\NameBg.png", xpos=160, ypos=160,
             classname="useremaildash", root=self.dashboardcanvasref, text=email, size=24, xoffset=-1
         )
+        self.controller.buttonCreator(
+            imagepath=r"Assets\Dashboard\refreshbuttondashboard.png", xpos=640, ypos=20,
+            classname="refreshbtndashboard", root=self.dashboardcanvasref,
+            buttonFunction=lambda: self.refreshDashboard(data))
         # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
         initialypos = 20
         h = len(modules) * 380 + 20
@@ -675,6 +684,22 @@ class Dashboard(Frame):
                     "moduleUploads": True,
                 }
             )
+            appointments = prisma.appointment.find_many(
+                where={
+                    "student": {
+                        "is": {
+                            "userId": id
+                        }
+                    }
+                },
+                include={
+                    "lecturer": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    },
+                }
+            )
         elif role == "lecturer":
             modules = prisma.module.find_many(
                 where={
@@ -690,7 +715,59 @@ class Dashboard(Frame):
                     "moduleUploads": True,
                 }
             )
+            appointments = prisma.appointment.find_many(
+                where={
+                    "lecturer": {
+                        "is": {
+                            "userId": id
+                        }
+                    }
+                },
+                include={
+                    "student": {
+                        "include": {
+                            "userProfile": True
+                        }
+                    }
+                }
+            )
         self.loadDashboard(modules, initialypos)
+        self.loadAppointments(appointments)
+
+    def loadAppointments(self, appointments: List[Appointment]):
+        prisma = self.prisma
+        c = self.controller
+        APPTEXTBG = r"Assets\Dashboard\appsbg.png"
+        initCoords = (20, 20)
+        self.dashboardAppsScrolledFrame = ScrolledFrame(
+            self.dashboardcanvasref, width=640, height=460, bootstyle="bg-rounded", autohide=True,
+        )
+        self.dashboardAppsScrolledFrame.place(
+            x=40, y=420, width=640, height=460)
+        h = len(appointments) * 120 + 20
+        if h < 460:
+            h = 460
+        self.dashboardAppsScrolledFrame.configure(height=h)
+        for app in appointments:
+            c.textElement(
+                imagepath=APPTEXTBG, xpos=initCoords[0], ypos=initCoords[1],
+                classname=f"{app.id}appointmentwidget", root=self.dashboardAppsScrolledFrame,
+                text=f"{app.title}\nwith {app.lecturer.userProfile.fullName}" if self.role == "student" else f"{app.title} with {app.student.userProfile.fullName}",
+                size=28,
+                buttonFunction=lambda e=app: self.navigateToAppointments(e),
+                isPlaced=True, yIndex=-1/2,
+            )
+            initCoords = (initCoords[0], initCoords[1] + 120)
+
+    def navigateToAppointments(self, app: Appointment, appview: AppointmentsView = None):
+        appview = self.controller.widgetsDict["appointmentsview"]
+        appview.role = self.role
+        appview.prisma = self.controller.mainPrisma
+        appview.userId = self.userId
+        appview.loadAppView()
+        appview.loadFullDetails()
+        appview.viewAppointment(app)
+        self.controller.show_canvas(AppointmentsView)
 
     def loadDashboard(self, modules: List[Module], initialypos):
         KL = timezone("Asia/Kuala_Lumpur")
@@ -778,7 +855,7 @@ class Dashboard(Frame):
                     imagepath=r"Assets\Dashboard\contentnamebg.png", xpos=20, ypos=initinteriorYpos,
                     classname=f"{content.title}contentname", root=fr, text=f"Content: {content.title} - {content.contentType}",
                     size=20,
-                    buttonFunction=lambda e=(module.moduleCode, content.title): self.navigateToModuleContentView(e[0], e[1]), isPlaced=True
+                    buttonFunction=lambda e=(module.moduleCode, content.title, content.contentType): self.navigateToModuleContentView(e[0], e[1], e[2]), isPlaced=True
                 )
                 tiptext = f"Last updated: {KL.convert(content.updatedAt).strftime('%d/%m/%Y %H:%M')}\nAttempts: {len(content.attempts)}\nDescription:{content.description}\nClick to view content"
                 ToolTip(c, text=tiptext, bootstyle=(INFO, INVERSE))
@@ -805,15 +882,21 @@ class Dashboard(Frame):
                 initinteriorYpos += 80
             initialypos += 380
 
-    def navigateToModuleContentView(self, courseCode, contentTitle, hub: LearningHub = None):
+    def navigateToModuleContentView(self, courseCode, contentTitle, contentType, hub: LearningHub = None):
         hub = self.controller.widgetsDict["learninghub"]
         hub.role = self.role
         hub.prisma = self.controller.mainPrisma
         hub.loadCourseHubContent(courseCode)
-        hub.learninghubquizzesvar.set(contentTitle)
-        self.controller.widgetsDict["learninghubquizzesmb"].config(
-            text=contentTitle)
-        hub.loadQuizHubContent(contentTitle)
+        if contentType == "MULTIPLE_CHOICE" or contentType == "FILL_IN_THE_BLANK":
+            hub.learninghubquizzesvar.set(contentTitle)
+            self.controller.widgetsDict["learninghubquizzesmb"].config(
+                text=contentTitle)
+            hub.loadQuizHubContent(contentTitle)
+        elif contentType == "GAME":
+            hub.learninghubgamesvar.set(contentTitle)
+            self.controller.widgetsDict["learninghubgamesmb"].config(
+                text=contentTitle)
+            hub.loadGameHubContent
         self.controller.show_canvas(LearningHub)
 
     def navigateToModulePostView(self, modulecode, moduletitle, discview: DiscussionsView = None):
