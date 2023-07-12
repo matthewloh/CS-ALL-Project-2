@@ -115,19 +115,34 @@ class AppointmentsView(Canvas):
         entry.configure(state=READONLY)
         dayOfTextVar1 = datetime.strptime(
             textvar1.get(), '%A, %d %B %Y').strftime('%A')
-        # check the day of the textvar1 and compare it with the self.dayString.get()
-        print(dayOfTextVar1)
-        if datetime.strptime(textvar1.get(), '%A, %d %B %Y') <= datetime.now():
-            # revert textvar1 to the original date
+        toast = ToastNotification(
+            title="Invalid Date Selected",
+            message=f"The timeslot you have selected falls before the current time. Please select a date which is after the current time.",
+            duration=5000,
+            bootstyle=DANGER
+        )
+        starttime = self.timeslot.get().split(
+            " at ")[0].split(" - ")[0].split(",")[1].strip()
+        target_datetime = datetime.combine(datetime.strptime(textvar1.get(
+        ), '%A, %d %B %Y').date(), dt.datetime.strptime(starttime, "%I:%M%p").time())
+        if target_datetime <= datetime.now():
+            # check if the dayOfTextVar1 is before the current time
             textvar1.set(self.formatString)
-            ToastNotification(
-                title="Invalid Date",
-                message=f"The timeslot you have selected falls before the current time. Please select a date which is after the current time.",
-                duration=5000,
-                bootstyle=DANGER
-            ).show_toast()
+            toast.message = f"The timeslot you have selected falls before the current time. Please select a date which is after the current time."
+            toast.show_toast()
         elif self.dayString.get() == dayOfTextVar1.upper():
-            print("same day")
+            # check if the dayOfTextVar1 is the same as the dayString
+            # check if the target date is today, but the meeting time has already passed
+            target_date = datetime.strptime(
+                textvar1.get(), '%A, %d %B %Y').date()
+            today = datetime.now().date()
+            starttime = self.timeslot.get().split(
+                " at ")[0].split(" - ")[0].split(",")[1].strip()
+            if target_date == today and dt.datetime.strptime(starttime, "%I:%M%p").time() < dt.datetime.now().time():
+                target_date = today + dt.timedelta(days=7)
+                toast.message = f"The time for the timeslot you have selected has already passed. The date has been changed to {target_date.strftime('%A, %d %B %Y')}."
+                toast.show_toast()
+                textvar1.set(target_date.strftime('%A, %d %B %Y'))
         # if the dayOfTextVar1 is before the current time, then revert the textvar1 to the original date
         else:
             # revert textvar1 to the original date
@@ -186,8 +201,10 @@ class AppointmentsView(Canvas):
             }
         )
         return modules
+
     def refreshAppCreationStudent(self):
         self.loadAllDetailsForCreation()
+
     def loadAllDetailsForCreation(self):
         # MODULE -> LECTURER -> TIMESLOT
         for widgetname, widget in self.creationFrame.children.items():
@@ -771,7 +788,7 @@ class AppointmentsView(Canvas):
                     f"{lecturer}": ["No timeslots provided"]
                 }
                 self.moduleDict[f"{me.module.moduleCode} - {me.module.moduleTitle}"] = lecturerDict
-                continue 
+                continue
             for apptStg in me.module.lecturer.apptSettings:
                 day = apptStg.day
                 location = apptStg.location
@@ -837,9 +854,9 @@ class AppointmentsView(Canvas):
                 modCode, self.lecturer.get())
         )
         if lecturerList == ["No lecturer"]:
-            self.lecturer.set("No lecturer")
-            l.configure(text="No lecturer", state="disabled")             
-               
+            self.lecturer.set("")
+            l.configure(text="No lecturer", state="disabled")
+
     def loadTimeslotMenuBtns(self, modCode, lecturer):
         for widgetname, widget in self.creationFrame.children.items():
             if not widgetname.startswith("!la"):
@@ -855,6 +872,7 @@ class AppointmentsView(Canvas):
         if timeslotlist == ["No timeslots provided"]:
             timeslotlist = ["No available timeslots"]
             textForBtn = "No available timeslots"
+            self.timeslot.set("")
         else:
             textForBtn = "Select Timeslot"
         t = self.controller.menubuttonCreator(
@@ -863,11 +881,10 @@ class AppointmentsView(Canvas):
             root=self.creationFrame, classname="timeslotmenu", text=textForBtn, listofvalues=timeslotlist,
             variable=self.timeslot, font=("Helvetica", 12),
             command=lambda: [
-                print(f"timeslot selected: {self.timeslot.get()}"),
                 self.setVars()]
         )
         if timeslotlist == ["No available timeslots"]:
-            self.timeslot.set("No available timeslots")
+            self.timeslot.set("")
             t.configure(state="disabled")
             return
 
@@ -891,6 +908,8 @@ class AppointmentsView(Canvas):
         target_weekday = list(calendar.day_name).index(day.capitalize())
         days_ahead = (target_weekday - current_weekday) % 7
         target_date = today + dt.timedelta(days=days_ahead)
+        if target_date == today and dt.datetime.strptime(starttime, "%I:%M%p").time() < dt.datetime.now().time():
+            target_date = today + dt.timedelta(days=7)
         self.formatString = target_date.strftime("%A, %d %B %Y")
         self.startDateString = StringVar()
         self.startDateEntry = self.controller.ttkEntryCreator(
@@ -905,52 +924,6 @@ class AppointmentsView(Canvas):
         self.locationString.set(location)
         self.startTimeString.set(starttime)
         self.endTimeString.set(endtime)
-
-    def validateDateInputs(self):
-        # Constructing a valid DateTime Object to send into DB
-        startDate = self.startDateEntry.get()
-        # endDate = self.endDateEntry.get()
-        startTimeStr = self.appStartTimeVar.get()
-        endTimeStr = self.appEndTimeVar.get()
-
-        # construct regexes to match against
-        # Date Pattern = 30/06/2023
-        # Time = 10:00AM
-        date_pattern = re.compile(r"([0-9]{2}/[0-9]{2}/[0-9]{4})")
-        time_pattern = re.compile(r"([0-9]{2}:[0-9]{2}[AP]M)")
-        # match against the regexes
-        # check individual inputs
-        toast = ToastNotification(
-            title="Invalid Date/Time Input",
-            message="Please enter a valid date and time input",
-            duration=5000,
-            bootstyle=DANGER
-        )
-
-        if not date_pattern.match(startDate):
-            toast.message = "Please enter a valid start date"
-            toast.show_toast()
-            return
-        # elif not date_pattern.match(endDate):
-        #     toast.message = "Please enter a valid end date"
-        #     toast.show_toast()
-        #     return
-        elif not time_pattern.match(startTimeStr):
-            toast.message = "Please enter a valid start time, the format is 10:00AM"
-            toast.show_toast()
-        elif not time_pattern.match(endTimeStr):
-            toast.message = "Please enter a valid end time, the format is 10:00AM"
-            toast.show_toast()
-        else:
-            pass
-        if date_pattern.match(startDate) and time_pattern.match(startTimeStr) and time_pattern.match(endTimeStr):
-            # if all the inputs are valid, construct the datetime object
-            # 30/06/2023 10:00AM
-            # startDateTime = datetime.strptime(
-            #     f"{startDate} {startTimeStr}", "%d/%m/%Y %I:%M%p")
-
-            #     # if it isn't, return False
-            return False
 
     def createAppointment(self):
         prisma = self.prisma
@@ -1009,7 +982,9 @@ class AppointmentsView(Canvas):
                 "lectAccept": True,
                 "studAccept": True,
                 "lecturerId": lecturer.id,
-                "studentId": student.id
+                "studentId": student.id,
+                "studAcceptAt": self.UTC.convert(self.KL.convert(datetime.now())),
+                "lectAcceptAt": self.UTC.convert(self.KL.convert(datetime.now())),
             },
         )
         options = ["Create Another Appointment:success",
@@ -1101,17 +1076,37 @@ class AppointmentsView(Canvas):
         WD["appendtimemb"].config(state=DISABLED)
         WD["appstarttimemb"].config(state=DISABLED)
 
+    def navigateAppDetailsFrame(self):
+        warnToast = ToastNotification(
+            title="Empty Fields",
+            message="Please fill in all the fields before continuing",
+            bootstyle=DANGER,
+            duration=3000,
+        )
+        if self.module.get() == "":
+            warnToast.message = "Please select a module before continuing"
+            warnToast.show_toast()
+            return
+        elif self.lecturer.get() == "":
+            warnToast.message = "Please select a lecturer before continuing"
+            warnToast.show_toast()
+            return
+        elif self.timeslot.get() == "":
+            warnToast.message = "Please select a timeslot before continuing"
+            warnToast.show_toast()
+            return
+        self.loadAppDetailsFrame()
+
     def loadAppCreation(self):
         self.apptCreateFrame.grid_remove()
         # self.loadAllDetailsForCreation()
-        print(self.role)
         self.creationFrame.grid()
         self.creationFrame.tkraise()
         if self.role == "student":
             self.lecAddTimeslotFrame.grid_remove()
             btnsettings = [
                 (r"Assets\AppointmentsView\continuecreationbtn.png", 520, 740, "continuecreation", self.creationFrame,
-                 lambda: self.loadAppDetailsFrame()),
+                 lambda: self.navigateAppDetailsFrame()),
             ]
         elif self.role == "lecturer":
             self.lecAddTimeslotFrame.grid()
@@ -1202,7 +1197,10 @@ class AppointmentsView(Canvas):
                           "viewappstartdate",
                           "viewappstarttime",
                           "viewappenddate",
-                          "viewappendtime"]
+                          "viewappendtime",
+                          "viewappstudstatus",
+                          "viewapplectstatus",
+                          "refreshstatus"]
             for i in staticList:
                 WD[i].grid_remove()
         except:
@@ -1275,6 +1273,28 @@ class AppointmentsView(Canvas):
             isPlaced=True
         )
 
+    def refreshApptStatus(self, app: Appointment):
+        self.loadFullDetails()
+        prisma = self.prisma
+        newapp = prisma.appointment.find_first(
+            where={
+                "id": app.id
+            },
+            include={
+                "lecturer": {
+                    "include": {
+                        "userProfile": True
+                    }
+                },
+                "student": {
+                    "include": {
+                        "userProfile": True
+                    }
+                }
+            }
+        )
+        self.viewAppointment(newapp)
+
     def viewAppointment(self, app: Appointment):
         VBG = r"Assets\AppointmentsView\ManageApp\AppWithTextBg.png"
         ACCEPT = r"Assets\AppointmentsView\ManageApp\Accept.png"
@@ -1282,6 +1302,15 @@ class AppointmentsView(Canvas):
         LOCATIONDETAILS = r"Assets\AppointmentsView\ManageApp\LocationDetailsBg.png"
         DATEDETAILS = r"Assets\AppointmentsView\ManageApp\DateDetailsText.png"
         TIMEDETAILS = r"Assets\AppointmentsView\ManageApp\TimeDetailsBg.png"
+        REFRESHSTATUS = r"Assets\AppointmentsView\refreshappointwithstatus.png"
+        UNDERWAY = r"Assets\AppointmentsView\ManageApp\appointmentunderway.png"
+        COMPLETE = r"Assets\AppointmentsView\ManageApp\completeappt.png"
+        INCOMPLETE = r"Assets\AppointmentsView\ManageApp\incompleteappt.png"
+        self.refreshAppStatusBtn = self.controller.buttonCreator(
+            imagepath=REFRESHSTATUS, xpos=1080, ypos=60,
+            root=self.viewFrame, classname=f"refreshstatus",
+            buttonFunction=lambda app=app: self.refreshApptStatus(app),
+        )
         humanreadable = r"%A, %B %d %Y at %I:%M:%S %p"
         if self.role == "student":
             texts = [
@@ -1331,9 +1360,38 @@ class AppointmentsView(Canvas):
         )
         # Status Checks
         # If student has accepted
-        # If lecturer has accepted
-        # Appointment Details, Location and Time
-        # Location
+        studAccept = app.studAccept
+        lectAccept = app.lectAccept
+        if self.role == "student":
+            self.controller.buttonCreator(
+                imagepath=ACCEPT if studAccept else NOTACCEPT,
+                xpos=740, ypos=700,
+                root=self.viewFrame, classname="viewappstudstatus",
+                buttonFunction=lambda: self.showAcceptedAgo(
+                    app, isStudent=True)
+            )
+            self.controller.buttonCreator(
+                imagepath=ACCEPT if lectAccept else NOTACCEPT,
+                xpos=980, ypos=700,
+                root=self.viewFrame, classname="viewapplectstatus",
+                buttonFunction=lambda: self.showAcceptedAgo(
+                    app, isLecturer=True)
+            )
+        elif self.role == "lecturer":
+            self.controller.buttonCreator(
+                imagepath=ACCEPT if lectAccept else NOTACCEPT,
+                xpos=740, ypos=700,
+                root=self.viewFrame, classname="viewappstudstatus",
+                buttonFunction=lambda: self.showAcceptedAgo(
+                    app, isLecturer=True)
+            )
+            self.controller.buttonCreator(
+                imagepath=ACCEPT if studAccept else NOTACCEPT,
+                xpos=980, ypos=700,
+                root=self.viewFrame, classname="viewapplectstatus",
+                buttonFunction=lambda: self.showAcceptedAgo(
+                    app, isStudent=True)
+            )
         self.controller.textElement(
             imagepath=LOCATIONDETAILS, xpos=1520, ypos=120,
             root=self.viewFrame, classname="viewapplocation",
@@ -1365,6 +1423,263 @@ class AppointmentsView(Canvas):
             root=self.viewFrame, classname="viewappendtime",
             text=f"{endTime.strftime(humantime)}", font=SFPRO, size=24, fg=BLACK,
         )
+
+        # Completion Status
+        if app.isCompleted:
+            self.controller.buttonCreator(
+                imagepath=COMPLETE, xpos=1240, ypos=400,
+                root=self.viewFrame, classname="viewappcomplete",
+                buttonFunction=lambda: self.showCompletedAgo(app)
+            ) if self.role == "lecturer" else self.controller.labelCreator(
+                imagepath=COMPLETE, xpos=1240, ypos=400,
+                root=self.viewFrame, classname="viewappcomplete",
+            )
+        else:
+            self.controller.buttonCreator(
+                imagepath=INCOMPLETE, xpos=1240, ypos=400,
+                root=self.viewFrame, classname="viewappcomplete",
+                buttonFunction=lambda: self.showCompletedAgo(app)
+            ) if self.role == "lecturer" else self.controller.labelCreator(
+                imagepath=INCOMPLETE, xpos=1240, ypos=400,
+                root=self.viewFrame, classname="viewappcomplete",
+            )
+
+    def showCompletedAgo(self, app: Appointment):
+        prisma = self.prisma
+        parent = self.controller.widgetsDict["viewappcomplete"]
+        completedAgo = app.completedAt
+        if completedAgo:
+            completedAgo = self.KL.convert(completedAgo)
+            # ask if want to uncomplete
+            ask = MessageDialog(
+                title="Completed At",
+                parent=parent,
+                message=f"This was completed at {completedAgo.strftime('%A, %B %d %Y at %I:%M:%S %p')}\nWould you like to uncomplete this appointment?",
+                buttons=["Yes:success", "No:danger"]
+            )
+            ask.show()
+            if ask.result == "Yes":
+                newapp = prisma.appointment.update(
+                    where={
+                        "id": app.id
+                    },
+                    data={
+                        "isCompleted": False,
+                        "completedAt": None
+                    },
+                    include={
+                        "student": {
+                            "include": {
+                                "userProfile": True
+                            }
+                        },
+                        "lecturer": {
+                            "include": {
+                                "userProfile": True
+                            }
+                        }
+                    }
+                )
+                self.refreshApptStatus(newapp)
+            else:
+                return
+        else:
+            # ask if want to accept
+            ask = MessageDialog(
+                title="Complete Appointment",
+                parent=parent,
+                message=f"Would you like to complete this appointment?",
+                buttons=["Yes:success", "No:danger"]
+            )
+            ask.show()
+            if ask.result == "Yes":
+                newapp = prisma.appointment.update(
+                    where={
+                        "id": app.id
+                    },
+                    data={
+                        "isCompleted": True,
+                        "completedAt": self.UTC.convert(self.KL.convert(datetime.now()))
+                    },
+                    include={
+                        "student": {
+                            "include": {
+                                "userProfile": True
+                            }
+                        },
+                        "lecturer": {
+                            "include": {
+                                "userProfile": True
+                            }
+                        }
+                    }
+                )
+                self.refreshApptStatus(newapp)
+            else:
+                return
+
+    def showAcceptedAgo(self, app: Appointment, isStudent: bool = False, isLecturer: bool = False):
+        prisma = self.prisma
+        if isStudent and self.role == "student":
+            parent = self.controller.widgetsDict["viewappstudstatus"]
+            try:
+                acceptedAgo = app.studAcceptAt
+                acceptedAgo = self.KL.convert(acceptedAgo)
+                # ask if want to unaccept
+                ask = MessageDialog(
+                    title="Accepted At",
+                    parent=parent,
+                    message=f"This was accepted at {acceptedAgo.strftime('%A, %B %d %Y at %I:%M:%S %p')}\nWould you like to unaccept this appointment?",
+                    buttons=["Yes:success", "No:danger"]
+                )
+                ask.show()
+                if ask.result == "Yes":
+                    newapp = prisma.appointment.update(
+                        where={
+                            "id": app.id
+                        },
+                        data={
+                            "studAccept": False,
+                            "studAcceptAt": None,
+                        },
+                        include={
+                            "student": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            },
+                            "lecturer": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            }
+                        }
+                    )
+                    self.refreshApptStatus(newapp)
+                else:
+                    return
+            except:
+                ask = MessageDialog(
+                    title="Not Accepted Yet",
+                    parent=parent,
+                    message="This appointment has not been accepted yet by you, would you like to accept it?",
+                    buttons=["Yes:success", "No:danger"]
+                )
+                ask.show()
+                if ask.result == "Yes":
+                    newapp = prisma.appointment.update(
+                        where={
+                            "id": app.id
+                        },
+                        data={
+                            "studAccept": True,
+                            "studAcceptAt": self.UTC.convert(self.KL.convert(datetime.now()))
+                        },
+                        include={
+                            "student": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            },
+                            "lecturer": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            }
+                        }
+                    )
+                    self.refreshApptStatus(newapp)
+                else:
+                    return
+        elif isLecturer and self.role == "student":
+            try:
+                acceptedAgo = app.lectAcceptAt
+                acceptedAgo = self.KL.convert(acceptedAgo)
+                messagebox.showinfo(
+                    title="Accepted At", message=f"{acceptedAgo.strftime('%A, %B %d %Y at %I:%M:%S %p')}"
+                )
+            except:
+                pass
+        elif isLecturer and self.role == "lecturer":
+            parent = self.controller.widgetsDict["viewappstudstatus"]
+            try:
+                acceptedAgo = app.lectAcceptAt
+                acceptedAgo = self.KL.convert(acceptedAgo)
+                # ask if want to unaccept
+                ask = MessageDialog(
+                    title="Accepted At",
+                    parent=parent,
+                    message=f"This was accepted at {acceptedAgo.strftime('%A, %B %d %Y at %I:%M:%S %p')}\nWould you like to unaccept this appointment?",
+                    buttons=["Yes:success", "No:danger"]
+                )
+                ask.show()
+                if ask.result == "Yes":
+                    newapp = prisma.appointment.update(
+                        where={
+                            "id": app.id
+                        },
+                        data={
+                            "lectAccept": False,
+                            "lectAcceptAt": None,
+                        },
+                        include={
+                            "student": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            },
+                            "lecturer": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            }
+                        }
+                    )
+                    self.refreshApptStatus(newapp)
+                else:
+                    return
+            except:
+                ask = MessageDialog(
+                    title="Not Accepted Yet",
+                    parent=parent,
+                    message="This appointment has not been accepted yet by you, would you like to accept it?",
+                    buttons=["Yes:success", "No:danger"]
+                )
+                ask.show()
+                if ask.result == "Yes":
+                    newapp = prisma.appointment.update(
+                        where={
+                            "id": app.id
+                        },
+                        data={
+                            "lectAccept": True,
+                            "lectAcceptAt": self.UTC.convert(self.KL.convert(datetime.now()))
+                        },
+                        include={
+                            "student": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            },
+                            "lecturer": {
+                                "include": {
+                                    "userProfile": True
+                                }
+                            }
+                        }
+                    )
+                    self.refreshApptStatus(newapp)
+                else:
+                    return
+        elif isStudent and self.role == "lecturer":
+            try:
+                acceptedAgo = app.studAcceptAt
+                acceptedAgo = self.KL.convert(acceptedAgo)
+                messagebox.showinfo(
+                    title="Accepted At", message=f"{acceptedAgo.strftime('%A, %B %d %Y at %I:%M:%S %p')}"
+                )
+            except:
+                pass
 
     def unloadAppView(self):
         self.viewFrame.grid_remove()

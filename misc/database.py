@@ -1606,6 +1606,170 @@ def testUploadBlob():
     # print(type(im))
 
 
+def createGame():
+    """ 
+    quizData = {
+        "numOfQuestions": 10,
+        "questions": [
+            {
+                "question": "What is the binary representation of the decimal number 10?",
+                "options": [
+                    "1010",
+                    "1100",
+                    "1110",
+                    "1001"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the hexadecimal representation of the binary number 101011?",
+                "options": [
+                    "2B",
+                    "5A",
+                    "AB",
+                    "BA"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the octal representation of the decimal number 25?",
+                "options": [
+                    "31",
+                    "32",
+                    "33",
+                    "34"
+                ],
+                "correctAnswer": 2
+            },
+            {
+                "question": "What is the decimal equivalent of the binary number 1101?",
+                "options": [
+                    "11",
+                    "12",
+                    "13",
+                    "14"
+                ],
+                "correctAnswer": 2
+            },
+            {
+                "question": "What is the binary representation of the hexadecimal number 2F?",
+                "options": [
+                    "101011",
+                    "110011",
+                    "111011",
+                    "100011"
+                ],
+                "correctAnswer": 1
+            },
+            {
+                "question": "What is the hexadecimal representation of the decimal number 255?",
+                "options": [
+                    "FF",
+                    "EE",
+                    "DD",
+                    "CC"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the octal representation of the binary number 101010?",
+                "options": [
+                    "52",
+                    "54",
+                    "56",
+                    "60"
+                ],
+                "correctAnswer": 1
+            },
+            {
+                "question": "What is the decimal equivalent of the octal number 77?",
+                "options": [
+                    "63",
+                    "64",
+                    "65",
+                    "66"
+                ],
+                "correctAnswer": 3
+            },
+            {
+                "question": "What is the binary representation of the decimal number 7?",
+                "options": [
+                    "0111",
+                    "1000",
+                    "1001",
+                    "1010"
+                ],
+                "correctAnswer": 0
+            },
+            {
+                "question": "What is the hexadecimal representation of the binary number 11110000?",
+                "options": [
+                    "F0",
+                    "E0",
+                    "D0",
+                    "C0"
+                ],
+                "correctAnswer": 0
+            }
+        ]
+    }
+    """
+    prisma.connect()
+    # A wordle json structure of 5 letter words related to Computer Architecture and Networks
+    wordleJson = {
+        "numOfQuestions": 5,
+        "questions": [
+            {
+                "question": "cache",
+            },
+            {
+                "question": "stack",
+            },
+            {
+                "question": "fetch",
+            },
+            {
+                "question": "write",
+            },
+            {
+                "question": "bytes",
+            },
+        ]
+    }
+    submittedJson = Json(wordleJson)
+    module = prisma.module.find_first(
+        where={
+            "moduleCode": "INT4004CEM"
+        },
+        include={
+            "lecturer": {
+                "include": {
+                    "userProfile": True
+                }
+            }
+        }
+    )
+    wordle = prisma.modulehubcontent.create(
+        data={
+            "module": {
+                "connect": {
+                    "id": module.id
+                }
+            },
+            "author": {
+                "connect": {
+                    "id": module.lecturer.id
+                }
+            },
+            "contentType": "GAME",
+            "contentInfo": submittedJson,
+            "title": "Wordle!",
+            "description": "A wordle game for Computer Architecture and Networks",
+        }
+    )
+    print(wordle.json(indent=2))
+
+
 if __name__ == "__main__":
     # ~~~~ MYSQL ~~~~
     # ~~~~ PRISMA ~~~~
@@ -1629,4 +1793,5 @@ if __name__ == "__main__":
     # checkLecturerHours()
     # createJson()
     # findManyAppointments()
-    testUploadBlob()
+    # testUploadBlob()
+    createGame()

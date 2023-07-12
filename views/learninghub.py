@@ -963,10 +963,7 @@ class LearningHub(Canvas):
         questions = self.moduleGames[titleKey]["questions"]
         for q in questions:
             print(q["question"])
-            print(q["options"])
-            print(q["correctAnswer"])
-            print(
-                f"The correct answer is {q['options'][q['correctAnswer']]}")
+
 
     def loadActivityHubContent(self, titleKey):
         if titleKey == "":

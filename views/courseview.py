@@ -179,6 +179,8 @@ class CourseView(Canvas):
 
     def refreshAllCourseContent(self, coursecode: str):
         prisma = self.prisma
+        self.viewUploadsFrame.grid_remove()
+        self.uploadCreationFrame.grid_remove()
         module = prisma.module.find_first(
             where={
                 "moduleCode": coursecode.upper()
@@ -262,6 +264,17 @@ class CourseView(Canvas):
             xpos=820, ypos=120, width=980, height=40,
             root=self.viewUploadsFrame, classname=f"uploadssearchbar",
         )
+        self.goFullscreenBtn = self.controller.buttonCreator(
+            imagepath=r"Assets\My Courses\fullscreenbtn.png", xpos=1820, ypos=120,
+            classname=f"webviewfullscreenbtn", root=self.viewUploadsFrame,
+            buttonFunction=lambda: self.toggleFullscreen()
+        )
+        self.exitFullscreenBtn = self.controller.buttonCreator(
+            imagepath=r"Assets\My Courses\exitfullscreenbtn.png", xpos=1820, ypos=120,
+            classname=f"webviewexitfullscreenbtn", root=self.viewUploadsFrame,
+            buttonFunction=lambda: self.toggleFullscreen()
+        )
+        self.exitFullscreenBtn.grid_remove()
         self.urlbar.delete(0, END)
         self.urlbar.insert(0, f"{self.defaulturl}")
 
@@ -291,12 +304,31 @@ class CourseView(Canvas):
         row = int(180/20)
         w = int(1060/20)
         h = int(580/20)
-
+        self.isFullScreen = BooleanVar()
+        self.isFullScreen.set(False)
+        self.goFullscreenBtn.grid()
+        self.exitFullscreenBtn.grid_remove()
         self.webview = WebView2(parent=self.viewUploadsFrame, width=1, height=1,
                                 url=self.defaulturl)
         self.webview.grid(row=row, column=col, rowspan=h,
                           columnspan=w, sticky=NSEW)
 
+    def toggleFullscreen(self):
+        maxcol, maxrow, maxw, maxh = int(
+            20/20), int(100/20), int(1880/20), int(680/20)
+        normcol, normrow, normw, normh = int(
+            820/20), int(180/20), int(1060/20), int(580/20)
+        self.exitFullscreenBtn.grid_remove() if self.isFullScreen.get(
+        ) else self.exitFullscreenBtn.grid()
+        self.goFullscreenBtn.grid() if self.isFullScreen.get(
+        ) else self.goFullscreenBtn.grid_remove()
+        self.webview.grid(row=normrow, column=normcol, rowspan=normh,
+                          columnspan=normw, sticky=NSEW) if self.isFullScreen.get() else self.webview.grid(row=maxrow, column=maxcol, rowspan=maxh,
+                                                                                                           columnspan=maxw, sticky=NSEW)
+        self.isFullScreen.set(not self.isFullScreen.get())
+                          
+        self.webview.tkraise()
+        self.exitFullscreenBtn.tkraise()
     def loadUploadPage(self, modulecode):
         self.uploadCreationFrame.grid()
         self.uploadCreationFrame.tkraise()
@@ -330,7 +362,6 @@ class CourseView(Canvas):
         ]
 
         self.controller.settingsUnpacker(buttonSettings, "button")
-        print(f"Loading upload page for {modulecode}")
         self.modifyUploadFrame = ScrolledFrame(
             self.uploadCreationFrame, width=760, height=640, autohide=True,
             bootstyle="danger-rounded"
@@ -706,6 +737,11 @@ class CourseView(Canvas):
                              args=(modulecode, self.upframe))
         t.daemon = True
         t.start()
+        self.uploadsRefreshBtn = self.controller.buttonCreator(
+            imagepath=r"Assets\My Courses\refreshmoduleuploads.png",
+            xpos=820, ypos=20, root=self.viewUploadsFrame, classname="refreshmoduleuploads",
+            buttonFunction=lambda: self.frontEndModuleUploads(modulecode, self.upframe)
+        )
 
     def loadModuleUploads(self, modulecode):
         prisma = self.prisma
@@ -726,7 +762,7 @@ class CourseView(Canvas):
             }
         )
         return uploads
-
+    
     def frontEndModuleUploads(self, modulecode, rootFrame: ScrolledFrame, withModifyBtns=False):
         uploads = self.loadModuleUploads(modulecode)
         h = len(uploads) * 100 + 40

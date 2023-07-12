@@ -50,12 +50,21 @@ class SearchPage(Canvas):
             xpos=40, ypos=120, framewidth=1840, frameheight=780,
             root=self.helpdeskFrame, classname="helpdeskviewticketframe",
         )
+        self.adminFrame = self.controller.frameCreator(
+            xpos=0, ypos=0, framewidth=1920, frameheight=920,
+            root=self, classname="helpdeskadminframe",
+        )
         self.loadHelpdeskElements()
         self.loadHelpdeskViewTicketElements()
         self.helpdeskViewFrame.grid_remove()
         self.helpdeskFrame.grid_remove()
+        self.adminFrame.grid_remove()
 
     def postLogin(self, data: dict):
+        try:
+            self.adminFrame.grid_remove()
+        except:
+            pass
         self.prisma = self.controller.mainPrisma
         self.userId = data["id"]
         self.role = data["role"]
@@ -126,19 +135,32 @@ class SearchPage(Canvas):
         self.controller.settingsUnpacker(self.staticBtns, "button")
 
     def navigateToHelpdesk(self):
+        try:
+            self.loadAdminManageBtn.grid_remove()
+        except:
+            pass
         self.helpdeskFrame.grid()
         self.helpdeskFrame.tkraise()
         if self.role == "lecturer":
-            self.helpdeskButtons.append(
-                (r"Assets\SearchView\Helpdesk\managetickets.png", 1560, 20,
-                 "helpdeskmanagetickets", self.helpdeskFrame,
-                 lambda: print("ManageTickets")),
+            user = self.prisma.userprofile.find_first(
+                where={
+                    "id": self.userId
+                }
             )
-            self.controller.settingsUnpacker(self.helpdeskButtons, "button")
+            if user.isAdmin:
+                self.loadAdminManageBtn = self.controller.buttonCreator(
+                    imagepath=r"Assets\SearchView\Helpdesk\managetickets.png",
+                    xpos=1560, ypos=20,
+                    classname="helpdeskmanagetickets", root=self.helpdeskFrame,
+                    buttonFunction=lambda: self.loadAdminView()
+                )
+
+    def loadAdminView(self):
+        self.adminFrame.grid()
+        self.adminFrame.tkraise()
 
     def navigateToHelpdeskView(self):
-        self.helpdeskFrame.grid()
-        self.helpdeskFrame.tkraise()
+        self.navigateToHelpdesk()
         self.helpdeskViewFrame.grid()
         self.helpdeskViewFrame.tkraise()
         self.loadTickets()
@@ -172,7 +194,7 @@ class SearchPage(Canvas):
             t = self.controller.textElement(
                 imagepath=TICKETBG, xpos=initCoords[0], ypos=initCoords[1],
                 classname=f"ticket{ticket.id}", root=self.viewTicketScrFrame,
-                text=f"{ticket.title} - {ticket.status}",
+                text=f"{ticket.title}\n{ticket.status}",
                 fg=BLACK, size=30, isPlaced=True, font=INTERBOLD,
                 xoffset=-2, yIndex=-0.3,
                 buttonFunction=lambda i=(ticket): self.loadTicket(i)
@@ -180,7 +202,7 @@ class SearchPage(Canvas):
             initCoords = (initCoords[0], initCoords[1] + 120)
 
     def loadTicket(self, ticket: HelpdeskTicket):
-        try: 
+        try:
             self.exitViewReplies()
         except:
             pass
@@ -225,16 +247,16 @@ class SearchPage(Canvas):
             imagepath=r"Assets\SearchView\Helpdesk\exitviewreplies.png",
             xpos=1760, ypos=120, root=self.helpdeskViewFrame, classname="exitviewreplies",
             isPlaced=True,
-            buttonFunction=lambda:self.exitViewReplies()
+            buttonFunction=lambda: self.exitViewReplies()
         )
         self.addReplyBtn = self.controller.buttonCreator(
             imagepath=r"Assets\SearchView\Helpdesk\addreplybtn.png",
-            xpos=1740, ypos=180, root=self.helpdeskViewFrame, classname="addreplybtntoticket",
+            xpos=960, ypos=120, root=self.helpdeskViewFrame, classname="addreplybtntoticket",
             isPlaced=True,
             buttonFunction=lambda: self.addReplyToTicket(ticket)
         )
         self.repliesScrolledFrame.config(height=h)
-        initCoords = (20, 20)
+        initCoords = (40, 80)
         for reply in ticket.replies:
             if reply.authorId == self.userId:
                 repText = f"You - {reply.content}"
@@ -336,7 +358,7 @@ class SearchPage(Canvas):
                     # convert title and content to lowercase before searching
                     if query in p.title.lower() or query in p.content.lower():
                         finalList.append(
-                            (m.moduleCode, p.id, p.title, p.author.fullName, "post"))
+                            (m.moduleCode, p.id, p.title, p.author.fullName, m.moduleTitle, "post"))
             if self.inHubContent.get():
                 for h in m.moduleHubContent:
                     # convert title and description to lowercase before searching
@@ -381,7 +403,7 @@ class SearchPage(Canvas):
                     fg=WHITE, font=URBANIST, size=30, isPlaced=True,
                     xoffset=-2, yIndex=-0.4,
                     buttonFunction=lambda i=(
-                        result[0], result[2]): self.navigateToModulePostView(i[0], i[1])
+                        result[0], result[4]): self.navigateToModulePostView(modulecode=i[0], moduletitle=i[1])
                 )
             elif typeOfResult == "hubcontent":
                 h = self.controller.textElement(
@@ -444,6 +466,8 @@ class SearchPage(Canvas):
         self.helpdeskLabels = [
             (r"Assets\SearchView\Helpdesk\helpdeskbg.png", 0, 0,
              "helpdeskbg", self.helpdeskFrame),
+            (r"Assets\SearchView\Helpdesk\adminframebg.png", 0, 0,
+             "helpdeskadminframebg", self.adminFrame),
         ]
         self.controller.settingsUnpacker(self.helpdeskLabels, "label")
         self.helpdeskButtons = [
@@ -459,6 +483,9 @@ class SearchPage(Canvas):
             (r"Assets\SearchView\Helpdesk\gotomytickets.png", 700, 40,
              "helpdeskviewtickets", self.helpdeskFrame,
              lambda: self.navigateToHelpdeskView()),
+            (r"Assets\SearchView\Helpdesk\exitadminframe.png", 1800, 120,
+             "helpdeskexitadminframe", self.adminFrame,
+             lambda: self.adminFrame.grid_remove()),
         ]
         self.controller.settingsUnpacker(self.helpdeskButtons, "button")
         self.titleEntry = self.controller.ttkEntryCreator(
@@ -466,6 +493,9 @@ class SearchPage(Canvas):
         )
         self.scrolledtext = ScrolledText(
             master=self.helpdeskFrame, width=880, height=400, autohide=True, bootstyle="bg-rounded"
+        )
+        self.scrolledtext.text.config(
+            font=(INTERBOLD, 20), bg=WHITE, fg=BLACK, insertbackground=BLACK, highlightthickness=0
         )
         self.scrolledtext.place(x=60, y=420, width=880, height=400)
         self.textArea = self.scrolledtext.text
@@ -625,6 +655,7 @@ class SearchPage(Canvas):
                 "image": self.getBase64data(),
             }
         )
+        self.cancelImageUpload()
 
     def showImageSize(self, event):
         try:
