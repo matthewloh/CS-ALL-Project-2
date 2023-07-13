@@ -1,32 +1,22 @@
-import base64
 import io
-import threading
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
-import uuid
-import boto3
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
-from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
-from ttkbootstrap.dialogs import Messagebox, MessageDialog, Querybox
 from ttkbootstrap.tooltip import ToolTip
-from components.animatedgif import AnimatedGif
+from ttkbootstrap.toast import ToastNotification
+from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
+from ttkbootstrap.dialogs import MessageDialog, Querybox
 from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
-from datetime import datetime, timedelta
 from pendulum import timezone
-from prisma import Prisma
 from prisma import Base64
 from prisma.models import HelpdeskTicket
-from win32gui import GetWindowText, GetForegroundWindow
 from views.courseview import CourseView
 from views.discussionsview import DiscussionsView
-from PIL import Image, ImageTk, ImageSequence, ImageOps
-from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
+from PIL import Image, ImageTk, ImageOps
 
 from views.learninghub import LearningHub
 
@@ -193,6 +183,7 @@ class SearchPage(Canvas):
                 xoffset=-2, yIndex=-0.3,
                 buttonFunction=lambda i=(ticket): self.loadTicketAdmin(i)
             )
+            ToolTip(t, bootstyle=(INFO,INVERSE), text=f"Ticket ID: {ticket.id}\nDescription:{ticket.content}\nStatus: {ticket.status}") 
             initCoords = (initCoords[0], initCoords[1] + 120)
         
 
@@ -236,6 +227,7 @@ class SearchPage(Canvas):
                 xoffset=-2, yIndex=-0.3,
                 buttonFunction=lambda i=(ticket): self.loadTicket(i)
             )
+            ToolTip(t, bootstyle=(INFO,INVERSE), text=f"Ticket ID: {ticket.id}\nDescription:{ticket.content}\nStatus: {ticket.status}") 
             initCoords = (initCoords[0], initCoords[1] + 120)
 
     def loadTicket(self, ticket: HelpdeskTicket):
@@ -734,6 +726,8 @@ class SearchPage(Canvas):
     def getBase64data(self):
         byteIMGIO = io.BytesIO()
         format = self.imagePath.split(".")[-1]
+        if format == "jpg":
+            format = "jpeg"
         self.finalImage.save(byteIMGIO, f"{format.upper()}")
         byteIMGIO.seek(0)
         byteIMG = byteIMGIO.read()
@@ -747,7 +741,11 @@ class SearchPage(Canvas):
         elif self.scrolledtext.text.get("1.0", "end-1c") == "":
             messagebox.showerror("Error", "Please enter a description")
             return
-        elif self.imagePath == "":
+        try:
+            if self.imagePath == "":
+                messagebox.showerror("Error", "Please upload an image")
+                return
+        except:
             messagebox.showerror("Error", "Please upload an image")
             return
         prisma = self.prisma

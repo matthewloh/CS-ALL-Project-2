@@ -13,7 +13,7 @@ from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from dotenv import load_dotenv
 from prisma import Prisma
-from prisma.models import ModuleEnrollment, Module, Appointment
+from prisma.models import Module, Appointment
 from basewindow import gridGenerator
 import bcrypt
 from pendulum import timezone
@@ -660,6 +660,11 @@ class Dashboard(Frame):
             imagepath=r"Assets\Dashboard\refreshbuttondashboard.png", xpos=640, ypos=20,
             classname="refreshbtndashboard", root=self.dashboardcanvasref,
             buttonFunction=lambda: self.refreshDashboard(data))
+        self.controller.buttonCreator(
+            imagepath=r"Assets\Dashboard\feedbackbutton.png", xpos=1460, ypos = 700,
+            classname="feedbackbtndashboard", root=self.dashboardcanvasref,
+            buttonFunction=lambda: self.navigateToHelpdesk(self.userId, self.role))
+        
         # modules = [(moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc), (moduleCode, moduleTitle, moduleDesc)]
         initialypos = 20
         h = len(modules) * 380 + 20
@@ -946,6 +951,14 @@ class Dashboard(Frame):
         courseview.viewUploadsFrame.grid_remove()
         courseview.uploadCreationFrame.grid_remove()
         self.controller.show_canvas(CourseView)
+    
+    def navigateToHelpdesk(self, userId, role, helpdesk: SearchPage = None):
+        helpdesk = self.controller.widgetsDict["searchpage"]
+        helpdesk.role = role
+        helpdesk.prisma = self.controller.mainPrisma
+        helpdesk.userId = userId
+        helpdesk.navigateToHelpdeskView()
+        self.controller.show_canvas(SearchPage)
 
 
 class DashboardCanvas(Canvas):

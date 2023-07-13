@@ -1,30 +1,14 @@
-import json
-import threading
 from tkinter import *
-from tkinter import filedialog
 from tkinter import messagebox
-import uuid
-import boto3
-import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.dialogs import Messagebox, MessageDialog, Querybox
-from ttkbootstrap.tooltip import ToolTip
-from components.animatedgif import AnimatedGif
 from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
-from datetime import datetime, timedelta
 from pendulum import timezone
-from prisma.errors import UniqueViolationError
 from prisma import Json
-from win32gui import GetWindowText, GetForegroundWindow
 
-from views.discussionsview import DiscussionsView
-from PIL import Image, ImageTk, ImageSequence
-from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 
 
 class LearningHub(Canvas):

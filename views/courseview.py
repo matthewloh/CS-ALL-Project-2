@@ -4,28 +4,21 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import simpledialog
-import uuid
 import boto3
-import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
-from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
+from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.tooltip import ToolTip
-from ttkbootstrap.dialogs import Messagebox, MessageDialog, Querybox
-from components.animatedgif import AnimatedGif
+from ttkbootstrap.dialogs import MessageDialog, Querybox
 from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
-from datetime import datetime, timedelta
 from pendulum import timezone
-from prisma import Prisma
 from win32gui import GetWindowText, GetForegroundWindow
 
 from views.discussionsview import DiscussionsView
 from views.appointmentsview import AppointmentsView
-from PIL import Image, ImageTk, ImageSequence
-from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
+from tkwebview2.tkwebview2 import WebView2
 
 from views.learninghub import LearningHub
 
@@ -41,6 +34,8 @@ class CourseView(Canvas):
 
     def postLogin(self, data: dict):
         # print("The data is", data)
+        self.viewUploadsFrame.grid_remove()
+        self.uploadCreationFrame.grid_remove()
         self.prisma = self.controller.mainPrisma
         modules = data["modules"]
         self.userId = data["id"]

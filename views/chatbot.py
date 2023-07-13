@@ -1,25 +1,15 @@
 import openai
 import tiktoken
 from static import *
-import ctypes
 from tkinter import *
 # A drop in replacement for ttk that uses bootstrap styles
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
-from ttkbootstrap.tooltip import ToolTip
-from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
-from dotenv import load_dotenv
 from basewindow import gridGenerator
-from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
-from datetime import datetime, timedelta, timezone
 # TODO: please stop formatting my imports you're breaking my code
 # this contains my pywin32 imports, PIL imports, pythonnet
 from nonstandardimports import *
-import pendulum
-from pendulum import timezone
 from basewindow import ElementCreator
 # from main import Window
 

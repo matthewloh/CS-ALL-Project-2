@@ -1,21 +1,19 @@
 import threading
 from tkinter import *
+from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
-from ttkbootstrap.tooltip import ToolTip
 from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
-from datetime import datetime, timedelta
+from datetime import datetime
 from pendulum import timezone
-from prisma import Prisma
 
 from components.animatedgif import AnimatedGif
 from components.animatedstarbtn import AnimatedStarBtn
-from PIL import Image, ImageTk, ImageSequence
+from PIL import Image, ImageTk
 
 
 class DiscussionsView(Canvas):
@@ -163,6 +161,11 @@ class DiscussionsView(Canvas):
         prisma = self.prisma
         title = self.posttitleent.get()
         content = self.postcontenttext.get("1.0", 'end-1c')
+        if title == "" or content == "":
+            self.gif.grid_remove()
+            messagebox.showerror(
+                title="Error", message="Please fill in all fields before posting")
+            return
         findmodule = prisma.module.find_first(
             where={
                 "moduleCode": self.modulecodevar.get()

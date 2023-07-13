@@ -3,25 +3,19 @@ import re
 import threading
 from tkinter import *
 from tkinter import messagebox
-import ttkbootstrap as ttk
 from prisma.models import Appointment
 from ttkbootstrap.constants import *
 from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
 from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
 from ttkbootstrap.dialogs import Messagebox, MessageDialog, Querybox
 from ttkbootstrap.dialogs.dialogs import DatePickerDialog
-from ttkbootstrap.tooltip import ToolTip
 from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
 from datetime import datetime, timedelta
 import datetime as dt
 from pendulum import timezone
-from prisma import Prisma
 
-from PIL import Image, ImageTk, ImageSequence
-from tkwebview2.tkwebview2 import WebView2, have_runtime, install_runtime
 
 
 class AppointmentsView(Canvas):
@@ -1275,13 +1269,13 @@ class AppointmentsView(Canvas):
             isPlaced=True
         )
         # delete button
-        self.controller.buttonCreator(
-            imagepath=r"Assets\AppointmentsView\ManageApp\deleteapp.png",
-            xpos=startx+400, ypos=starty+100, root=self.viewScrolledFrame,
-            classname=f"{app.id}deleteappbtn",
-            buttonFunction=lambda: self.deleteAppointment(app),
-            isPlaced=True
-        )
+        # self.controller.buttonCreator(
+        #     imagepath=r"Assets\AppointmentsView\ManageApp\deleteapp.png",
+        #     xpos=startx+400, ypos=starty+100, root=self.viewScrolledFrame,
+        #     classname=f"{app.id}deleteappbtn",
+        #     buttonFunction=lambda: self.deleteAppointment(app),
+        #     isPlaced=True
+        # )
 
     def refreshApptStatus(self, app: Appointment):
         self.loadFullDetails()

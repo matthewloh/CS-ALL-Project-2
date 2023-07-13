@@ -1,21 +1,13 @@
-import threading
 from tkinter import *
-import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
-from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
+from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.tooltip import ToolTip
 from basewindow import gridGenerator
 from static import *
 from basewindow import ElementCreator
-from datetime import datetime, timedelta
 from pendulum import timezone
-from prisma import Prisma
 
-from components.animatedgif import AnimatedGif
 from components.animatedstarbtn import AnimatedStarBtn
-from PIL import Image, ImageTk, ImageSequence
 
 
 class FavoritesView(Canvas):

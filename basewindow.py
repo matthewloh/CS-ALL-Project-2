@@ -4,15 +4,11 @@ from tkinter import FLAT, NSEW, Frame, Label
 from prisma import Prisma
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.widgets import DateEntry
-from ttkbootstrap.scrolled import ScrolledFrame, ScrolledText
-from ttkbootstrap.tooltip import ToolTip
-from ttkbootstrap.validation import add_text_validation, add_regex_validation, validator, add_validation, add_option_validation
+from ttkbootstrap.validation import add_regex_validation, validator, add_validation
 from nonstandardimports import *
 from tkinter import *
 from static import *
-from PIL import Image, ImageTk, ImageSequence, ImageDraw, ImageFont
+from PIL import Image, ImageTk, ImageDraw, ImageFont
 # https://stackoverflow.com/a/68621773
 # This bit of code allows us to remove the window bar present in tkinter
 # More information on the ctypes library can be found here:
