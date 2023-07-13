@@ -1044,6 +1044,12 @@ class LearningHub(Canvas):
             buttonFunction=lambda: self.submitWordleAttemptFunc(
                 self.mainEntry.get(), words)
         )
+        playingFrameButtons = [
+            (r"Assets\LearningHub\PlayingFrame\playingframereturnbutton.png", 100, 160,
+             "returnbtnplayingframe", self.playingFrame,
+             lambda: self.playingFrame.grid_remove()),
+        ]
+        self.controller.settingsUnpacker(playingFrameButtons, "button")
         vcmd = (self.playingFrame.register(self.validateWordleEntry), '%P')
         self.mainEntry.config(validate="all", validatecommand=vcmd)
         self.mainEntry.bind("<Return>", lambda e: self.submitWordleAttemptFunc(

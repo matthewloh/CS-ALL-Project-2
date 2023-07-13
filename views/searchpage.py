@@ -139,6 +139,10 @@ class SearchPage(Canvas):
             self.loadAdminManageBtn.grid_remove()
         except:
             pass
+        try:
+            self.adminScrolledFrame.place_forget()
+        except:
+            pass
         self.helpdeskFrame.grid()
         self.helpdeskFrame.tkraise()
         if self.role == "lecturer":
@@ -158,6 +162,39 @@ class SearchPage(Canvas):
     def loadAdminView(self):
         self.adminFrame.grid()
         self.adminFrame.tkraise()
+        prisma = self.prisma
+        TICKETBG = r"Assets\SearchView\Helpdesk\tickettextbg.png"
+        tickets = prisma.helpdeskticket.find_many(
+            include={
+                "replies": {
+                    "include": {
+                        "author": True
+                    }
+                },
+                "author": True
+            }
+        )
+        self.adminScrolledFrame = ScrolledFrame(
+            master=self.adminFrame, width=880, height=620, bootstyle="bg-round", autohide=True
+        )
+        self.adminScrolledFrame.place(x=60, y=240, width=880, height = 620)
+        
+        h = len(tickets) * 120 + 20
+        if h < 620:
+            h = 620
+        self.adminScrolledFrame.config(height=h)
+        initCoords = (20,20)
+        for ticket in tickets:
+            t = self.controller.textElement(
+                imagepath=TICKETBG, xpos=initCoords[0], ypos=initCoords[1],
+                classname=f"ticket{ticket.id}", root=self.adminScrolledFrame,
+                text=f"{ticket.title}\n{ticket.status}",
+                fg=BLACK, size=30, isPlaced=True, font=INTERBOLD,
+                xoffset=-2, yIndex=-0.3,
+                buttonFunction=lambda i=(ticket): self.loadTicketAdmin(i)
+            )
+            initCoords = (initCoords[0], initCoords[1] + 120)
+        
 
     def navigateToHelpdeskView(self):
         self.navigateToHelpdesk()
@@ -207,7 +244,7 @@ class SearchPage(Canvas):
         except:
             pass
         img = self.decodingBase64data(ticket.image)
-        img.thumbnail((800, 580))
+        img.thumbnail((800, 580))   
         self.placeholderImg = self.controller.buttonCreator(
             imagepath=r"Assets\SearchView\Helpdesk\blanklabelforview.png",
             xpos=980, ypos=140, root=self.helpdeskViewFrame, classname="imgplaceholder",
@@ -224,44 +261,90 @@ class SearchPage(Canvas):
 
         self.placeholderImg.bind("<Enter>", self.showImageSize)
         self.placeholderImg.bind("<Leave>", self.hideImageSize)
+        
+    def loadTicketAdmin(self, ticket:HelpdeskTicket):
+        try:
+            self.exitViewReplies(isFromAdmin=True)
+        except:
+            pass
+        img = self.decodingBase64data(ticket.image)
+        img.thumbnail((800, 580))   
+        self.placeholderImgAdmin = self.controller.buttonCreator(
+            imagepath=r"Assets\SearchView\Helpdesk\blanklabelforview.png",
+            xpos=1000, ypos=240, root=self.adminFrame, classname="imgplaceholderadmin",
+            buttonFunction=lambda: self.loadRepliesForTicket(ticket, isFromAdmin=True)
+        )
+        self.controller.imageDict["imgplaceholderadmin"] = ImageTk.PhotoImage(
+            img)
+        newImage = self.controller.imageDict["imgplaceholderadmin"]
+        self.placeholderImgAdmin.config(image=newImage, width=800, height=580)
+        # x = 1020, y = 220, calculate the new x and y
+        self.placeholderImgAdmin.place(x=1020+(800-img.width)/2,
+                                   y=260+(580-img.height)/2,
+                                  width=img.width, height=img.height
+                                  )
 
+        self.placeholderImgAdmin.bind("<Enter>", self.showImageSize)
+        self.placeholderImgAdmin.bind("<Leave>", self.hideImageSize)
     def decodingBase64data(self, b64):
         decoded = Base64.decode(b64)
         dataBytesIO = io.BytesIO(decoded)
         im = Image.open(dataBytesIO)
         return im
 
-    def loadRepliesForTicket(self, ticket: HelpdeskTicket):
+    def loadRepliesForTicket(self, ticket: HelpdeskTicket, isFromAdmin=False):
         try:
             self.repliesScrolledFrame.place_forget()
         except:
             pass
+        
+        root = self.adminScrolledFrame if isFromAdmin else self.viewTicketScrFrame
+        scrolledframeroot = self.adminFrame if isFromAdmin else self.helpdeskViewFrame
+        if isFromAdmin:
+            x, y, w, h = 1000, 240, 840, 620
+        else:
+            x, y, w, h = 960, 120, 840, 620
+            
         self.repliesScrolledFrame = ScrolledFrame(
-            master=self.helpdeskViewFrame, width=840, height=620, bootstyle="info-round", autohide=True
+            master=scrolledframeroot, width=840, height=620, bootstyle="info-round", autohide=True
         )
-        self.repliesScrolledFrame.place(x=960, y=120, width=840, height=620)
-        h = len(ticket.replies) * 140 + 20
+        self.repliesScrolledFrame.place(x=x, y=y, width=w, height=h)
+        h = len(ticket.replies) * 140 + 20 + 80
         if h < 620:
             h = 620
-        self.controller.buttonCreator(
-            imagepath=r"Assets\SearchView\Helpdesk\exitviewreplies.png",
-            xpos=1760, ypos=120, root=self.helpdeskViewFrame, classname="exitviewreplies",
-            isPlaced=True,
-            buttonFunction=lambda: self.exitViewReplies()
-        )
-        self.addReplyBtn = self.controller.buttonCreator(
-            imagepath=r"Assets\SearchView\Helpdesk\addreplybtn.png",
-            xpos=960, ypos=120, root=self.helpdeskViewFrame, classname="addreplybtntoticket",
-            isPlaced=True,
-            buttonFunction=lambda: self.addReplyToTicket(ticket)
-        )
+        if isFromAdmin:
+            self.controller.buttonCreator(
+                imagepath=r"Assets\SearchView\Helpdesk\exitviewreplies.png",
+                xpos=1800, ypos=240, root=self.adminFrame, classname="exitviewrepliesadmin",
+                isPlaced=True,
+                buttonFunction=lambda: self.exitViewReplies(isFromAdmin=True)
+            )
+            self.addReplyBtn = self.controller.buttonCreator(
+                imagepath=r"Assets\SearchView\Helpdesk\addreplybtn.png",
+                xpos=1000, ypos=240, root=self.adminFrame, classname="addreplybtntoticketadmin",
+                isPlaced=True,
+                buttonFunction=lambda: self.addReplyToTicket(ticket, isFromAdmin=True)
+            )
+        else:
+            self.controller.buttonCreator(
+                imagepath=r"Assets\SearchView\Helpdesk\exitviewreplies.png",
+                xpos=1760, ypos=120, root=self.helpdeskViewFrame, classname="exitviewreplies",
+                isPlaced=True,
+                buttonFunction=lambda: self.exitViewReplies()
+            )
+            self.addReplyBtn = self.controller.buttonCreator(
+                imagepath=r"Assets\SearchView\Helpdesk\addreplybtn.png",
+                xpos=960, ypos=120, root=self.helpdeskViewFrame, classname="addreplybtntoticket",
+                isPlaced=True,
+                buttonFunction=lambda: self.addReplyToTicket(ticket)
+            )
         self.repliesScrolledFrame.config(height=h)
         initCoords = (40, 80)
         for reply in ticket.replies:
             if reply.authorId == self.userId:
                 repText = f"You - {reply.content}"
             else:
-                repText = f"{reply.author.fullName} - {reply.content}"
+                repText = f"{reply.author.fullName}\n{reply.content}"
             r = self.controller.textElement(
                 imagepath=r"Assets\SearchView\Helpdesk\replybg.png",
                 xpos=initCoords[0], ypos=initCoords[1],
@@ -272,7 +355,7 @@ class SearchPage(Canvas):
             )
             initCoords = (initCoords[0], initCoords[1] + 140)
 
-    def addReplyToTicket(self, ticket: HelpdeskTicket):
+    def addReplyToTicket(self, ticket: HelpdeskTicket, isFromAdmin=False):
         prisma = self.prisma
         replyContent = Querybox.get_string(
             title="Add Reply", prompt="Enter your reply here",
@@ -300,7 +383,7 @@ class SearchPage(Canvas):
                 }
             }
         )
-        self.loadRepliesForTicket(newTicket)
+        self.loadRepliesForTicket(newTicket, isFromAdmin=isFromAdmin)
 
     def searchByQuery(self, query: str):
         KL = timezone("Asia/Kuala_Lumpur")
@@ -364,7 +447,7 @@ class SearchPage(Canvas):
                     # convert title and description to lowercase before searching
                     if query in h.title.lower() or query in h.description.lower():
                         finalList.append(
-                            (m.moduleCode, h.id, h.title, "hubcontent"))
+                            (m.moduleCode, h.id, h.title, h.contentType, "hubcontent"))
             if self.inUploads.get():
                 for u in m.moduleUploads:
                     # convert title and description to lowercase before searching
@@ -410,18 +493,18 @@ class SearchPage(Canvas):
                     imagepath=CONTENTPATH, xpos=initCoords[0], ypos=initCoords[1],
                     classname=f"searchresult{result[0]}{typeOfResult}{result[1]}",
                     root=self.scrolledframe,
-                    text=f"{result[0]} - {result[2]}\n{typeOfResult.title()}",
+                    text=f"{result[0]} - {result[2]}\nHub Content - {result[3]}",
                     fg=WHITE, font=URBANIST, size=30, isPlaced=True,
                     xoffset=-2, yIndex=-0.4,
                     buttonFunction=lambda i=(
-                        result[0], result[2]): self.navigateToModuleContentView(i[0], i[1])
+                        result[0], result[2], result[3]): self.navigateToModuleContentView(i[0], i[1], i[2])
                 )
             elif typeOfResult == "upload":
                 u = self.controller.textElement(
                     imagepath=UPLOADPATH, xpos=initCoords[0], ypos=initCoords[1],
                     classname=f"searchresult{result[0]}{typeOfResult}{result[1]}",
                     root=self.scrolledframe,
-                    text=f"{result[0]} - {result[2]}\nHub Content",
+                    text=f"{result[0]} - {result[2]}\nUpload",
                     fg=WHITE, font=URBANIST, size=30, isPlaced=True,
                     xoffset=-2, yIndex=-0.4,
                     buttonFunction=lambda i=(result[0], result[3], result[4]): self.navigateToModuleUploadView(
@@ -457,10 +540,15 @@ class SearchPage(Canvas):
             pass
         self.helpdeskViewFrame.grid_remove()
 
-    def exitViewReplies(self):
+    def exitViewReplies(self, isFromAdmin=False):
         self.repliesScrolledFrame.place_forget(),
-        self.controller.widgetsDict["exitviewreplies"].place_forget(),
-        self.controller.widgetsDict["addreplybtntoticket"].place_forget()
+        if isFromAdmin:
+            self.controller.widgetsDict["imgplaceholderadmin"].place_forget()
+            self.controller.widgetsDict["exitviewrepliesadmin"].place_forget()
+            self.controller.widgetsDict["addreplybtntoticketadmin"].place_forget()
+        else:
+            self.controller.widgetsDict["exitviewreplies"].place_forget(),
+            self.controller.widgetsDict["addreplybtntoticket"].place_forget()
 
     def loadHelpdeskElements(self):
         self.helpdeskLabels = [
@@ -502,6 +590,7 @@ class SearchPage(Canvas):
         self.textArea.configure(font=(INTERBOLD, 20))
 
     def uploadImage(self):
+        self.imagePath = ""
         self.imagePath = filedialog.askopenfilename(
             initialdir="Assets", title="Select file", filetypes=(
                 ("Image Files", "*.jpg *.png *.jpeg *.webp"),
@@ -509,6 +598,10 @@ class SearchPage(Canvas):
             # ("Image Files", "*.jpg *.png *.jpeg *.gif *webp")
         )
         if self.imagePath == "":
+            self.imagePath = ""
+            messagebox.showerror(
+                title="Error", message="Aborting image upload."
+            )
             return
         # ask if want to maintain aspect ratio or crop to fit
         img = Image.open(self.imagePath)
@@ -572,6 +665,11 @@ class SearchPage(Canvas):
             self.imageLabel.place(x=1020+(800-image.width)/2,
                                   y=220+(600-image.height)/2,
                                   width=image.width, height=image.height)
+        else:
+            messagebox.showerror(
+                title="Error", message="Aborting image upload."
+            )
+            return
         self.finalImage = image
         self.imageLabel.bind("<Enter>", self.showImageSize)
         self.imageLabel.bind("<Leave>", self.hideImageSize)
@@ -646,6 +744,12 @@ class SearchPage(Canvas):
         if self.titleEntry.get() == "":
             messagebox.showerror("Error", "Please enter a title")
             return
+        elif self.scrolledtext.text.get("1.0", "end-1c") == "":
+            messagebox.showerror("Error", "Please enter a description")
+            return
+        elif self.imagePath == "":
+            messagebox.showerror("Error", "Please upload an image")
+            return
         prisma = self.prisma
         prisma.helpdeskticket.create(
             data={
@@ -656,6 +760,11 @@ class SearchPage(Canvas):
             }
         )
         self.cancelImageUpload()
+        messagebox.showinfo(
+            title="Success", message="Your ticket has been submitted!"
+        )
+        self.titleEntry.delete(0, "end")
+        self.scrolledtext.text.delete("1.0", "end-1c")
 
     def showImageSize(self, event):
         try:
@@ -666,6 +775,11 @@ class SearchPage(Canvas):
             self.placeholderImg.config(relief="solid")
         except:
             pass
+        try:
+            self.placeholderImgAdmin.config(relief="solid")
+        except:
+            pass
+        
 
     def hideImageSize(self, event):
         try:
@@ -676,16 +790,26 @@ class SearchPage(Canvas):
             self.placeholderImg.config(relief="flat")
         except:
             pass
+        try:
+            self.placeholderImgAdmin.config(relief="flat")
+        except:
+            pass
 
-    def navigateToModuleContentView(self, courseCode, contentTitle, hub: LearningHub = None):
+    def navigateToModuleContentView(self, courseCode, contentTitle, contentType, hub: LearningHub = None):
         hub = self.controller.widgetsDict["learninghub"]
         hub.role = self.role
         hub.prisma = self.controller.mainPrisma
         hub.loadCourseHubContent(courseCode)
-        hub.learninghubquizzesvar.set(contentTitle)
-        self.controller.widgetsDict["learninghubquizzesmb"].config(
-            text=contentTitle)
-        hub.loadQuizHubContent(contentTitle)
+        if contentType == "MULTIPLE_CHOICE" or contentType == "FILL_IN_THE_BLANK":
+            hub.learninghubquizzesvar.set(contentTitle)
+            self.controller.widgetsDict["learninghubquizzesmb"].config(
+                text=contentTitle)
+            hub.loadQuizHubContent(contentTitle)
+        elif contentType == "GAME":
+            hub.learninghubgamesvar.set(contentTitle)
+            self.controller.widgetsDict["learninghubgamesmb"].config(
+                text=contentTitle)
+            hub.loadGameHubContent(contentTitle)
         self.controller.show_canvas(LearningHub)
 
     def navigateToModulePostView(self, modulecode, moduletitle, discview: DiscussionsView = None):

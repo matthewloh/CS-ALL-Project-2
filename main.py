@@ -188,6 +188,8 @@ class Window(ElementCreator):
             self.widgetsDict["completeregbutton"].grid_remove()
         except:
             pass
+        self.widgetsDict["signinemail"].delete(0, END)
+        self.widgetsDict["signinpassent"].delete(0, END)
         self.widgetsDict["skipbutton"].grid_remove()
         self.widgetsDict["gofullscreenbtn"].grid_remove()
         self.widgetsDict["backbutton"].grid()
@@ -423,6 +425,8 @@ class Window(ElementCreator):
                 bootstyle=SUCCESS,
             )
             toast.show_toast()
+            self.widgetsDict["signinemail"].delete(0, END)
+            self.widgetsDict["signinpassent"].delete(0, END)
             self.show_frame(Dashboard)
             self.show_canvas(DashboardCanvas)
             dashboard = self.widgetsDict["dashboard"]
@@ -726,7 +730,7 @@ class Dashboard(Frame):
                 include={
                     "student": {
                         "include": {
-                            "userProfile": True
+                             "userProfile": True
                         }
                     }
                 }
@@ -752,7 +756,7 @@ class Dashboard(Frame):
             c.textElement(
                 imagepath=APPTEXTBG, xpos=initCoords[0], ypos=initCoords[1],
                 classname=f"{app.id}appointmentwidget", root=self.dashboardAppsScrolledFrame,
-                text=f"{app.title}\nwith {app.lecturer.userProfile.fullName}" if self.role == "student" else f"{app.title} with {app.student.userProfile.fullName}",
+                text=f"{app.title}\nwith {app.lecturer.userProfile.fullName}" if self.role == "student" else f"{app.title}\nwith {app.student.userProfile.fullName}",
                 size=28,
                 buttonFunction=lambda e=app: self.navigateToAppointments(e),
                 isPlaced=True, yIndex=-1/2,
@@ -896,7 +900,7 @@ class Dashboard(Frame):
             hub.learninghubgamesvar.set(contentTitle)
             self.controller.widgetsDict["learninghubgamesmb"].config(
                 text=contentTitle)
-            hub.loadGameHubContent
+            hub.loadGameHubContent(contentTitle)
         self.controller.show_canvas(LearningHub)
 
     def navigateToModulePostView(self, modulecode, moduletitle, discview: DiscussionsView = None):

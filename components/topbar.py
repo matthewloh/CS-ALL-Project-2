@@ -45,10 +45,10 @@ class TopBar(Frame):
              ]),
             (r"Assets\Dashboard\searchbar.png", 100, 0, "SearchBar",
              self.framereference, lambda: self.searchBarLogic()),
-            (r"Assets\Dashboard\RibbonTopBar.png", 1760, 20,
-             "RibbonTopBar", self.framereference, lambda: print("hello-4")),
-            (r"Assets\Dashboard\BellTopBar.png", 1820, 20, "BellTopBar",
-             self.framereference, lambda: print("hello-3")),
+            # (r"Assets\Dashboard\RibbonTopBar.png", 1760, 20,
+            #  "RibbonTopBar", self.framereference, lambda: print("hello-4")),
+            # (r"Assets\Dashboard\BellTopBar.png", 1820, 20, "BellTopBar",
+            #  self.framereference, lambda: print("hello-3")),
         ]
         self.load()
         self.openSearchSettings = [
