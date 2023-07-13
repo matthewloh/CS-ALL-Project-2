@@ -1,0 +1,22 @@
+preseeded information
+
+#tasks:
+create a student 
+create a lecturer named Shyamala Nadarajan
+
+# invalid student email 
+already registered
+p21013568@student.newinti.edu.my 
+# invalid lecturer email
+shyamala.nadarajan@newinti.edu.my
+# invalid phone number
+# must be 10 digits long
+#invalid password, password must be at least 8 characters long,
+#contain at least one uppercase letter, one lowercase letter, and one number
+#symbol
+
+# invalid password confirmation, must match password.
+
+# invalid captcha input
+
+# backend distribution of the tables

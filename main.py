@@ -120,11 +120,14 @@ class Window(ElementCreator):
 
     def test(self):
         def foo():
-            self.mainPrisma.execute_raw(
-                """
+            if self.mainPrisma.is_connected:
+                self.mainPrisma.execute_raw(
+                    """
                     SELECT 1;
                     """
-            )
+                )
+            else:
+                self.mainPrisma.connect()
         t = threading.Thread(target=foo)
         t.daemon = True
         t.start()

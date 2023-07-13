@@ -200,13 +200,13 @@ model ModuleUpload {
   moduleId    String
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
-  uploaderId  String
+  uploaderId  String                  
   editedAt    DateTime?               @default(now())
   uploadType  ModuleUpload_uploadType @default(LINK)
   description String?
   title       String
-  module      Module                  @relation(fields: [moduleId], references: [id])
-  uploader    Lecturer                @relation(fields: [uploaderId], references: [id])
+  module      Module                  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  uploader    Lecturer                @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
 
   @@index([moduleId])
   @@index([uploaderId])
